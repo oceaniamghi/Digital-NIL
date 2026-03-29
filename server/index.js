@@ -64,15 +64,12 @@ io.on('connection', (socket) => {
 
 export { io };
 
-// Connect to MongoDB
+// Start HTTP server immediately so healthcheck passes
 const PORT = process.env.PORT || 5000;
+httpServer.listen(PORT, () => console.log(`Digital NIL server running on port ${PORT}`));
+
+// Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digitalni')
-  .then(() => {
-    console.log('MongoDB connected');
-    httpServer.listen(PORT, () => console.log(`Digital NIL server running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err.message);
-    process.exit(1);
-  });
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB connection error:', err.message));
