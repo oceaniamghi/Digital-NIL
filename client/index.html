@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Digital NIL — Athlete Marketing Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#F1F5F9;color:#1E293B;min-height:100vh}
+button{cursor:pointer;border:none;font-family:inherit}
+input,textarea,select{font-family:inherit}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const {useState,useEffect,useRef,useCallback,createContext,useContext}=React;
+
+// ── Theme constants ──────────────────────────────────────────────────────────
+const C={
+  primary:'#2563EB',primaryDark:'#1D4ED8',primaryLight:'#DBEAFE',
+  secondary:'#7C3AED',
+  success:'#10B981',successLight:'#D1FAE5',
+  warning:'#F59E0B',warningLight:'#FEF3C7',
+  danger:'#EF4444',dangerLight:'#FEE2E2',
+  bg:'#F1F5F9',card:'#FFFFFF',border:'#E2E8F0',
+  textPrimary:'#1E293B',textSecondary:'#64748B',textMuted:'#94A3B8',
+  sidebar:'#0F172A',sidebarHover:'#1E293B',sidebarActive:'#2563EB'
+};
+
+// ── Global styles injected ───────────────────────────────────────────────────
+const style=document.createElement('style');
+style.textContent=`
+.card{background:#fff;border-radius:12px;border:1px solid ${C.border};padding:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;transition:all .15s}
+.btn-primary{background:${C.primary};color:#fff}.btn-primary:hover{background:${C.primaryDark}}
+.btn-secondary{background:${C.bg};color:${C.textPrimary};border:1px solid ${C.border}}.btn-secondary:hover{background:#e2e8f0}
+.btn-danger{background:${C.danger};color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-success{background:${C.success};color:#fff}.btn-success:hover{background:#059669}
+.btn-ghost{background:transparent;color:${C.textSecondary};padding:6px 10px}.btn-ghost:hover{background:${C.bg};color:${C.textPrimary}}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500}
+.badge-blue{background:${C.primaryLight};color:${C.primary}}
+.badge-green{background:${C.successLight};color:#065F46}
+.badge-yellow{background:${C.warningLight};color:#92400E}
+.badge-red{background:${C.dangerLight};color:#991B1B}
+.badge-gray{background:#F1F5F9;color:${C.textSecondary}}
+.badge-purple{background:#EDE9FE;color:#5B21B6}
+.input{width:100%;padding:9px 12px;border:1px solid ${C.border};border-radius:8px;font-size:14px;outline:none;transition:border .15s;background:#fff}
+.input:focus{border-color:${C.primary};box-shadow:0 0 0 3px ${C.primaryLight}}
+.label{display:block;font-size:13px;font-weight:500;color:${C.textSecondary};margin-bottom:4px}
+.divider{height:1px;background:${C.border};margin:16px 0}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:24px}
+.avatar{border-radius:50%;object-fit:cover;background:${C.primaryLight};display:flex;align-items:center;justify-content:center;font-weight:600;color:${C.primary};flex-shrink:0}
+.stat-card{background:#fff;border-radius:12px;border:1px solid ${C.border};padding:20px}
+.chart-bar{transition:height .3s ease}
+@media(max-width:768px){
+  .hide-mobile{display:none!important}
+  .show-mobile{display:flex!important}
+  .card{padding:16px}
+  .modal{padding:16px;border-radius:12px}
+  .btn{padding:9px 14px;font-size:13px}
+  .grid-dash{grid-template-columns:1fr!important}
+  .grid-chart{grid-template-columns:1fr!important}
+  .grid-col2{grid-template-columns:1fr!important}
+  .grid-col3{grid-template-columns:1fr 1fr!important}
+  .page-wrap{padding:16px!important;padding-bottom:80px!important}
+  .stat-grid{grid-template-columns:1fr 1fr!important}
+  .hide-sm{display:none!important}
+}
+@media(max-width:420px){
+  .grid-col3{grid-template-columns:1fr!important}
+  .stat-grid{grid-template-columns:1fr 1fr!important}
+}
+@media(min-width:769px){.show-mobile{display:none!important}}
+body{overflow-x:hidden}
+`;
+document.head.appendChild(style);
+
+// ── API helper ───────────────────────────────────────────────────────────────
+const API_BASE='/api';
+async function api(method,path,body,token){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(token)opts.headers['Authorization']=`Bearer ${token}`;
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(API_BASE+path,opts);
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error||'Request failed');
+  return data;
+}
+async function apiUpload(path,formData,token){
+  const r=await fetch(API_BASE+path,{method:'POST',headers:{Authorization:`Bearer ${token}`},body:formData});
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error||'Upload failed');
+  return data;
+}
+
+// ── Auth Context ─────────────────────────────────────────────────────────────
+const AuthCtx=createContext(null);
+function useAuth(){return useContext(AuthCtx);}
+
+// ── Utility components ───────────────────────────────────────────────────────
+const Avatar=({name='',src,size=36,style:s={}})=>{
+  const initials=(name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const colors=['#2563EB','#7C3AED','#059669','#D97706','#DC2626','#0891B2'];
+  const bg=colors[(name.charCodeAt(0)||0)%colors.length];
+  if(src)return React.createElement('img',{src,style:{width:size,height:size,borderRadius:'50%',objectFit:'cover',...s}});
+  return React.createElement('div',{style:{width:size,height:size,borderRadius:'50%',background:bg,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*0.38,fontWeight:700,...s}},initials);
+};
+
+const Badge=({status})=>{
+  const map={
+    open:['badge-blue','Open'],applied:['badge-yellow','Applied'],
+    active:['badge-green','Active'],completed:['badge-green','Completed'],
+    declined:['badge-red','Declined'],expired:['badge-gray','Expired'],
+    draft:['badge-gray','Draft'],pending_review:['badge-yellow','Pending Review'],
+    approved:['badge-green','Approved'],posted:['badge-purple','Posted'],
+    rejected:['badge-red','Rejected'],paused:['badge-yellow','Paused']
+  };
+  const [cls,label]=map[status]||['badge-gray',status];
+  return React.createElement('span',{className:`badge ${cls}`},label);
+};
+
+const Spinner=()=>React.createElement('div',{style:{display:'flex',justifyContent:'center',padding:'40px'}},
+  React.createElement('div',{style:{width:32,height:32,border:`3px solid ${C.border}`,borderTopColor:C.primary,borderRadius:'50%',animation:'spin 0.7s linear infinite'}}));
+const spinStyle=document.createElement('style');
+spinStyle.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+document.head.appendChild(spinStyle);
+
+const Empty=({icon='📭',text='Nothing here yet'})=>React.createElement('div',{style:{textAlign:'center',padding:'48px 20px',color:C.textMuted}},
+  React.createElement('div',{style:{fontSize:40,marginBottom:12}},icon),
+  React.createElement('p',{style:{fontSize:14}},text));
+
+function formatMoney(n){return n>=1000?`$${(n/1000).toFixed(1)}k`:`$${n?.toLocaleString()||0}`;}
+function formatNum(n){if(!n)return'0';if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n);}
+function timeAgo(d){
+  const s=Math.floor((Date.now()-new Date(d))/1000);
+  if(s<60)return'just now';if(s<3600)return`${Math.floor(s/60)}m ago`;
+  if(s<86400)return`${Math.floor(s/3600)}h ago`;return`${Math.floor(s/86400)}d ago`;
+}
+const platformEmoji={twitter:'𝕏',instagram:'📸',tiktok:'🎵',youtube:'▶️',facebook:'👤'};
+const typeLabel={social_post:'Social Post',video:'Video',appearance:'Appearance',licensing:'Licensing',ambassador:'Ambassador',other:'Other'};
+
+// ── Bar Chart ────────────────────────────────────────────────────────────────
+const BarChart=({data,label='total',color=C.primary,unit='$'})=>{
+  if(!data?.length)return null;
+  const max=Math.max(...data.map(d=>d[label]||0),1);
+  return React.createElement('div',{style:{display:'flex',alignItems:'flex-end',gap:8,height:120,marginTop:8}},
+    data.map((d,i)=>React.createElement('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}},
+      React.createElement('div',{style:{fontSize:10,color:C.textMuted,fontWeight:500}},(d[label]||0)>0?`${unit}${formatNum(d[label])}`:''),
+      React.createElement('div',{style:{width:'100%',background:color,borderRadius:'4px 4px 0 0',height:`${Math.max(4,((d[label]||0)/max)*100)}px`,transition:'height .3s'}}),
+      React.createElement('div',{style:{fontSize:10,color:C.textMuted}},d.label))));
+};
+
+// ── Modal wrapper ─────────────────────────────────────────────────────────────
+const Modal=({open,onClose,title,children,maxWidth=600})=>{
+  if(!open)return null;
+  return React.createElement('div',{className:'modal-overlay',onClick:e=>{if(e.target===e.currentTarget)onClose();}},
+    React.createElement('div',{className:'modal',style:{maxWidth}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}},
+        React.createElement('h2',{style:{fontSize:18,fontWeight:700}},title),
+        React.createElement('button',{className:'btn btn-ghost',onClick:onClose,style:{fontSize:20,padding:'4px 8px'}},'×')),
+      children));
+};
+
+// ── Sidebar Navigation ────────────────────────────────────────────────────────
+const NAV_ATHLETE=[
+  {id:'dashboard',icon:'⊞',label:'Dashboard'},
+  {id:'opportunities',icon:'🎯',label:'Opportunities'},
+  {id:'my-deals',icon:'🤝',label:'My Deals'},
+  {id:'content',icon:'📱',label:'Content Hub'},
+  {id:'analytics',icon:'📊',label:'Analytics'},
+  {id:'profile',icon:'👤',label:'Profile'},
+];
+const NAV_BRAND=[
+  {id:'dashboard',icon:'⊞',label:'Dashboard'},
+  {id:'campaigns',icon:'📣',label:'Campaigns'},
+  {id:'my-deals',icon:'🤝',label:'Deals'},
+  {id:'content',icon:'📱',label:'Content'},
+  {id:'analytics',icon:'📊',label:'Analytics'},
+  {id:'profile',icon:'👤',label:'Profile'},
+];
+
+const Sidebar=({view,setView,user,onLogout,unread})=>{
+  const nav=user?.role==='brand'?NAV_BRAND:NAV_ATHLETE;
+  return React.createElement('div',{className:'hide-mobile',style:{width:220,background:C.sidebar,minHeight:'100vh',display:'flex',flexDirection:'column',flexShrink:0}},
+    // Logo
+    React.createElement('div',{style:{padding:'24px 20px 20px',borderBottom:'1px solid #1E293B'}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10}},
+        React.createElement('div',{style:{width:32,height:32,background:C.primary,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}},'⚡'),
+        React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:16,letterSpacing:'-0.5px'}},'Digital NIL'))),
+    // Nav items
+    React.createElement('nav',{style:{flex:1,padding:'12px 0'}},
+      nav.map(n=>React.createElement('button',{key:n.id,onClick:()=>setView(n.id),
+        style:{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 20px',background:view===n.id?C.sidebarActive:'transparent',color:view===n.id?'#fff':'#94A3B8',borderRadius:0,fontSize:14,fontWeight:view===n.id?600:400,transition:'all .15s',textAlign:'left',position:'relative'}},
+        React.createElement('span',{style:{fontSize:16}},n.icon),
+        n.label,
+        n.id==='dashboard'&&unread>0?React.createElement('span',{style:{marginLeft:'auto',background:C.danger,color:'#fff',borderRadius:'999px',fontSize:11,fontWeight:700,padding:'1px 6px'}},unread):null))),
+    // User info + logout
+    React.createElement('div',{style:{padding:'16px 20px',borderTop:'1px solid #1E293B'}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:12}},
+        React.createElement(Avatar,{name:user?.name,src:user?.avatar,size:32}),
+        React.createElement('div',{style:{flex:1,minWidth:0}},
+          React.createElement('div',{style:{color:'#fff',fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},user?.name),
+          React.createElement('div',{style:{color:'#64748B',fontSize:11,textTransform:'capitalize'}},user?.role))),
+      React.createElement('button',{className:'btn btn-ghost',onClick:onLogout,style:{color:'#64748B',padding:'6px 0',fontSize:13,width:'100%',justifyContent:'flex-start'}},'Sign out')));
+};
+
+const BottomNav=({view,setView,user,unread})=>{
+  const nav=user?.role==='brand'?NAV_BRAND:NAV_ATHLETE;
+  return React.createElement('div',{className:'show-mobile',style:{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:`1px solid ${C.border}`,display:'flex',zIndex:100}},
+    nav.slice(0,5).map(n=>React.createElement('button',{key:n.id,onClick:()=>setView(n.id),
+      style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'8px 4px',background:'transparent',color:view===n.id?C.primary:C.textMuted,fontSize:9,fontWeight:view===n.id?600:400,position:'relative'}},
+      React.createElement('span',{style:{fontSize:20}},n.icon),
+      n.label)));
+};
+
+// ── Auth Screen ───────────────────────────────────────────────────────────────
+const AuthScreen=({onAuth})=>{
+  const[tab,setTab]=useState('login');
+  const[form,setForm]=useState({email:'',password:'',name:'',role:'athlete',sport:'',school:'',company:'',industry:''});
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState('');
+  const set=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
+
+  const submit=async e=>{
+    e.preventDefault();setError('');setLoading(true);
+    try{
+      const data=await api('POST',`/auth/${tab}`,form);
+      localStorage.setItem('as_token',data.token);
+      onAuth(data.user,data.token);
+    }catch(err){setError(err.message);}
+    setLoading(false);
+  };
+
+  return React.createElement('div',{style:{minHeight:'100vh',display:'flex'}},
+    // Left panel
+    React.createElement('div',{className:'hide-mobile',style:{width:'45%',background:`linear-gradient(135deg,#0F172A 0%,#1E3A8A 100%)`,display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 48px'}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:40}},
+        React.createElement('div',{style:{width:44,height:44,background:C.primary,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}},'⚡'),
+        React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:22,letterSpacing:'-0.5px'}},'Digital NIL')),
+      React.createElement('h1',{style:{color:'#fff',fontSize:36,fontWeight:800,lineHeight:1.2,marginBottom:16}},'Your NIL.\nYour Brand.\nYour Future.'),
+      React.createElement('p',{style:{color:'#94A3B8',fontSize:16,lineHeight:1.6,marginBottom:40}},'Connect with top brands, manage your NIL deals, and grow your athlete brand — all in one place.'),
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:16}},
+        [['🎯','500+ Brand Opportunities'],['💰','$2M+ Paid to Athletes'],['📊','Track Your Performance']].map(([icon,text])=>
+          React.createElement('div',{key:text,style:{display:'flex',alignItems:'center',gap:12,color:'#CBD5E1',fontSize:15}},
+            React.createElement('span',{style:{fontSize:20}},icon),text)))),
+    // Right panel
+    React.createElement('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px',background:'#fff'}},
+      React.createElement('div',{style:{width:'100%',maxWidth:400}},
+        React.createElement('h2',{style:{fontSize:24,fontWeight:700,marginBottom:4}},tab==='login'?'Welcome back':'Create account'),
+        React.createElement('p',{style:{color:C.textSecondary,marginBottom:28,fontSize:14}},tab==='login'?'Sign in to your account':'Join thousands of athletes on Digital NIL'),
+        // Tabs
+        React.createElement('div',{style:{display:'flex',background:C.bg,borderRadius:8,padding:4,marginBottom:24}},
+          ['login','register'].map(t=>React.createElement('button',{key:t,onClick:()=>{setTab(t);setError('');},
+            style:{flex:1,padding:'8px',borderRadius:6,background:tab===t?'#fff':'transparent',color:tab===t?C.textPrimary:C.textSecondary,fontWeight:tab===t?600:400,fontSize:14,boxShadow:tab===t?'0 1px 3px rgba(0,0,0,.1)':'none',transition:'all .15s'}},
+            t==='login'?'Sign In':'Sign Up'))),
+        error&&React.createElement('div',{style:{background:C.dangerLight,color:'#991B1B',padding:'10px 14px',borderRadius:8,fontSize:13,marginBottom:16}},error),
+        React.createElement('form',{onSubmit:submit},
+          tab==='register'&&React.createElement(React.Fragment,null,
+            React.createElement('div',{style:{marginBottom:14}},
+              React.createElement('label',{className:'label'},'Full Name'),
+              React.createElement('input',{className:'input',placeholder:'Your full name',value:form.name,onChange:set('name'),required:true})),
+            React.createElement('div',{style:{marginBottom:14}},
+              React.createElement('label',{className:'label'},'I am a...'),
+              React.createElement('select',{className:'input',value:form.role,onChange:set('role')},
+                React.createElement('option',{value:'athlete'},'🏃 Athlete'),
+                React.createElement('option',{value:'brand'},'🏢 Brand / Company'),
+                React.createElement('option',{value:'agent'},'🤝 Agent'))),
+            form.role==='athlete'&&React.createElement(React.Fragment,null,
+              React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
+                React.createElement('div',null,React.createElement('label',{className:'label'},'Sport'),React.createElement('input',{className:'input',placeholder:'Football',value:form.sport,onChange:set('sport')})),
+                React.createElement('div',null,React.createElement('label',{className:'label'},'School / Team'),React.createElement('input',{className:'input',placeholder:'Ohio State',value:form.school,onChange:set('school')})))),
+            form.role==='brand'&&React.createElement(React.Fragment,null,
+              React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
+                React.createElement('div',null,React.createElement('label',{className:'label'},'Company'),React.createElement('input',{className:'input',placeholder:'Nike',value:form.company,onChange:set('company')})),
+                React.createElement('div',null,React.createElement('label',{className:'label'},'Industry'),React.createElement('input',{className:'input',placeholder:'Apparel',value:form.industry,onChange:set('industry')}))))),
+          React.createElement('div',{style:{marginBottom:14}},
+            React.createElement('label',{className:'label'},'Email'),
+            React.createElement('input',{className:'input',type:'email',placeholder:'you@email.com',value:form.email,onChange:set('email'),required:true})),
+          React.createElement('div',{style:{marginBottom:20}},
+            React.createElement('label',{className:'label'},'Password'),
+            React.createElement('input',{className:'input',type:'password',placeholder:'••••••••',value:form.password,onChange:set('password'),required:true,minLength:6})),
+          React.createElement('button',{className:'btn btn-primary',type:'submit',disabled:loading,style:{width:'100%',justifyContent:'center',padding:'11px',fontSize:15,fontWeight:600}},
+            loading?'Please wait…':tab==='login'?'Sign In →':'Create Account →')))));
+};
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+const Dashboard=({token,user,onNavigate})=>{
+  const[data,setData]=useState(null);
+  const[activities,setActivities]=useState([]);
+  const[loading,setLoading]=useState(true);
+  useEffect(()=>{
+    Promise.all([api('GET','/analytics/overview',null,token),api('GET','/activity',null,token)])
+      .then(([a,b])=>{setData(a);setActivities(b.activities||[]);})
+      .catch(()=>{})
+      .finally(()=>setLoading(false));
+  },[token]);
+
+  if(loading)return React.createElement(Spinner);
+  const s=data?.stats||{};
+  const isAthlete=user.role==='athlete';
+
+  const stats=isAthlete?[
+    {label:'Active Deals',value:s.activeDeals||0,icon:'🤝',color:C.primary},
+    {label:'Total Earnings',value:formatMoney(s.totalEarnings||0),icon:'💰',color:C.success},
+    {label:'Content Posted',value:s.postedContent||0,icon:'📱',color:C.secondary},
+    {label:'Total Followers',value:formatNum(s.totalFollowers||0),icon:'👥',color:C.warning},
+  ]:[
+    {label:'Active Campaigns',value:s.activeCampaigns||0,icon:'📣',color:C.primary},
+    {label:'Active Deals',value:s.activeDeals||0,icon:'🤝',color:C.success},
+    {label:'Total Spend',value:formatMoney(s.totalSpend||0),icon:'💳',color:C.secondary},
+    {label:'Pending Reviews',value:s.pendingReviews||0,icon:'🔍',color:C.warning},
+  ];
+
+  const activityIcons={deal_offer:'🎯',deal_applied:'📝',deal_accepted:'✅',deal_declined:'❌',deal_completed:'🏆',content_submitted:'📤',content_approved:'✅',content_rejected:'❌',content_posted:'📱',payment_received:'💰',campaign_launched:'📣',social_connected:'🔗'};
+
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{marginBottom:24}},
+      React.createElement('h1',{style:{fontSize:22,fontWeight:700}},`Good day, ${user.name.split(' ')[0]} 👋`),
+      React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Here\'s what\'s happening with your NIL activity')),
+    // Stats grid
+    React.createElement('div',{className:'stat-grid',style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:16,marginBottom:24}},
+      stats.map((st,i)=>React.createElement('div',{key:i,className:'stat-card'},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}},
+          React.createElement('span',{style:{fontSize:13,color:C.textSecondary,fontWeight:500}},st.label),
+          React.createElement('span',{style:{fontSize:22}},st.icon)),
+        React.createElement('div',{style:{fontSize:28,fontWeight:800,color:st.color}},st.value)))),
+    // Two-column layout
+    React.createElement('div',{className:'grid-dash',style:{display:'grid',gridTemplateColumns:'1fr 360px',gap:16}},
+      // Recent Deals
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}},
+          React.createElement('h3',{style:{fontWeight:700,fontSize:15}},'Recent Deals'),
+          React.createElement('button',{className:'btn btn-ghost',style:{fontSize:13},onClick:()=>onNavigate('my-deals')},'View all →')),
+        !data?.recentDeals?.length?React.createElement(Empty,{icon:'🤝',text:'No deals yet'}):
+        data.recentDeals.map(d=>React.createElement('div',{key:d._id,style:{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:`1px solid ${C.border}`}},
+          React.createElement(Avatar,{name:isAthlete?d.brand?.name:d.athlete?.name,src:isAthlete?d.brand?.logo:d.athlete?.avatar,size:36}),
+          React.createElement('div',{style:{flex:1}},
+            React.createElement('div',{style:{fontSize:14,fontWeight:600}},d.title),
+            React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},isAthlete?d.brand?.company||d.brand?.name:d.athlete?.name||'Open')),
+          React.createElement('div',{style:{textAlign:'right'}},
+            React.createElement(Badge,{status:d.status}),
+            React.createElement('div',{style:{fontSize:13,fontWeight:700,color:C.success,marginTop:4}},formatMoney(d.compensation?.amount||0)))))),
+      // Activity feed
+      React.createElement('div',{className:'card'},
+        React.createElement('h3',{style:{fontWeight:700,fontSize:15,marginBottom:16}},'Activity Feed'),
+        !activities.length?React.createElement(Empty,{icon:'📭',text:'No recent activity'}):
+        activities.slice(0,8).map(a=>React.createElement('div',{key:a._id,style:{display:'flex',gap:10,padding:'8px 0',borderBottom:`1px solid ${C.border}`}},
+          React.createElement('span',{style:{fontSize:20,flexShrink:0}},activityIcons[a.type]||'📌'),
+          React.createElement('div',{style:{flex:1}},
+            React.createElement('div',{style:{fontSize:13,fontWeight:600}},a.title),
+            React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginTop:2}},a.message),
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:4}},timeAgo(a.createdAt))))))));
+};
+
+// ── Opportunities (Athlete) ───────────────────────────────────────────────────
+const Opportunities=({token,user})=>{
+  const[deals,setDeals]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[filters,setFilters]=useState({search:'',type:'',platform:''});
+  const[selected,setSelected]=useState(null);
+  const[applying,setApplying]=useState(false);
+  const[applyMsg,setApplyMsg]=useState('');
+  const[error,setError]=useState('');
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const p=new URLSearchParams();
+    if(filters.search)p.set('search',filters.search);
+    if(filters.type)p.set('type',filters.type);
+    if(filters.platform)p.set('platform',filters.platform);
+    const data=await api('GET',`/deals/opportunities?${p}`,null,token).catch(()=>({deals:[]}));
+    setDeals(data.deals||[]);
+    setLoading(false);
+  },[token,filters]);
+
+  useEffect(()=>{load();},[load]);
+
+  const apply=async()=>{
+    if(!selected)return;
+    setApplying(true);setError('');
+    try{
+      await api('PUT',`/deals/${selected._id}/apply`,{message:applyMsg},token);
+      setSelected(null);setApplyMsg('');
+      load();
+    }catch(err){setError(err.message);}
+    setApplying(false);
+  };
+
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{marginBottom:24}},
+      React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Opportunities'),
+      React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Browse available brand deals and sponsorships')),
+    // Filters
+    React.createElement('div',{style:{display:'flex',gap:10,marginBottom:20,flexWrap:'wrap'}},
+      React.createElement('input',{className:'input',placeholder:'🔍 Search deals…',value:filters.search,onChange:e=>setFilters(f=>({...f,search:e.target.value})),style:{maxWidth:260}}),
+      React.createElement('select',{className:'input',value:filters.type,onChange:e=>setFilters(f=>({...f,type:e.target.value})),style:{maxWidth:160}},
+        React.createElement('option',{value:''},'All types'),
+        Object.entries(typeLabel).map(([v,l])=>React.createElement('option',{key:v,value:v},l))),
+      React.createElement('select',{className:'input',value:filters.platform,onChange:e=>setFilters(f=>({...f,platform:e.target.value})),style:{maxWidth:160}},
+        React.createElement('option',{value:''},'All platforms'),
+        ['twitter','instagram','tiktok','youtube','facebook'].map(p=>React.createElement('option',{key:p,value:p},platformEmoji[p]+' '+p.charAt(0).toUpperCase()+p.slice(1)))),
+      React.createElement('button',{className:'btn btn-primary',onClick:load},'Search')),
+    loading?React.createElement(Spinner):
+    !deals.length?React.createElement(Empty,{icon:'🎯',text:'No opportunities match your filters'}):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:16}},
+      deals.map(d=>React.createElement('div',{key:d._id,className:'card',style:{cursor:'pointer',transition:'box-shadow .15s'},
+        onMouseEnter:e=>e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,.1)',
+        onMouseLeave:e=>e.currentTarget.style.boxShadow='none',
+        onClick:()=>{setSelected(d);setApplyMsg('');setError('');}},
+        d.featuredImage&&React.createElement('img',{src:d.featuredImage,style:{width:'100%',height:120,objectFit:'cover',borderRadius:8,marginBottom:12}}),
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:12}},
+          React.createElement(Avatar,{name:d.brand?.company||d.brand?.name,src:d.brand?.logo,size:38}),
+          React.createElement('div',null,
+            React.createElement('div',{style:{fontSize:14,fontWeight:700}},d.brand?.company||d.brand?.name),
+            React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},d.brand?.industry))),
+        React.createElement('h3',{style:{fontSize:15,fontWeight:700,marginBottom:6}},d.title),
+        React.createElement('p',{style:{fontSize:13,color:C.textSecondary,marginBottom:12,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}},d.description),
+        React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:6,marginBottom:12}},
+          React.createElement('span',{className:'badge badge-blue'},typeLabel[d.type]||d.type),
+          (d.platforms||[]).map(p=>React.createElement('span',{key:p,className:'badge badge-gray'},platformEmoji[p]||p))),
+        React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
+          React.createElement('div',{style:{fontSize:20,fontWeight:800,color:C.success}},formatMoney(d.compensation?.amount||0),
+            React.createElement('span',{style:{fontSize:12,color:C.textMuted,fontWeight:400,marginLeft:4}},d.compensation?.type?.replace(/_/g,' '))),
+          React.createElement(Badge,{status:d.status}))))),
+    // Apply modal
+    React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:selected?.title||'Deal Details'},
+      selected&&React.createElement('div',null,
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:16,padding:'14px',background:C.bg,borderRadius:10}},
+          React.createElement(Avatar,{name:selected.brand?.company||selected.brand?.name,src:selected.brand?.logo,size:44}),
+          React.createElement('div',null,
+            React.createElement('div',{style:{fontWeight:700}},selected.brand?.company||selected.brand?.name),
+            React.createElement('div',{style:{fontSize:13,color:C.textSecondary}},selected.brand?.industry))),
+        React.createElement('p',{style:{fontSize:14,color:C.textSecondary,marginBottom:16}},selected.description),
+        React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}},
+          [['💰 Compensation',formatMoney(selected.compensation?.amount)+' '+selected.compensation?.type?.replace(/_/g,' ')],
+           ['📋 Type',typeLabel[selected.type]||selected.type],
+           ['📱 Platforms',(selected.platforms||[]).join(', ')||'Any'],
+           ['📅 Expires',selected.expiresAt?new Date(selected.expiresAt).toLocaleDateString():'No deadline'],
+           ['🔖 Disclosure',selected.disclosureTag||'#ad'],
+           ['📊 Min Followers',formatNum(selected.minFollowers||0)]].map(([k,v])=>
+          React.createElement('div',{key:k,style:{background:C.bg,padding:10,borderRadius:8}},
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginBottom:2}},k),
+            React.createElement('div',{style:{fontSize:13,fontWeight:600}},v)))),
+        selected.deliverables?.length?React.createElement('div',{style:{marginBottom:16}},
+          React.createElement('h4',{style:{fontSize:13,fontWeight:700,marginBottom:8}},'Deliverables'),
+          selected.deliverables.map((d,i)=>React.createElement('div',{key:i,style:{padding:'8px 12px',background:C.bg,borderRadius:6,marginBottom:6,fontSize:13}},
+            React.createElement('strong',null,d.type),' on ',d.platform,' — ',d.description||'See requirements',
+            d.deadline&&React.createElement('span',{style:{color:C.textMuted,marginLeft:8}},'Due: '+new Date(d.deadline).toLocaleDateString())))):null,
+        error&&React.createElement('div',{style:{background:C.dangerLight,color:'#991B1B',padding:10,borderRadius:8,marginBottom:12,fontSize:13}},error),
+        selected.status==='open'&&React.createElement('div',null,
+          React.createElement('label',{className:'label'},'Application message (optional)'),
+          React.createElement('textarea',{className:'input',rows:3,placeholder:'Tell the brand why you\'re a great fit…',value:applyMsg,onChange:e=>setApplyMsg(e.target.value),style:{resize:'none',marginBottom:12}}),
+          React.createElement('button',{className:'btn btn-primary',onClick:apply,disabled:applying,style:{width:'100%',justifyContent:'center',padding:'11px',fontSize:15}},
+            applying?'Applying…':'Apply for this Deal 🚀')))));
+};
+
+// ── My Deals ──────────────────────────────────────────────────────────────────
+const MyDeals=({token,user})=>{
+  const[deals,setDeals]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[tab,setTab]=useState('all');
+  const[selected,setSelected]=useState(null);
+  const isBrand=user.role==='brand';
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const p=tab!=='all'?`?status=${tab}`:'';
+    const data=await api('GET',`/deals/my-deals${p}`,null,token).catch(()=>({deals:[]}));
+    setDeals(data.deals||[]);setLoading(false);
+  },[token,tab]);
+
+  useEffect(()=>{load();},[load]);
+
+  const tabs=['all','active','applied','completed','declined'];
+
+  const action=async(dealId,act,extra={})=>{
+    try{
+      await api('PUT',`/deals/${dealId}/${act}`,extra,token);
+      load();setSelected(null);
+    }catch(err){alert(err.message);}
+  };
+
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('h1',{style:{fontSize:22,fontWeight:700,marginBottom:4}},'My Deals'),
+    React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginBottom:20}},'Manage your active and past sponsorship deals'),
+    React.createElement('div',{style:{display:'flex',gap:6,marginBottom:20,flexWrap:'wrap'}},
+      tabs.map(t=>React.createElement('button',{key:t,onClick:()=>setTab(t),
+        style:{padding:'6px 14px',borderRadius:999,background:tab===t?C.primary:C.bg,color:tab===t?'#fff':C.textSecondary,fontSize:13,fontWeight:tab===t?600:400,border:`1px solid ${tab===t?C.primary:C.border}`,cursor:'pointer',transition:'all .15s',textTransform:'capitalize'}},t))),
+    loading?React.createElement(Spinner):
+    !deals.length?React.createElement(Empty,{icon:'🤝',text:'No deals found'}):
+    React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:12}},
+      deals.map(d=>{
+        const other=isBrand?d.athlete:d.brand;
+        const otherName=isBrand?(d.athlete?.name||'Open'):(d.brand?.company||d.brand?.name);
+        return React.createElement('div',{key:d._id,className:'card',style:{cursor:'pointer'},
+          onClick:()=>setSelected(d)},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:14}},
+            React.createElement(Avatar,{name:otherName,src:isBrand?d.athlete?.avatar:d.brand?.logo,size:44}),
+            React.createElement('div',{style:{flex:1}},
+              React.createElement('div',{style:{fontSize:15,fontWeight:700,marginBottom:2}},d.title),
+              React.createElement('div',{style:{fontSize:13,color:C.textSecondary}},otherName,d.athlete?.sport?' · '+d.athlete.sport:'')),
+            React.createElement('div',{style:{textAlign:'right',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}},
+              React.createElement(Badge,{status:d.status}),
+              React.createElement('div',{style:{fontSize:16,fontWeight:800,color:C.success}},formatMoney(d.compensation?.amount||0)),
+              React.createElement('div',{style:{fontSize:11,color:C.textMuted}},new Date(d.createdAt).toLocaleDateString()))));})),
+    // Deal detail modal
+    React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:selected?.title||'Deal'},
+      selected&&React.createElement('div',null,
+        React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:10,marginBottom:16}},
+          React.createElement(Badge,{status:selected.status}),
+          React.createElement('span',{className:'badge badge-blue'},typeLabel[selected.type])),
+        React.createElement('p',{style:{fontSize:14,color:C.textSecondary,marginBottom:16}},selected.description),
+        React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}},
+          [['Compensation',formatMoney(selected.compensation?.amount)],['Type',selected.compensation?.type?.replace(/_/g,' ')],
+           ['Started',selected.startDate?new Date(selected.startDate).toLocaleDateString():'TBD'],
+           ['Ends',selected.endDate?new Date(selected.endDate).toLocaleDateString():'TBD']].map(([k,v])=>
+          React.createElement('div',{key:k,style:{background:C.bg,padding:10,borderRadius:8}},
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted}},k),
+            React.createElement('div',{style:{fontSize:14,fontWeight:600}},v)))),
+        // Brand actions on applied deals
+        isBrand&&selected.status==='applied'&&selected.applications?.length?
+          React.createElement('div',{style:{marginBottom:16}},
+            React.createElement('h4',{style:{fontSize:13,fontWeight:700,marginBottom:10}},'Applications'),
+            selected.applications.filter(a=>a.status==='pending').map(app=>
+              React.createElement('div',{key:app._id,style:{display:'flex',alignItems:'center',gap:10,padding:'10px',background:C.bg,borderRadius:8,marginBottom:8}},
+                React.createElement(Avatar,{name:app.athlete?.name,src:app.athlete?.avatar,size:36}),
+                React.createElement('div',{style:{flex:1}},
+                  React.createElement('div',{style:{fontSize:13,fontWeight:600}},app.athlete?.name||'Athlete'),
+                  app.message&&React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},app.message)),
+                React.createElement('button',{className:'btn btn-success',style:{padding:'6px 12px',fontSize:12},
+                  onClick:()=>action(selected._id,'accept',{athleteId:app.athlete?._id})},'Accept')))):null,
+        selected.status==='active'&&isBrand?
+          React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center'},
+            onClick:()=>action(selected._id,'complete')},'Mark as Completed ✓'):null,
+        selected.status==='active'&&!isBrand?
+          React.createElement('div',{style:{background:C.successLight,color:'#065F46',padding:'12px',borderRadius:8,fontSize:13,textAlign:'center'}},
+            '✅ This deal is active! Submit your content to continue.'):null)));
+};
+
+// ── Content Hub ───────────────────────────────────────────────────────────────
+const ContentHub=({token,user})=>{
+  const[content,setContent]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[showUpload,setShowUpload]=useState(false);
+  const[selected,setSelected]=useState(null);
+  const[form,setForm]=useState({title:'',caption:'',hashtags:'',disclosureTag:'#ad',platforms:[]});
+  const[file,setFile]=useState(null);
+  const[uploading,setUploading]=useState(false);
+  const[error,setError]=useState('');
+  const[tab,setTab]=useState('all');
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const p=tab!=='all'?`?status=${tab}`:'';
+    const data=await api('GET',`/content${p}`,null,token).catch(()=>({content:[]}));
+    setContent(data.content||[]);setLoading(false);
+  },[token,tab]);
+
+  useEffect(()=>{load();},[load]);
+
+  const upload=async e=>{
+    e.preventDefault();setUploading(true);setError('');
+    try{
+      const fd=new FormData();
+      fd.append('title',form.title);fd.append('caption',form.caption);
+      fd.append('hashtags',JSON.stringify(form.hashtags.split(',').map(h=>h.trim()).filter(Boolean)));
+      fd.append('disclosureTag',form.disclosureTag);
+      fd.append('platforms',JSON.stringify(form.platforms));
+      if(file)fd.append('file',file);
+      await apiUpload('/content/upload',fd,token);
+      setShowUpload(false);setForm({title:'',caption:'',hashtags:'',disclosureTag:'#ad',platforms:[]});setFile(null);
+      load();
+    }catch(err){setError(err.message);}
+    setUploading(false);
+  };
+
+  const approve=async id=>{
+    try{await api('PUT',`/content/${id}/approve`,{},token);load();}catch(err){alert(err.message);}
+  };
+  const reject=async id=>{
+    const reason=prompt('Reason for rejection:');
+    if(reason===null)return;
+    try{await api('PUT',`/content/${id}/reject`,{reason},token);load();}catch(err){alert(err.message);}
+  };
+  const markPosted=async id=>{
+    try{await api('PUT',`/content/${id}/post`,{},token);load();}catch(err){alert(err.message);}
+  };
+
+  const statusTabs=['all','draft','pending_review','approved','posted','rejected'];
+  const isAthlete=user.role!=='brand';
+
+  const typeIcon={image:'🖼️',video:'🎬',text:'📝',carousel:'🎠',story:'⭕'};
+
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}},
+      React.createElement('div',null,
+        React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Content Hub'),
+        React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Manage your sponsored content')),
+      isAthlete&&React.createElement('button',{className:'btn btn-primary',onClick:()=>{setShowUpload(true);setError('');}},
+        '+ Upload Content')),
+    React.createElement('div',{style:{display:'flex',gap:6,marginBottom:20,flexWrap:'wrap'}},
+      statusTabs.map(t=>React.createElement('button',{key:t,onClick:()=>setTab(t),
+        style:{padding:'6px 14px',borderRadius:999,background:tab===t?C.primary:C.bg,color:tab===t?'#fff':C.textSecondary,fontSize:13,fontWeight:tab===t?600:400,border:`1px solid ${tab===t?C.primary:C.border}`,cursor:'pointer',textTransform:'capitalize',transition:'all .15s'}},
+        t.replace('_',' ')))),
+    loading?React.createElement(Spinner):
+    !content.length?React.createElement(Empty,{icon:'📱',text:'No content found'}):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}},
+      content.map(c=>React.createElement('div',{key:c._id,className:'card'},
+        c.fileUrl&&c.type==='image'?React.createElement('img',{src:c.fileUrl,style:{width:'100%',height:140,objectFit:'cover',borderRadius:8,marginBottom:12}}):
+        React.createElement('div',{style:{width:'100%',height:100,background:C.bg,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:36,marginBottom:12}},typeIcon[c.type]||'📄'),
+        React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}},
+          React.createElement('h3',{style:{fontSize:14,fontWeight:700,flex:1}},c.title),
+          React.createElement(Badge,{status:c.status})),
+        c.caption&&React.createElement('p',{style:{fontSize:12,color:C.textSecondary,marginBottom:8,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}},c.caption),
+        React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}},
+          c.hashtags?.slice(0,3).map(h=>React.createElement('span',{key:h,style:{fontSize:11,background:C.primaryLight,color:C.primary,padding:'2px 6px',borderRadius:4}},h.startsWith('#')?h:`#${h}`))),
+        React.createElement('div',{style:{display:'flex',gap:8,marginTop:'auto'}},
+          c.status==='pending_review'&&!isAthlete?React.createElement(React.Fragment,null,
+            React.createElement('button',{className:'btn btn-success',style:{flex:1,justifyContent:'center',fontSize:12,padding:'7px'},onClick:()=>approve(c._id)},'Approve'),
+            React.createElement('button',{className:'btn btn-danger',style:{flex:1,justifyContent:'center',fontSize:12,padding:'7px'},onClick:()=>reject(c._id)},'Reject')):null,
+          c.status==='approved'&&isAthlete?React.createElement('button',{className:'btn btn-primary',style:{flex:1,justifyContent:'center',fontSize:12,padding:'7px'},onClick:()=>markPosted(c._id)},'Mark as Posted 📤'):null,
+          c.status==='posted'?React.createElement('div',{style:{fontSize:12,color:C.success,fontWeight:600,flex:1,textAlign:'center',padding:'7px'}},`✅ Posted ${c.postedAt?timeAgo(c.postedAt):''}`):null)))),
+    // Upload modal
+    React.createElement(Modal,{open:showUpload,onClose:()=>setShowUpload(false),title:'Upload Content'},
+      React.createElement('form',{onSubmit:upload},
+        React.createElement('div',{style:{marginBottom:14}},
+          React.createElement('label',{className:'label'},'Title'),
+          React.createElement('input',{className:'input',value:form.title,onChange:e=>setForm(f=>({...f,title:e.target.value})),required:true,placeholder:'Content title'})),
+        React.createElement('div',{style:{marginBottom:14}},
+          React.createElement('label',{className:'label'},'Caption'),
+          React.createElement('textarea',{className:'input',rows:3,value:form.caption,onChange:e=>setForm(f=>({...f,caption:e.target.value})),placeholder:'Caption for your post…',style:{resize:'none'}})),
+        React.createElement('div',{style:{marginBottom:14}},
+          React.createElement('label',{className:'label'},'Hashtags (comma separated)'),
+          React.createElement('input',{className:'input',value:form.hashtags,onChange:e=>setForm(f=>({...f,hashtags:e.target.value})),placeholder:'#ad, #sponsored, #brand'})),
+        React.createElement('div',{style:{marginBottom:14}},
+          React.createElement('label',{className:'label'},'Disclosure Tag'),
+          React.createElement('select',{className:'input',value:form.disclosureTag,onChange:e=>setForm(f=>({...f,disclosureTag:e.target.value}))},
+            ['#ad','#sponsored','#partner','#gifted','#collab'].map(t=>React.createElement('option',{key:t,value:t},t)))),
+        React.createElement('div',{style:{marginBottom:14}},
+          React.createElement('label',{className:'label'},'File (image/video)'),
+          React.createElement('input',{type:'file',accept:'image/*,video/*',onChange:e=>setFile(e.target.files[0]),style:{display:'block',fontSize:13}})),
+        error&&React.createElement('div',{style:{background:C.dangerLight,color:'#991B1B',padding:10,borderRadius:8,marginBottom:12,fontSize:13}},error),
+        React.createElement('div',{style:{display:'flex',gap:10,justifyContent:'flex-end'}},
+          React.createElement('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShowUpload(false)},'Cancel'),
+          React.createElement('button',{type:'submit',className:'btn btn-primary',disabled:uploading},uploading?'Uploading…':'Upload Content')))));
+};
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+const Analytics=({token,user})=>{
+  const[overview,setOverview]=useState(null);
+  const[earnings,setEarnings]=useState([]);
+  const[breakdown,setBreakdown]=useState([]);
+  const[loading,setLoading]=useState(true);
+
+  useEffect(()=>{
+    Promise.all([
+      api('GET','/analytics/overview',null,token),
+      api('GET','/analytics/earnings',null,token),
+      api('GET','/analytics/deals',null,token)
+    ]).then(([o,e,d])=>{
+      setOverview(o.stats);setEarnings(e.earnings||[]);setBreakdown(d.breakdown||[]);
+    }).catch(()=>{}).finally(()=>setLoading(false));
+  },[token]);
+
+  if(loading)return React.createElement(Spinner);
+  const s=overview||{};
+  const isAthlete=user.role==='athlete';
+  const earningLabel=isAthlete?'Earnings':'Spend';
+  const totalKey=isAthlete?'totalEarnings':'totalSpend';
+
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{marginBottom:24}},
+      React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Analytics'),
+      React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Track your NIL performance and earnings')),
+    // Summary stats
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:16,marginBottom:24}},
+      [
+        isAthlete?{label:'Total Earnings',val:formatMoney(s[totalKey]||0),color:C.success}:
+                  {label:'Total Spend',val:formatMoney(s[totalKey]||0),color:C.success},
+        {label:'Deals Completed',val:s.completedDeals||0,color:C.primary},
+        isAthlete?{label:'Impressions',val:formatNum(s.totalImpressions||0),color:C.secondary}:
+                  {label:'Active Deals',val:s.activeDeals||0,color:C.secondary},
+        isAthlete?{label:'Total Likes',val:formatNum(s.totalLikes||0),color:C.warning}:
+                  {label:'Campaigns',val:s.activeCampaigns||0,color:C.warning},
+      ].map((st,i)=>React.createElement('div',{key:i,className:'stat-card'},
+        React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginBottom:4}},st.label),
+        React.createElement('div',{style:{fontSize:26,fontWeight:800,color:st.color}},st.val)))),
+    // Charts
+    React.createElement('div',{className:'grid-chart',style:{display:'grid',gridTemplateColumns:'2fr 1fr',gap:16}},
+      React.createElement('div',{className:'card'},
+        React.createElement('h3',{style:{fontSize:15,fontWeight:700,marginBottom:4}},'Monthly '+earningLabel),
+        React.createElement('p',{style:{fontSize:12,color:C.textMuted,marginBottom:12}},'Last 6 months'),
+        React.createElement(BarChart,{data:earnings,label:'total',color:C.primary,unit:'$'})),
+      React.createElement('div',{className:'card'},
+        React.createElement('h3',{style:{fontSize:15,fontWeight:700,marginBottom:16}},'Deals by Status'),
+        !breakdown.length?React.createElement(Empty,{icon:'📊',text:'No data yet'}):
+        React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+          breakdown.map((b,i)=>{
+            const total=breakdown.reduce((s,x)=>s+x.count,0)||1;
+            const pct=Math.round((b.count/total)*100);
+            const colors={active:C.success,completed:C.primary,declined:C.danger,applied:C.warning,open:'#94A3B8'};
+            return React.createElement('div',{key:i},
+              React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:4}},
+                React.createElement('span',{style:{fontWeight:500,textTransform:'capitalize'}},b._id),
+                React.createElement('span',{style:{color:C.textMuted}},b.count+' deals')),
+              React.createElement('div',{style:{height:6,background:C.bg,borderRadius:3}},
+                React.createElement('div',{style:{height:6,background:colors[b._id]||C.textMuted,borderRadius:3,width:pct+'%',transition:'width .4s'}})));
+          })))),
+    // Social followers breakdown (athlete only)
+    isAthlete&&user.socialHandles?.length?
+      React.createElement('div',{className:'card',style:{marginTop:16}},
+        React.createElement('h3',{style:{fontSize:15,fontWeight:700,marginBottom:16}},'Social Media Reach'),
+        React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}},
+          user.socialHandles.map(s=>React.createElement('div',{key:s.platform,style:{background:C.bg,padding:14,borderRadius:10,textAlign:'center'}},
+            React.createElement('div',{style:{fontSize:28,marginBottom:6}},platformEmoji[s.platform]||'📱'),
+            React.createElement('div',{style:{fontSize:20,fontWeight:800,color:C.primary}},formatNum(s.followers||0)),
+            React.createElement('div',{style:{fontSize:12,color:C.textMuted,textTransform:'capitalize',marginTop:2}},s.platform),
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted}},s.handle?`@${s.handle}`:'Not connected'))))):null);
+};
+
+// ── Campaigns (Brand) ──────────────────────────────────────────────────────────
+const Campaigns=({token})=>{
+  const[campaigns,setCampaigns]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[showNew,setShowNew]=useState(false);
+  const[form,setForm]=useState({title:'',description:'',budget:'',startDate:'',endDate:'',status:'draft'});
+  const[saving,setSaving]=useState(false);
+  const[error,setError]=useState('');
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const data=await api('GET','/campaigns',null,token).catch(()=>({campaigns:[]}));
+    setCampaigns(data.campaigns||[]);setLoading(false);
+  },[token]);
+
+  useEffect(()=>{load();},[load]);
+
+  const create=async e=>{
+    e.preventDefault();setSaving(true);setError('');
+    try{
+      await api('POST','/campaigns',{...form,budget:parseFloat(form.budget)||0},token);
+      setShowNew(false);setForm({title:'',description:'',budget:'',startDate:'',endDate:'',status:'draft'});load();
+    }catch(err){setError(err.message);}
+    setSaving(false);
+  };
+
+  const statusColors={draft:C.textMuted,active:C.success,paused:C.warning,completed:C.primary};
+
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}},
+      React.createElement('div',null,
+        React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Campaigns'),
+        React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Plan and manage your athlete marketing campaigns')),
+      React.createElement('button',{className:'btn btn-primary',onClick:()=>{setShowNew(true);setError('');}},
+        '+ New Campaign')),
+    loading?React.createElement(Spinner):
+    !campaigns.length?React.createElement(Empty,{icon:'📣',text:'No campaigns yet. Create your first!'}):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:16}},
+      campaigns.map(c=>React.createElement('div',{key:c._id,className:'card'},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
+          React.createElement('h3',{style:{fontSize:15,fontWeight:700}},c.title),
+          React.createElement(Badge,{status:c.status})),
+        c.description&&React.createElement('p',{style:{fontSize:13,color:C.textSecondary,marginBottom:12}},c.description),
+        React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}},
+          [['Budget',formatMoney(c.budget||0)],['Spent',formatMoney(c.spent||0)],
+           ['Start',c.startDate?new Date(c.startDate).toLocaleDateString():'TBD'],
+           ['End',c.endDate?new Date(c.endDate).toLocaleDateString():'TBD']].map(([k,v])=>
+          React.createElement('div',{key:k,style:{background:C.bg,padding:8,borderRadius:6}},
+            React.createElement('div',{style:{fontSize:10,color:C.textMuted}},k),
+            React.createElement('div',{style:{fontSize:13,fontWeight:600}},v)))),
+        c.budget>0&&React.createElement('div',{style:{marginBottom:12}},
+          React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:11,color:C.textMuted,marginBottom:4}},'Budget used',`${Math.min(100,Math.round((c.spent/c.budget)*100))}%`),
+          React.createElement('div',{style:{height:6,background:C.bg,borderRadius:3}},
+            React.createElement('div',{style:{height:6,background:C.primary,borderRadius:3,width:`${Math.min(100,(c.spent/c.budget)*100)}%`,transition:'width .4s'}})))))),
+    // New Campaign modal
+    React.createElement(Modal,{open:showNew,onClose:()=>setShowNew(false),title:'New Campaign'},
+      React.createElement('form',{onSubmit:create},
+        React.createElement('div',{style:{marginBottom:14}},React.createElement('label',{className:'label'},'Campaign Title'),React.createElement('input',{className:'input',value:form.title,onChange:e=>setForm(f=>({...f,title:e.target.value})),required:true,placeholder:'Spring 2026 NIL Campaign'})),
+        React.createElement('div',{style:{marginBottom:14}},React.createElement('label',{className:'label'},'Description'),React.createElement('textarea',{className:'input',rows:3,value:form.description,onChange:e=>setForm(f=>({...f,description:e.target.value})),placeholder:'Describe your campaign goals…',style:{resize:'none'}})),
+        React.createElement('div',{style:{marginBottom:14}},React.createElement('label',{className:'label'},'Budget ($)'),React.createElement('input',{className:'input',type:'number',min:0,value:form.budget,onChange:e=>setForm(f=>({...f,budget:e.target.value})),placeholder:'5000'})),
+        React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
+          React.createElement('div',null,React.createElement('label',{className:'label'},'Start Date'),React.createElement('input',{className:'input',type:'date',value:form.startDate,onChange:e=>setForm(f=>({...f,startDate:e.target.value}))})),
+          React.createElement('div',null,React.createElement('label',{className:'label'},'End Date'),React.createElement('input',{className:'input',type:'date',value:form.endDate,onChange:e=>setForm(f=>({...f,endDate:e.target.value}))}))),
+        React.createElement('div',{style:{marginBottom:16}},React.createElement('label',{className:'label'},'Status'),React.createElement('select',{className:'input',value:form.status,onChange:e=>setForm(f=>({...f,status:e.target.value}))},
+          React.createElement('option',{value:'draft'},'Draft'),React.createElement('option',{value:'active'},'Active'))),
+        error&&React.createElement('div',{style:{background:C.dangerLight,color:'#991B1B',padding:10,borderRadius:8,marginBottom:12,fontSize:13}},error),
+        React.createElement('div',{style:{display:'flex',gap:10,justifyContent:'flex-end'}},
+          React.createElement('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShowNew(false)},'Cancel'),
+          React.createElement('button',{type:'submit',className:'btn btn-primary',disabled:saving},saving?'Creating…':'Create Campaign')))));
+};
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+const Profile=({token,user,onUpdate})=>{
+  const[form,setForm]=useState({
+    name:user.name||'',bio:user.bio||'',sport:user.sport||'',school:user.school||'',
+    position:user.position||'',graduationYear:user.graduationYear||'',
+    company:user.company||'',industry:user.industry||'',website:user.website||'',agency:user.agency||''
+  });
+  const[social,setSocial]=useState({platform:'instagram',handle:'',followers:''});
+  const[saving,setSaving]=useState(false);
+  const[success,setSuccess]=useState('');
+  const[error,setError]=useState('');
+  const set=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
+
+  const save=async e=>{
+    e.preventDefault();setSaving(true);setError('');setSuccess('');
+    try{
+      const data=await api('PUT','/auth/profile',form,token);
+      onUpdate(data.user);setSuccess('Profile updated!');
+    }catch(err){setError(err.message);}
+    setSaving(false);
+  };
+
+  const connectSocial=async e=>{
+    e.preventDefault();setError('');
+    if(!social.handle)return;
+    try{
+      const data=await api('PUT','/auth/social',{...social,followers:parseInt(social.followers)||0},token);
+      onUpdate(data.user);setSocial({platform:'instagram',handle:'',followers:''});setSuccess('Social account connected!');
+    }catch(err){setError(err.message);}
+  };
+
+  const totalFollowers=(user.socialHandles||[]).reduce((s,h)=>s+(h.followers||0),0);
+
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:700}},
+    React.createElement('h1',{style:{fontSize:22,fontWeight:700,marginBottom:20}},'Profile'),
+    // Profile card
+    React.createElement('div',{className:'card',style:{marginBottom:20}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:16,marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${C.border}`}},
+        React.createElement(Avatar,{name:user.name,src:user.avatar,size:64}),
+        React.createElement('div',null,
+          React.createElement('h2',{style:{fontSize:18,fontWeight:700}},user.name),
+          React.createElement('p',{style:{color:C.textSecondary,fontSize:14,textTransform:'capitalize'}},user.role,user.sport?' · '+user.sport:'',user.school?' · '+user.school:''),
+          user.role==='athlete'&&React.createElement('div',{style:{display:'flex',gap:16,marginTop:8}},
+            React.createElement('div',{style:{textAlign:'center'}},React.createElement('div',{style:{fontSize:18,fontWeight:800,color:C.primary}},formatNum(totalFollowers)),React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Followers')),
+            React.createElement('div',{style:{textAlign:'center'}},React.createElement('div',{style:{fontSize:18,fontWeight:800,color:C.success}},formatMoney(user.totalEarnings||0)),React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Earned')),
+            React.createElement('div',{style:{textAlign:'center'}},React.createElement('div',{style:{fontSize:18,fontWeight:800,color:C.secondary}},user.dealsCompleted||0),React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Deals'))))),
+      success&&React.createElement('div',{style:{background:C.successLight,color:'#065F46',padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13}},success),
+      error&&React.createElement('div',{style:{background:C.dangerLight,color:'#991B1B',padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13}},error),
+      React.createElement('form',{onSubmit:save},
+        React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
+          React.createElement('div',null,React.createElement('label',{className:'label'},'Full Name'),React.createElement('input',{className:'input',value:form.name,onChange:set('name')})),
+          React.createElement('div',null,React.createElement('label',{className:'label'},'Bio'),React.createElement('input',{className:'input',value:form.bio,onChange:set('bio'),placeholder:'Short bio…'}))),
+        user.role==='athlete'&&React.createElement(React.Fragment,null,
+          React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
+            React.createElement('div',null,React.createElement('label',{className:'label'},'Sport'),React.createElement('input',{className:'input',value:form.sport,onChange:set('sport'),placeholder:'Football'})),
+            React.createElement('div',null,React.createElement('label',{className:'label'},'School / Team'),React.createElement('input',{className:'input',value:form.school,onChange:set('school'),placeholder:'Ohio State'}))),
+          React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
+            React.createElement('div',null,React.createElement('label',{className:'label'},'Position'),React.createElement('input',{className:'input',value:form.position,onChange:set('position'),placeholder:'QB'})),
+            React.createElement('div',null,React.createElement('label',{className:'label'},'Graduation Year'),React.createElement('input',{className:'input',type:'number',value:form.graduationYear,onChange:set('graduationYear'),placeholder:'2027'})))),
+        user.role==='brand'&&React.createElement(React.Fragment,null,
+          React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
+            React.createElement('div',null,React.createElement('label',{className:'label'},'Company'),React.createElement('input',{className:'input',value:form.company,onChange:set('company')})),
+            React.createElement('div',null,React.createElement('label',{className:'label'},'Industry'),React.createElement('input',{className:'input',value:form.industry,onChange:set('industry')}))),
+          React.createElement('div',{style:{marginBottom:14}},React.createElement('label',{className:'label'},'Website'),React.createElement('input',{className:'input',value:form.website,onChange:set('website'),placeholder:'https://'}))),
+        React.createElement('div',{style:{display:'flex',justifyContent:'flex-end'}},
+          React.createElement('button',{type:'submit',className:'btn btn-primary',disabled:saving},saving?'Saving…':'Save Changes')))),
+    // Social handles (athlete)
+    user.role==='athlete'&&React.createElement('div',{className:'card'},
+      React.createElement('h3',{style:{fontWeight:700,fontSize:15,marginBottom:16}},'Connected Social Accounts'),
+      (user.socialHandles||[]).length?React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:10,marginBottom:16}},
+        user.socialHandles.map(s=>React.createElement('div',{key:s.platform,style:{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',background:C.bg,borderRadius:8}},
+          React.createElement('span',{style:{fontSize:22}},platformEmoji[s.platform]||'📱'),
+          React.createElement('div',{style:{flex:1}},
+            React.createElement('div',{style:{fontSize:14,fontWeight:600,textTransform:'capitalize'}},s.platform),
+            React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},s.handle?`@${s.handle}`:'Not connected')),
+          React.createElement('div',{style:{fontSize:14,fontWeight:700,color:C.primary}},formatNum(s.followers||0)+' followers')))):
+        React.createElement('p',{style:{fontSize:13,color:C.textMuted,marginBottom:16}},'No social accounts connected yet.'),
+      React.createElement('div',{className:'divider'}),
+      React.createElement('h4',{style:{fontSize:13,fontWeight:700,marginBottom:12}},'Connect a New Account'),
+      React.createElement('form',{onSubmit:connectSocial,style:{display:'flex',gap:10,flexWrap:'wrap'}},
+        React.createElement('select',{className:'input',value:social.platform,onChange:e=>setSocial(s=>({...s,platform:e.target.value})),style:{maxWidth:140}},
+          ['twitter','instagram','tiktok','youtube','facebook'].map(p=>React.createElement('option',{key:p,value:p},platformEmoji[p]+' '+p.charAt(0).toUpperCase()+p.slice(1)))),
+        React.createElement('input',{className:'input',value:social.handle,onChange:e=>setSocial(s=>({...s,handle:e.target.value})),placeholder:'@handle',style:{maxWidth:160}}),
+        React.createElement('input',{className:'input',type:'number',value:social.followers,onChange:e=>setSocial(s=>({...s,followers:e.target.value})),placeholder:'Followers',style:{maxWidth:130}}),
+        React.createElement('button',{type:'submit',className:'btn btn-primary'},'Connect'))));
+};
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+const App=()=>{
+  const[user,setUser]=useState(null);
+  const[token,setToken]=useState(null);
+  const[view,setView]=useState('dashboard');
+  const[unread,setUnread]=useState(0);
+  const[booting,setBooting]=useState(true);
+  const socketRef=useRef(null);
+
+  // Boot — restore session
+  useEffect(()=>{
+    const t=localStorage.getItem('as_token');
+    if(!t){setBooting(false);return;}
+    api('GET','/auth/me',null,t)
+      .then(d=>{setUser(d.user);setToken(t);})
+      .catch(()=>localStorage.removeItem('as_token'))
+      .finally(()=>setBooting(false));
+  },[]);
+
+  // Poll unread count
+  useEffect(()=>{
+    if(!token)return;
+    const poll=()=>api('GET','/activity/unread-count',null,token).then(d=>setUnread(d.count||0)).catch(()=>{});
+    poll();
+    const iv=setInterval(poll,30000);
+    return()=>clearInterval(iv);
+  },[token]);
+
+  // Socket.io
+  useEffect(()=>{
+    if(!user)return;
+    try{
+      const socket=window.io?window.io():null;
+      if(!socket)return;
+      socketRef.current=socket;
+      socket.emit('join',user._id);
+      socket.on('notification',()=>setUnread(u=>u+1));
+      return()=>socket.disconnect();
+    }catch(e){}
+  },[user]);
+
+  const onAuth=(u,t)=>{setUser(u);setToken(t);setView('dashboard');};
+  const onLogout=()=>{localStorage.removeItem('as_token');setUser(null);setToken(null);setView('dashboard');};
+  const onUpdate=(u)=>setUser(u);
+
+  if(booting)return React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',flexDirection:'column',gap:12}},
+    React.createElement('div',{style:{width:40,height:40,background:C.primary,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}},'⚡'),
+    React.createElement(Spinner));
+
+  if(!user)return React.createElement(AuthCtx.Provider,{value:{user,token}},React.createElement(AuthScreen,{onAuth}));
+
+  const renderView=()=>{
+    switch(view){
+      case'dashboard':return React.createElement(Dashboard,{token,user,onNavigate:setView});
+      case'opportunities':return React.createElement(Opportunities,{token,user});
+      case'my-deals':return React.createElement(MyDeals,{token,user});
+      case'content':return React.createElement(ContentHub,{token,user});
+      case'analytics':return React.createElement(Analytics,{token,user});
+      case'campaigns':return React.createElement(Campaigns,{token});
+      case'profile':return React.createElement(Profile,{token,user,onUpdate});
+      default:return React.createElement(Dashboard,{token,user,onNavigate:setView});
+    }
+  };
+
+  return React.createElement(AuthCtx.Provider,{value:{user,token}},
+    React.createElement('div',{style:{display:'flex',minHeight:'100vh',background:C.bg}},
+      React.createElement(Sidebar,{view,setView,user,onLogout,unread}),
+      React.createElement('div',{style:{flex:1,overflow:'auto',paddingBottom:60}},
+        // Mobile header
+        React.createElement('div',{className:'show-mobile',style:{position:'sticky',top:0,zIndex:50,background:'#fff',borderBottom:`1px solid ${C.border}`,padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
+            React.createElement('div',{style:{width:28,height:28,background:C.primary,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}},'⚡'),
+            React.createElement('span',{style:{fontWeight:800,fontSize:15}},'Digital NIL')),
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
+            unread>0&&React.createElement('span',{style:{background:C.danger,color:'#fff',borderRadius:'999px',fontSize:11,fontWeight:700,padding:'2px 7px'}},unread),
+            React.createElement(Avatar,{name:user.name,src:user.avatar,size:28}))),
+        renderView()),
+      React.createElement(BottomNav,{view,setView,user,unread})));
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
