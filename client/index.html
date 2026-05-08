@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Digital NIL — Athlete Marketing Platform</title>
+<title>AiC NIL — Athletes in Control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
@@ -26,14 +26,14 @@ const {useState,useEffect,useRef,useCallback,createContext,useContext}=React;
 
 // ── Theme constants ──────────────────────────────────────────────────────────
 const C={
-  primary:'#2563EB',primaryDark:'#1D4ED8',primaryLight:'#DBEAFE',
-  secondary:'#7C3AED',
+  primary:'#CC0000',primaryDark:'#991B1B',primaryLight:'#FEE2E2',
+  secondary:'#1E293B',
   success:'#10B981',successLight:'#D1FAE5',
   warning:'#F59E0B',warningLight:'#FEF3C7',
   danger:'#EF4444',dangerLight:'#FEE2E2',
-  bg:'#F1F5F9',card:'#FFFFFF',border:'#E2E8F0',
-  textPrimary:'#1E293B',textSecondary:'#64748B',textMuted:'#94A3B8',
-  sidebar:'#0F172A',sidebarHover:'#1E293B',sidebarActive:'#2563EB'
+  bg:'#F8F7F7',card:'#FFFFFF',border:'#E5E7EB',
+  textPrimary:'#111827',textSecondary:'#6B7280',textMuted:'#9CA3AF',
+  sidebar:'#0A0A0A',sidebarHover:'#1A1A1A',sidebarActive:'#CC0000'
 };
 
 // ── Global styles injected ───────────────────────────────────────────────────
@@ -186,17 +186,28 @@ const NAV_BRAND=[
   {id:'my-deals',icon:'🤝',label:'Deals'},
   {id:'content',icon:'📱',label:'Content'},
   {id:'analytics',icon:'📊',label:'Analytics'},
+  {id:'sponsor-portal',icon:'🏟️',label:'Athletes'},
+  {id:'profile',icon:'👤',label:'Profile'},
+];
+const NAV_AGENT=[
+  {id:'dashboard',icon:'⊞',label:'Dashboard'},
+  {id:'roster',icon:'🏈',label:'Roster'},
+  {id:'my-deals',icon:'🤝',label:'Deals'},
+  {id:'media-kits',icon:'📋',label:'Media Kits'},
+  {id:'talent-marketing',icon:'⭐',label:'Marketing'},
+  {id:'analytics',icon:'📊',label:'Analytics'},
+  {id:'rd-tracker',icon:'🔬',label:'R&D Tracker'},
   {id:'profile',icon:'👤',label:'Profile'},
 ];
 
 const Sidebar=({view,setView,user,onLogout,unread})=>{
-  const nav=user?.role==='brand'?NAV_BRAND:NAV_ATHLETE;
+  const nav=user?.role==='brand'?NAV_BRAND:user?.role==='agent'?NAV_AGENT:NAV_ATHLETE;
   return React.createElement('div',{className:'hide-mobile',style:{width:220,background:C.sidebar,minHeight:'100vh',display:'flex',flexDirection:'column',flexShrink:0}},
     // Logo
     React.createElement('div',{style:{padding:'24px 20px 20px',borderBottom:'1px solid #1E293B'}},
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10}},
-        React.createElement('div',{style:{width:32,height:32,background:C.primary,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}},'⚡'),
-        React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:16,letterSpacing:'-0.5px'}},'Digital NIL'))),
+        React.createElement('div',{style:{width:32,height:32,background:C.primary,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}},'🏈'),
+        React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:16,letterSpacing:'-0.5px'}},'AiC NIL'))),
     // Nav items
     React.createElement('nav',{style:{flex:1,padding:'12px 0'}},
       nav.map(n=>React.createElement('button',{key:n.id,onClick:()=>setView(n.id),
@@ -215,7 +226,7 @@ const Sidebar=({view,setView,user,onLogout,unread})=>{
 };
 
 const BottomNav=({view,setView,user,unread})=>{
-  const nav=user?.role==='brand'?NAV_BRAND:NAV_ATHLETE;
+  const nav=user?.role==='brand'?NAV_BRAND:user?.role==='agent'?NAV_AGENT:NAV_ATHLETE;
   return React.createElement('div',{className:'show-mobile',style:{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:`1px solid ${C.border}`,display:'flex',zIndex:100}},
     nav.slice(0,5).map(n=>React.createElement('button',{key:n.id,onClick:()=>setView(n.id),
       style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'8px 4px',background:'transparent',color:view===n.id?C.primary:C.textMuted,fontSize:9,fontWeight:view===n.id?600:400,position:'relative'}},
@@ -243,21 +254,22 @@ const AuthScreen=({onAuth})=>{
 
   return React.createElement('div',{style:{minHeight:'100vh',display:'flex'}},
     // Left panel
-    React.createElement('div',{className:'hide-mobile',style:{width:'45%',background:`linear-gradient(135deg,#0F172A 0%,#1E3A8A 100%)`,display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 48px'}},
+    React.createElement('div',{className:'hide-mobile',style:{width:'45%',background:`linear-gradient(135deg,#0A0A0A 0%,#7F0000 100%)`,display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 48px'}},
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:40}},
-        React.createElement('div',{style:{width:44,height:44,background:C.primary,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}},'⚡'),
-        React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:22,letterSpacing:'-0.5px'}},'Digital NIL')),
-      React.createElement('h1',{style:{color:'#fff',fontSize:36,fontWeight:800,lineHeight:1.2,marginBottom:16}},'Your NIL.\nYour Brand.\nYour Future.'),
-      React.createElement('p',{style:{color:'#94A3B8',fontSize:16,lineHeight:1.6,marginBottom:40}},'Connect with top brands, manage your NIL deals, and grow your athlete brand — all in one place.'),
+        React.createElement('div',{style:{width:44,height:44,background:C.primary,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}},'🏈'),
+        React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:22,letterSpacing:'-0.5px'}},'AiC NIL')),
+      React.createElement('h1',{style:{color:'#fff',fontSize:36,fontWeight:800,lineHeight:1.2,marginBottom:16}},'Athletes\nin Control.'),
+      React.createElement('p',{style:{color:'#94A3B8',fontSize:15,lineHeight:1.6,marginBottom:12}},'The NIL platform powering AiC Sports — backed by a Heisman winner, NFLPA agent, and a Super Bowl-winning coach.'),
+      React.createElement('p',{style:{color:'#64748B',fontSize:13,marginBottom:32,fontStyle:'italic'}},'Home of Jayden Daniels & the AiC roster.'),
       React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:16}},
-        [['🎯','500+ Brand Opportunities'],['💰','$2M+ Paid to Athletes'],['📊','Track Your Performance']].map(([icon,text])=>
+        [['🏈','Football-First NIL Agency'],['💰','Deals for 100+ Athletes'],['📋','Auto-Generated Media Kits'],['📊','Real-Time Analytics']].map(([icon,text])=>
           React.createElement('div',{key:text,style:{display:'flex',alignItems:'center',gap:12,color:'#CBD5E1',fontSize:15}},
             React.createElement('span',{style:{fontSize:20}},icon),text)))),
     // Right panel
     React.createElement('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px',background:'#fff'}},
       React.createElement('div',{style:{width:'100%',maxWidth:400}},
         React.createElement('h2',{style:{fontSize:24,fontWeight:700,marginBottom:4}},tab==='login'?'Welcome back':'Create account'),
-        React.createElement('p',{style:{color:C.textSecondary,marginBottom:28,fontSize:14}},tab==='login'?'Sign in to your account':'Join thousands of athletes on Digital NIL'),
+        React.createElement('p',{style:{color:C.textSecondary,marginBottom:28,fontSize:14}},tab==='login'?'Sign in to your account':'Join the AiC Sports NIL platform'),
         // Tabs
         React.createElement('div',{style:{display:'flex',background:C.bg,borderRadius:8,padding:4,marginBottom:24}},
           ['login','register'].map(t=>React.createElement('button',{key:t,onClick:()=>{setTab(t);setError('');},
@@ -799,11 +811,604 @@ const Campaigns=({token})=>{
           React.createElement('button',{type:'submit',className:'btn btn-primary',disabled:saving},saving?'Creating…':'Create Campaign')))));
 };
 
+// ── R&D Time Tracker (Section 41 / CA R&D Credit Substantiation) ─────────────
+const RD_FEATURES=[
+  {value:'deal-matching-algorithm',label:'Deal Matching Algorithm'},
+  {value:'media-kit-generator',label:'Media Kit Generator'},
+  {value:'sponsor-portal',label:'Sponsor Portal'},
+  {value:'analytics-dashboard',label:'Analytics Dashboard'},
+  {value:'real-time-notifications',label:'Real-Time Notifications'},
+  {value:'content-approval-workflow',label:'Content Approval Workflow'},
+  {value:'athlete-profile-engine',label:'Athlete Profile Engine'},
+  {value:'api-infrastructure',label:'API Infrastructure'},
+  {value:'database-schema',label:'Database Schema'},
+  {value:'authentication-security',label:'Authentication & Security'},
+  {value:'mobile-responsive-ui',label:'Mobile Responsive UI'},
+  {value:'roster-management',label:'Roster Management'},
+  {value:'campaign-management',label:'Campaign Management'},
+  {value:'other',label:'Other'},
+];
+const RD_ACTIVITY_TYPES=[
+  {value:'architecture-design',label:'Architecture Design',qra:true},
+  {value:'prototype-development',label:'Prototype Development',qra:true},
+  {value:'algorithm-development',label:'Algorithm Development',qra:true},
+  {value:'testing-debugging',label:'Testing & Debugging',qra:true},
+  {value:'performance-optimization',label:'Performance Optimization',qra:true},
+  {value:'security-research',label:'Security Research',qra:true},
+  {value:'ui-ux-experimentation',label:'UI/UX Experimentation',qra:true},
+  {value:'infrastructure-research',label:'Infrastructure Research',qra:true},
+  {value:'documentation',label:'Documentation',qra:false},
+  {value:'meetings-planning',label:'Meetings & Planning',qra:false},
+];
+
+const RDTracker=({token,user})=>{
+  const[tab,setTab]=useState('log');
+  const[logs,setLogs]=useState([]);
+  const[summary,setSummary]=useState(null);
+  const[report,setReport]=useState(null);
+  const[loading,setLoading]=useState(false);
+  const[summaryLoading,setSummaryLoading]=useState(false);
+  const[saving,setSaving]=useState(false);
+  const[error,setError]=useState('');
+  const[success,setSuccess]=useState('');
+  const[filterQ,setFilterQ]=useState('');
+  const[reportQ,setReportQ]=useState('');
+  const blankForm={date:new Date().toISOString().split('T')[0],hours:'1',feature:'api-infrastructure',activityType:'algorithm-development',isQRA:true,uncertainty:'',description:'',outcome:'',workerType:'contractor',workerEntity:'United Gates LLC'};
+  const[form,setForm]=useState(blankForm);
+  const set=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
+
+  const loadLogs=useCallback(async()=>{
+    setLoading(true);
+    const p=new URLSearchParams();
+    if(filterQ)p.set('quarter',filterQ);
+    const data=await api('GET',`/timelogs?${p}&limit=200`,null,token).catch(()=>({logs:[]}));
+    setLogs(data.logs||[]);setLoading(false);
+  },[token,filterQ]);
+
+  const loadSummary=useCallback(async()=>{
+    setSummaryLoading(true);
+    const p=filterQ?`?quarter=${filterQ}`:'';
+    const data=await api('GET',`/timelogs/summary${p}`,null,token).catch(()=>null);
+    setSummary(data);setSummaryLoading(false);
+  },[token,filterQ]);
+
+  useEffect(()=>{if(tab==='log')loadLogs();if(tab==='summary')loadSummary();},[tab,loadLogs,loadSummary]);
+
+  const submit=async e=>{
+    e.preventDefault();setSaving(true);setError('');setSuccess('');
+    try{
+      const actDef=RD_ACTIVITY_TYPES.find(a=>a.value===form.activityType);
+      await api('POST','/timelogs',{...form,hours:parseFloat(form.hours),isQRA:actDef?.qra!==false},token);
+      setSuccess('Entry saved.');setForm(blankForm);loadLogs();
+    }catch(err){setError(err.message);}
+    setSaving(false);
+  };
+
+  const del=async id=>{
+    if(!confirm('Delete this entry?'))return;
+    await api('DELETE',`/timelogs/${id}`,null,token).catch(()=>{});
+    loadLogs();
+  };
+
+  const loadReport=async()=>{
+    const p=reportQ?`?quarter=${reportQ}`:'';
+    const data=await api('GET',`/timelogs/report${p}`,null,token).catch(()=>null);
+    setReport(data);
+  };
+
+  const downloadCSV=()=>{
+    if(!report?.rows?.length)return;
+    const headers=['date','quarter','worker','workerEntity','workerType','feature','activityType','isQRA','hours','uncertainty','description','outcome'];
+    const escape=v=>'"'+String(v||'').replace(/"/g,'""')+'"';
+    const csv=[headers.join(','),...report.rows.map(r=>headers.map(h=>escape(r[h])).join(','))].join('\n');
+    const blob=new Blob([csv],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=`rd-credit-log${reportQ?'-'+reportQ:''}.csv`;a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Current quarter helper
+  const curQ=(()=>{const d=new Date();return `${d.getFullYear()}-Q${Math.ceil((d.getMonth()+1)/3)}`;})();
+  const quarters=[...new Set([curQ,'2026-Q1','2026-Q2','2026-Q3','2026-Q4','2025-Q4','2025-Q3'])];
+
+  const featureLabel=v=>RD_FEATURES.find(f=>f.value===v)?.label||v;
+  const actLabel=v=>RD_ACTIVITY_TYPES.find(a=>a.value===v)?.label||v;
+  const actIsQRA=v=>RD_ACTIVITY_TYPES.find(a=>a.value===v)?.qra!==false;
+
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    // Header
+    React.createElement('div',{style:{marginBottom:20}},
+      React.createElement('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:12}},
+        React.createElement('div',null,
+          React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'R&D Time Tracker'),
+          React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Section 41 federal + California R&D credit substantiation — log QRA hours by feature')),
+        React.createElement('div',{style:{background:'#FFF7F7',border:'1px solid #FEE2E2',borderRadius:8,padding:'8px 14px',fontSize:12,color:'#7F1D1D',textAlign:'right'}},
+          React.createElement('div',{style:{fontWeight:700}},'AIGA 8 LLC'),
+          React.createElement('div',null,'Contractor: United Gates LLC'),
+          React.createElement('div',null,'Credit basis: IRC § 41')))),
+    // Tabs
+    React.createElement('div',{style:{display:'flex',gap:6,marginBottom:20,flexWrap:'wrap'}},
+      [['log','Log Entry'],['entries','All Entries'],['summary','QRA Summary'],['export','Export / Report']].map(([t,l])=>
+        React.createElement('button',{key:t,onClick:()=>setTab(t),
+          style:{padding:'6px 16px',borderRadius:999,background:tab===t?C.primary:C.bg,color:tab===t?'#fff':C.textSecondary,fontSize:13,fontWeight:tab===t?600:400,border:`1px solid ${tab===t?C.primary:C.border}`,cursor:'pointer',transition:'all .15s'}},l))),
+
+    // ── TAB: LOG ENTRY ───────────────────────────────────────────────────────
+    tab==='log'&&React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,alignItems:'start'},className:'grid-col2'},
+      React.createElement('div',{className:'card'},
+        React.createElement('h3',{style:{fontSize:15,fontWeight:700,marginBottom:16}},'New Time Entry'),
+        success&&React.createElement('div',{style:{background:C.successLight,color:'#065F46',padding:'10px 14px',borderRadius:8,marginBottom:14,fontSize:13}},success),
+        error&&React.createElement('div',{style:{background:C.dangerLight,color:'#991B1B',padding:'10px 14px',borderRadius:8,marginBottom:14,fontSize:13}},error),
+        React.createElement('form',{onSubmit:submit},
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}},
+            React.createElement('div',null,
+              React.createElement('label',{className:'label'},'Date'),
+              React.createElement('input',{className:'input',type:'date',value:form.date,onChange:set('date'),required:true})),
+            React.createElement('div',null,
+              React.createElement('label',{className:'label'},'Hours'),
+              React.createElement('input',{className:'input',type:'number',min:'0.25',max:'24',step:'0.25',value:form.hours,onChange:set('hours'),required:true}))),
+          React.createElement('div',{style:{marginBottom:12}},
+            React.createElement('label',{className:'label'},'Feature / Component'),
+            React.createElement('select',{className:'input',value:form.feature,onChange:set('feature')},
+              RD_FEATURES.map(f=>React.createElement('option',{key:f.value,value:f.value},f.label)))),
+          React.createElement('div',{style:{marginBottom:12}},
+            React.createElement('label',{className:'label'},'Activity Type'),
+            React.createElement('select',{className:'input',value:form.activityType,onChange:e=>{const v=e.target.value;setForm(f=>({...f,activityType:v,isQRA:actIsQRA(v)}))}},
+              RD_ACTIVITY_TYPES.map(a=>React.createElement('option',{key:a.value,value:a.value},a.label+(a.qra===false?' (non-QRA)':' ✓ QRA'))))),
+          React.createElement('div',{style:{marginBottom:12,display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:actIsQRA(form.activityType)?C.successLight:C.bg,borderRadius:8}},
+            React.createElement('span',{style:{fontSize:20}},actIsQRA(form.activityType)?'✅':'⬜'),
+            React.createElement('div',null,
+              React.createElement('div',{style:{fontSize:13,fontWeight:600,color:actIsQRA(form.activityType)?'#065F46':C.textSecondary}},actIsQRA(form.activityType)?'Qualified Research Activity (QRA)':'Non-QRA — excluded from credit'),
+              React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Auto-set by activity type. Override below if needed.'))),
+          React.createElement('div',{style:{marginBottom:12}},
+            React.createElement('label',{className:'label'},'Technological Uncertainty Being Resolved'),
+            React.createElement('textarea',{className:'input',rows:2,value:form.uncertainty,onChange:set('uncertainty'),placeholder:'e.g. Uncertain whether MongoDB aggregation pipeline can produce real-time NIL deal-matching recommendations at <200ms latency…',style:{resize:'none'}})),
+          React.createElement('div',{style:{marginBottom:12}},
+            React.createElement('label',{className:'label'},'What Was Done (process of experimentation)'),
+            React.createElement('textarea',{className:'input',rows:3,value:form.description,onChange:set('description'),required:true,placeholder:'e.g. Designed and prototyped a weighted scoring algorithm for athlete-deal compatibility, testing three different indexing strategies…',style:{resize:'none'}})),
+          React.createElement('div',{style:{marginBottom:16}},
+            React.createElement('label',{className:'label'},'Outcome / Finding (optional but strengthens claim)'),
+            React.createElement('textarea',{className:'input',rows:2,value:form.outcome,onChange:set('outcome'),placeholder:'e.g. Compound index on (sport, minFollowers) reduced query time by 73%. Adopted as production approach.',style:{resize:'none'}})),
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}},
+            React.createElement('div',null,
+              React.createElement('label',{className:'label'},'Worker Type'),
+              React.createElement('select',{className:'input',value:form.workerType,onChange:set('workerType')},
+                React.createElement('option',{value:'contractor'},'Contractor'),
+                React.createElement('option',{value:'employee'},'Employee'))),
+            React.createElement('div',null,
+              React.createElement('label',{className:'label'},'Entity'),
+              React.createElement('input',{className:'input',value:form.workerEntity,onChange:set('workerEntity'),placeholder:'United Gates LLC'}))),
+          React.createElement('button',{type:'submit',className:'btn btn-primary',disabled:saving,style:{width:'100%',justifyContent:'center',padding:'11px',fontSize:14}},
+            saving?'Saving…':'Save Time Entry'))),
+      // 4-part test guide card
+      React.createElement('div',{className:'card',style:{background:'#FFFBF5',border:'1px solid #FEE9C3'}},
+        React.createElement('h3',{style:{fontSize:14,fontWeight:700,marginBottom:12,color:'#92400E'}},'IRC § 41 — 4-Part Test Cheat Sheet'),
+        [
+          ['1. Business Component','Each feature is a distinct component: software, process, or technique being developed.'],
+          ['2. Technological in Nature','Work relies on computer science, engineering, or a hard science — not just experience or judgment.'],
+          ['3. Technological Uncertainty','At the start of work, there was genuine uncertainty about the capability, method, or appropriate design.'],
+          ['4. Process of Experimentation','You evaluated alternatives — via modeling, simulation, testing, or trial and error — to resolve the uncertainty.'],
+        ].map(([t,d])=>React.createElement('div',{key:t,style:{marginBottom:14}},
+          React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#92400E',marginBottom:4}},t),
+          React.createElement('div',{style:{fontSize:12,color:'#78350F',lineHeight:1.5}},d))),
+        React.createElement('div',{style:{borderTop:'1px solid #FEE9C3',paddingTop:12,marginTop:4}},
+          React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#92400E',marginBottom:6}},'Contract Research (IRC § 41(b)(3))'),
+          React.createElement('div',{style:{fontSize:12,color:'#78350F',lineHeight:1.5}},'65% of amounts paid to United Gates LLC for qualified research qualify as QREs. Ensure the AIGA 8 × United Gates MSA specifies the research scope and retains right to results.')),
+        React.createElement('div',{style:{borderTop:'1px solid #FEE9C3',paddingTop:12,marginTop:12}},
+          React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#92400E',marginBottom:6}},'CA R&D Credit (R&TC § 23609)'),
+          React.createElement('div',{style:{fontSize:12,color:'#78350F',lineHeight:1.5}},'Mirrors federal § 41 with a 15% credit rate on QREs exceeding the base amount. No sunset provision. Carryforward is indefinite.')))),
+
+    // ── TAB: ALL ENTRIES ─────────────────────────────────────────────────────
+    tab==='entries'&&React.createElement('div',null,
+      React.createElement('div',{style:{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap',alignItems:'center'}},
+        React.createElement('select',{className:'input',value:filterQ,onChange:e=>{setFilterQ(e.target.value);},style:{maxWidth:160}},
+          React.createElement('option',{value:''},'All quarters'),
+          quarters.map(q=>React.createElement('option',{key:q,value:q},q))),
+        React.createElement('button',{className:'btn btn-secondary',onClick:loadLogs},'Refresh')),
+      loading?React.createElement(Spinner):
+      !logs.length?React.createElement(Empty,{icon:'⏱️',text:'No time entries yet. Start logging in the Log Entry tab.'}):
+      React.createElement('div',{className:'card',style:{padding:0,overflow:'hidden'}},
+        React.createElement('table',{style:{width:'100%',borderCollapse:'collapse'}},
+          React.createElement('thead',null,
+            React.createElement('tr',{style:{background:C.bg,borderBottom:`2px solid ${C.border}`}},
+              ['Date','Feature','Activity','QRA?','Hours','Description',''].map(h=>
+                React.createElement('th',{key:h,style:{padding:'10px 14px',textAlign:'left',fontSize:12,color:C.textMuted,fontWeight:600,whiteSpace:'nowrap'}},h)))),
+          React.createElement('tbody',null,
+            logs.map(l=>React.createElement('tr',{key:l._id,style:{borderBottom:`1px solid ${C.border}`}},
+              React.createElement('td',{style:{padding:'10px 14px',fontSize:13,whiteSpace:'nowrap'}},new Date(l.date).toLocaleDateString()),
+              React.createElement('td',{style:{padding:'10px 14px',fontSize:12}},featureLabel(l.feature)),
+              React.createElement('td',{style:{padding:'10px 14px',fontSize:12,color:C.textSecondary}},actLabel(l.activityType)),
+              React.createElement('td',{style:{padding:'10px 14px'}},l.isQRA?
+                React.createElement('span',{className:'badge badge-green'},'QRA'):
+                React.createElement('span',{className:'badge badge-gray'},'Non-QRA')),
+              React.createElement('td',{style:{padding:'10px 14px',fontSize:13,fontWeight:700}},l.hours+'h'),
+              React.createElement('td',{style:{padding:'10px 14px',fontSize:12,color:C.textSecondary,maxWidth:300,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},l.description),
+              React.createElement('td',{style:{padding:'10px 14px'}},
+                React.createElement('button',{className:'btn btn-ghost',style:{color:C.danger,fontSize:12,padding:'4px 8px'},onClick:()=>del(l._id)},'✕'))))))),
+
+    // ── TAB: QRA SUMMARY ─────────────────────────────────────────────────────
+    tab==='summary'&&React.createElement('div',null,
+      React.createElement('div',{style:{display:'flex',gap:10,marginBottom:16,alignItems:'center',flexWrap:'wrap'}},
+        React.createElement('select',{className:'input',value:filterQ,onChange:e=>setFilterQ(e.target.value),style:{maxWidth:160}},
+          React.createElement('option',{value:''},'All quarters'),
+          quarters.map(q=>React.createElement('option',{key:q,value:q},q))),
+        React.createElement('button',{className:'btn btn-secondary',onClick:loadSummary},'Refresh')),
+      summaryLoading?React.createElement(Spinner):
+      !summary?React.createElement(Empty,{icon:'📊',text:'No data yet'}):
+      React.createElement('div',null,
+        // KPI strip
+        React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:16,marginBottom:20}},
+          [
+            {label:'Total QRA Hours',val:summary.qraHours?.toFixed(2)+'h',color:C.success,icon:'✅'},
+            {label:'Non-QRA Hours',val:summary.nonQraHours?.toFixed(2)+'h',color:C.textMuted,icon:'⬜'},
+            {label:'QRA %',val:summary.totalHours?Math.round((summary.qraHours/summary.totalHours)*100)+'%':'0%',color:C.primary,icon:'📊'},
+            {label:'Est. QRE (65% rule)',val:'$'+(summary.qraHours*180*0.65).toLocaleString(),color:C.warning,icon:'💰'},
+          ].map((st,i)=>React.createElement('div',{key:i,className:'stat-card'},
+            React.createElement('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},
+              React.createElement('span',{style:{fontSize:12,color:C.textSecondary}},st.label),
+              React.createElement('span',{style:{fontSize:18}},st.icon)),
+            React.createElement('div',{style:{fontSize:22,fontWeight:800,color:st.color}},st.val)))),
+        React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginBottom:20,background:'#FFFBF5',border:'1px solid #FEE9C3',borderRadius:6,padding:'8px 12px'}},
+          '⚠️ Est. QRE uses $180/hr blended rate and 65% contractor allocation (IRC §41(b)(3)(A)). Confirm actual rates with your tax preparer.'),
+        // By-feature table
+        React.createElement('div',{className:'card',style:{marginBottom:16}},
+          React.createElement('h3',{style:{fontSize:14,fontWeight:700,marginBottom:12}},'Hours by Feature'),
+          React.createElement('table',{style:{width:'100%',borderCollapse:'collapse'}},
+            React.createElement('thead',null,
+              React.createElement('tr',{style:{borderBottom:`2px solid ${C.border}`}},
+                ['Feature','QRA Hours','Non-QRA Hours','Entries'].map(h=>
+                  React.createElement('th',{key:h,style:{padding:'8px 12px',textAlign:'left',fontSize:12,color:C.textMuted,fontWeight:600}},h)))),
+            React.createElement('tbody',null,
+              (() => {
+                const grouped = {};
+                (summary.byFeature||[]).forEach(r => {
+                  const k = r._id.feature;
+                  if (!grouped[k]) grouped[k] = {qra:0,nonQra:0,entries:0};
+                  if (r._id.isQRA) grouped[k].qra += r.hours;
+                  else grouped[k].nonQra += r.hours;
+                  grouped[k].entries += r.entries;
+                });
+                return Object.entries(grouped).map(([feat, v]) =>
+                  React.createElement('tr', {key:feat, style:{borderBottom:`1px solid ${C.border}`}},
+                    React.createElement('td', {style:{padding:'10px 12px',fontSize:13}}, featureLabel(feat)),
+                    React.createElement('td', {style:{padding:'10px 12px',fontSize:13,fontWeight:700,color:C.success}}, v.qra.toFixed(2)+'h'),
+                    React.createElement('td', {style:{padding:'10px 12px',fontSize:13,color:C.textMuted}}, v.nonQra.toFixed(2)+'h'),
+                    React.createElement('td', {style:{padding:'10px 12px',fontSize:13}}, v.entries)));
+              })()))),
+        // By-quarter chart
+        summary.byQuarter?.length?React.createElement('div',{className:'card'},
+          React.createElement('h3',{style:{fontSize:14,fontWeight:700,marginBottom:12}},'QRA Hours by Quarter'),
+          React.createElement(BarChart,{data:(()=>{
+            const qMap={};
+            (summary.byQuarter||[]).forEach(r=>{
+              if(!qMap[r._id.quarter])qMap[r._id.quarter]={label:r._id.quarter,total:0};
+              if(r._id.isQRA)qMap[r._id.quarter].total+=r.hours;
+            });
+            return Object.values(qMap).sort((a,b)=>a.label.localeCompare(b.label));
+          })(),label:'total',color:C.success,unit:''})):null)),
+
+    // ── TAB: EXPORT ──────────────────────────────────────────────────────────
+    tab==='export'&&React.createElement('div',null,
+      React.createElement('div',{className:'card',style:{marginBottom:16}},
+        React.createElement('h3',{style:{fontSize:15,fontWeight:700,marginBottom:4}},'Export for Tax Preparer'),
+        React.createElement('p',{style:{fontSize:13,color:C.textSecondary,marginBottom:16}},'Generate a CSV of all QRA time entries. Hand this to your CPA alongside the AIGA 8 × United Gates MSA and the feature-level technical specs.'),
+        React.createElement('div',{style:{display:'flex',gap:10,alignItems:'center',marginBottom:16,flexWrap:'wrap'}},
+          React.createElement('select',{className:'input',value:reportQ,onChange:e=>setReportQ(e.target.value),style:{maxWidth:160}},
+            React.createElement('option',{value:''},'All quarters'),
+            quarters.map(q=>React.createElement('option',{key:q,value:q},q))),
+          React.createElement('button',{className:'btn btn-secondary',onClick:loadReport},'Preview'),
+          report&&React.createElement('button',{className:'btn btn-success',onClick:downloadCSV},'⬇ Download CSV')),
+        report&&React.createElement('div',null,
+          React.createElement('div',{style:{background:C.successLight,color:'#065F46',padding:'10px 14px',borderRadius:8,marginBottom:12,fontSize:13}},
+            `${report.rows.filter(r=>r.isQRA==='YES').length} QRA entries · ${report.rows.filter(r=>r.isQRA==='NO').length} non-QRA entries · ${report.count} total rows ready to export`),
+          report.rows.slice(0,5).length?React.createElement('div',{style:{overflowX:'auto'}},
+            React.createElement('table',{style:{width:'100%',borderCollapse:'collapse',fontSize:12}},
+              React.createElement('thead',null,
+                React.createElement('tr',{style:{background:C.bg,borderBottom:`2px solid ${C.border}`}},
+                  ['Date','Feature','Activity','QRA?','Hours','Description'].map(h=>
+                    React.createElement('th',{key:h,style:{padding:'8px 10px',textAlign:'left',color:C.textMuted,fontWeight:600,whiteSpace:'nowrap'}},h)))),
+              React.createElement('tbody',null,
+                report.rows.slice(0,5).map((r,i)=>React.createElement('tr',{key:i,style:{borderBottom:`1px solid ${C.border}`}},
+                  React.createElement('td',{style:{padding:'8px 10px'}},r.date),
+                  React.createElement('td',{style:{padding:'8px 10px'}},featureLabel(r.feature)),
+                  React.createElement('td',{style:{padding:'8px 10px',color:C.textSecondary}},actLabel(r.activityType)),
+                  React.createElement('td',{style:{padding:'8px 10px'}},r.isQRA==='YES'?React.createElement('span',{className:'badge badge-green'},'QRA'):React.createElement('span',{className:'badge badge-gray'},'—')),
+                  React.createElement('td',{style:{padding:'8px 10px',fontWeight:700}},r.hours+'h'),
+                  React.createElement('td',{style:{padding:'8px 10px',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:C.textSecondary}},r.description)))))),
+          report.rows.length>5&&React.createElement('p',{style:{fontSize:12,color:C.textMuted,padding:'8px 0'}},`…and ${report.rows.length-5} more rows in the CSV`))),
+      React.createElement('div',{className:'card',style:{background:'#F0FDF4',border:'1px solid #BBF7D0'}},
+        React.createElement('h3',{style:{fontSize:14,fontWeight:700,marginBottom:10,color:'#166534'}},'R&D Credit Compliance Checklist'),
+        [
+          ['✅','Log time entries at least weekly — contemporaneous records are the IRS standard.'],
+          ['✅','Each entry must identify the specific feature and describe the uncertainty being resolved.'],
+          ['✅','Retain the AIGA 8 × United Gates LLC MSA with engineering scope and right-to-results language.'],
+          ['✅','Keep git commit history, pull requests, and design docs as corroborating evidence.'],
+          ['✅','Start Form 6765 time tracking before end of tax year — no retroactive credit for prior years without records.'],
+          ['✅','For California (R&TC §23609): file Schedule P (credit carryover); no sunset, indefinite carryforward.'],
+          ['⚠️','Contractor QREs: only 65% of amounts paid to United Gates LLC count as QREs under §41(b)(3)(A).'],
+          ['⚠️','Confirm blended contractor hourly rate with CPA to compute dollar-denominated QREs from hours.'],
+        ].map(([icon,text],i)=>React.createElement('div',{key:i,style:{display:'flex',gap:10,padding:'6px 0',fontSize:13,color:'#166534',borderBottom:i<7?`1px solid #BBF7D0`:'none',alignItems:'flex-start'}},
+          React.createElement('span',{style:{flexShrink:0}},icon),text)))));
+};
+
+// ── Roster (Agent) ────────────────────────────────────────────────────────────
+const Roster=({token,user,onNavigate})=>{
+  const[athletes,setAthletes]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[search,setSearch]=useState('');
+  const[selected,setSelected]=useState(null);
+  const positionColors={QB:'#CC0000',WR:'#F59E0B',RB:'#10B981',TE:'#7C3AED',OL:'#3B82F6',DL:'#6B7280',LB:'#EC4899',DB:'#0EA5E9'};
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const p=search?`?search=${encodeURIComponent(search)}`:'';
+    const data=await api('GET',`/auth/athletes${p}`,null,token).catch(()=>({athletes:[]}));
+    setAthletes(data.athletes||[]);setLoading(false);
+  },[token,search]);
+  useEffect(()=>{load();},[load]);
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}},
+      React.createElement('div',null,
+        React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Athlete Roster'),
+        React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Manage your represented athletes')),
+      React.createElement('button',{className:'btn btn-primary',onClick:()=>onNavigate('media-kits')},'📋 Media Kits')),
+    React.createElement('div',{style:{display:'flex',gap:10,marginBottom:20}},
+      React.createElement('input',{className:'input',placeholder:'🔍 Search athletes…',value:search,onChange:e=>setSearch(e.target.value),style:{maxWidth:300}}),
+      React.createElement('button',{className:'btn btn-secondary',onClick:load},'Search')),
+    loading?React.createElement(Spinner):
+    !athletes.length?React.createElement(Empty,{icon:'🏈',text:'No athletes found'}):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}},
+      athletes.map(a=>{
+        const totalF=(a.socialHandles||[]).reduce((s,h)=>s+(h.followers||0),0);
+        const posColor=positionColors[a.position]||C.primary;
+        return React.createElement('div',{key:a._id,className:'card',style:{cursor:'pointer'},
+          onClick:()=>setSelected(a),
+          onMouseEnter:e=>e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,.1)',
+          onMouseLeave:e=>e.currentTarget.style.boxShadow='none'},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:14}},
+            React.createElement(Avatar,{name:a.name,src:a.avatar,size:52}),
+            React.createElement('div',{style:{flex:1}},
+              React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
+                React.createElement('span',{style:{fontSize:15,fontWeight:700}},a.name),
+                a.verified&&React.createElement('span',{style:{fontSize:12,color:C.primary}},'✓')),
+              React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginTop:2}},a.school||a.sport||'Football'),
+              a.position&&React.createElement('span',{style:{fontSize:11,background:`${posColor}22`,color:posColor,padding:'2px 7px',borderRadius:4,fontWeight:600,marginTop:4,display:'inline-block'}},a.position))),
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,padding:'12px',background:C.bg,borderRadius:8}},
+            [['Followers',formatNum(totalF),C.primary],['Earned',formatMoney(a.totalEarnings||0),C.success],['Deals',a.dealsCompleted||0,C.secondary]].map(([lbl,val,col])=>
+              React.createElement('div',{key:lbl,style:{textAlign:'center'}},
+                React.createElement('div',{style:{fontSize:16,fontWeight:800,color:col}},val),
+                React.createElement('div',{style:{fontSize:10,color:C.textMuted}},lbl)))))})),
+    React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:selected?.name||'Athlete'},
+      selected&&React.createElement('div',null,
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:16,marginBottom:20,padding:16,background:C.bg,borderRadius:12}},
+          React.createElement(Avatar,{name:selected.name,src:selected.avatar,size:64}),
+          React.createElement('div',null,
+            React.createElement('h3',{style:{fontSize:18,fontWeight:700}},selected.name),
+            React.createElement('p',{style:{color:C.textSecondary,fontSize:13}},selected.position?`${selected.position} · `:'',selected.school||selected.sport||''),
+            selected.bio&&React.createElement('p',{style:{fontSize:13,color:C.textSecondary,marginTop:6}},selected.bio))),
+        selected.socialHandles?.length?React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}},
+          selected.socialHandles.map(s=>React.createElement('div',{key:s.platform,style:{background:C.bg,padding:12,borderRadius:8,display:'flex',alignItems:'center',gap:10}},
+            React.createElement('span',{style:{fontSize:22}},platformEmoji[s.platform]||'📱'),
+            React.createElement('div',null,
+              React.createElement('div',{style:{fontSize:13,fontWeight:700}},formatNum(s.followers||0)+' followers'),
+              React.createElement('div',{style:{fontSize:11,color:C.textMuted}},s.handle?`@${s.handle}`:'Not connected'))))):null,
+        React.createElement('div',{style:{display:'flex',gap:10}},
+          React.createElement('button',{className:'btn btn-primary',style:{flex:1,justifyContent:'center'},onClick:()=>{setSelected(null);onNavigate('media-kits');}},'📋 Media Kit'),
+          React.createElement('button',{className:'btn btn-secondary',style:{flex:1,justifyContent:'center'},onClick:()=>setSelected(null)},'Close')))));
+};
+
+// ── Media Kits ────────────────────────────────────────────────────────────────
+const MediaKits=({token,user})=>{
+  const[athletes,setAthletes]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[selected,setSelected]=useState(null);
+  const[copied,setCopied]=useState('');
+  useEffect(()=>{
+    if(user.role==='athlete'){setAthletes([user]);setLoading(false);}
+    else{
+      api('GET','/auth/athletes',null,token)
+        .then(d=>setAthletes(d.athletes||[])).catch(()=>{}).finally(()=>setLoading(false));
+    }
+  },[token,user]);
+  const copyLink=async id=>{
+    const url=`${window.location.origin}/athlete/${id}`;
+    try{await navigator.clipboard.writeText(url);}catch(e){}
+    setCopied(id);setTimeout(()=>setCopied(''),2000);
+  };
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{marginBottom:20}},
+      React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Media Kits'),
+      React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Shareable athlete profiles for sponsor outreach')),
+    loading?React.createElement(Spinner):
+    !athletes.length?React.createElement(Empty,{icon:'📋',text:'No athletes yet'}):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:16}},
+      athletes.map(a=>{
+        const totalF=(a.socialHandles||[]).reduce((s,h)=>s+(h.followers||0),0);
+        return React.createElement('div',{key:a._id,className:'card'},
+          React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#CC0000)`,borderRadius:'8px 8px 0 0',margin:'-20px -20px 16px',padding:'20px',display:'flex',alignItems:'center',gap:14}},
+            React.createElement(Avatar,{name:a.name,src:a.avatar,size:56}),
+            React.createElement('div',null,
+              React.createElement('h3',{style:{color:'#fff',fontSize:16,fontWeight:700}},a.name),
+              React.createElement('p',{style:{color:'rgba(255,255,255,.7)',fontSize:12}},a.position?`${a.position} · `:'',a.school||a.sport||'Football'))),
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}},
+            [['Total Reach',formatNum(totalF),C.primary],['NIL Earned',formatMoney(a.totalEarnings||0),C.success],['Deals Done',a.dealsCompleted||0,C.secondary]].map(([lbl,val,col])=>
+              React.createElement('div',{key:lbl,style:{textAlign:'center',padding:'10px',background:C.bg,borderRadius:8}},
+                React.createElement('div',{style:{fontSize:18,fontWeight:800,color:col}},val),
+                React.createElement('div',{style:{fontSize:10,color:C.textMuted}},lbl)))),
+          a.socialHandles?.length?React.createElement('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}},
+            a.socialHandles.map(s=>React.createElement('div',{key:s.platform,style:{display:'flex',alignItems:'center',gap:4,background:C.bg,padding:'4px 8px',borderRadius:6}},
+              React.createElement('span',{style:{fontSize:14}},platformEmoji[s.platform]||'📱'),
+              React.createElement('span',{style:{fontSize:11,fontWeight:600}},formatNum(s.followers||0))))):null,
+          React.createElement('div',{style:{display:'flex',gap:8}},
+            React.createElement('button',{className:'btn btn-primary',style:{flex:1,justifyContent:'center',fontSize:13},onClick:()=>setSelected(a)},'Preview'),
+            React.createElement('button',{className:`btn ${copied===a._id?'btn-success':'btn-secondary'}`,style:{flex:1,justifyContent:'center',fontSize:13},onClick:()=>copyLink(a._id)},copied===a._id?'✓ Copied!':'🔗 Share Link')));})),
+    React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:'Media Kit Preview',maxWidth:500},
+      selected&&React.createElement('div',null,
+        React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#CC0000)`,borderRadius:10,padding:'24px',marginBottom:16,textAlign:'center'}},
+          React.createElement(Avatar,{name:selected.name,src:selected.avatar,size:72,style:{margin:'0 auto 12px'}}),
+          React.createElement('h2',{style:{color:'#fff',fontSize:20,fontWeight:700}},selected.name),
+          React.createElement('p',{style:{color:'rgba(255,255,255,.7)',fontSize:13}},selected.position?`${selected.position} · `:'',selected.school||selected.sport||'Football Athlete')),
+        selected.bio&&React.createElement('p',{style:{fontSize:14,color:C.textSecondary,marginBottom:16,textAlign:'center'}},selected.bio),
+        selected.socialHandles?.length?React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}},
+          selected.socialHandles.map(s=>React.createElement('div',{key:s.platform,style:{background:C.bg,padding:12,borderRadius:8,textAlign:'center'}},
+            React.createElement('div',{style:{fontSize:24}},platformEmoji[s.platform]||'📱'),
+            React.createElement('div',{style:{fontSize:16,fontWeight:800,marginTop:4}},formatNum(s.followers||0)),
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted,textTransform:'capitalize'}},s.platform),
+            s.handle&&React.createElement('div',{style:{fontSize:11,color:C.textMuted}},`@${s.handle}`)))):null,
+        React.createElement('div',{style:{background:'#FFF7F7',border:'1px solid #FEE2E2',borderRadius:8,padding:12,textAlign:'center',fontSize:12,color:'#7F1D1D'}},
+          '🏈 Represented by AiC Sports — Athletes in Control · Irvine, CA'))));
+};
+
+// ── Talent Marketing (Agent) ──────────────────────────────────────────────────
+const TalentMarketing=({token,user})=>{
+  const[athletes,setAthletes]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[activeTab,setActiveTab]=useState('pitches');
+  useEffect(()=>{
+    api('GET','/auth/athletes',null,token).then(d=>setAthletes(d.athletes||[])).catch(()=>{}).finally(()=>setLoading(false));
+  },[token]);
+  const pitchTemplates=[
+    {title:'Brand Awareness Deal',desc:'Ideal for athletes with 10K–100K followers. Single post + story coverage.',icon:'📢',tags:['social_post','instagram','tiktok'],value:'$500–$2,500'},
+    {title:'Season Ambassador',desc:'Long-term partnership across multiple platforms throughout the season.',icon:'🤝',tags:['ambassador','multi-platform'],value:'$5K–$25K'},
+    {title:'Appearance + Post',desc:'Event appearance paired with social content creation.',icon:'🎤',tags:['appearance','social_post'],value:'$1K–$10K'},
+    {title:'Video Campaign',desc:'Dedicated YouTube or TikTok video integration with deliverables.',icon:'🎬',tags:['video','youtube','tiktok'],value:'$2K–$15K'},
+  ];
+  const services=[
+    {title:'Football Representation',desc:'NFL, college, and transfer portal athletes. NFLPA-certified agent on staff.',icon:'🏈'},
+    {title:'Coaches & Executives',desc:'Representation for coaching staff, OCs, DCs, and football executives.',icon:'📋'},
+    {title:'Media & Broadcasting',desc:'Connecting players to broadcast deals, podcasts, and media properties.',icon:'📺'},
+    {title:'Brand Partnerships',desc:'Matching athletes with brands that align with their personal brand.',icon:'🤝'},
+    {title:'Properties & Events',desc:'Athlete-hosted camps, events, and branded experiences.',icon:'🏟️'},
+    {title:'Creative & Content',desc:'Content strategy, video production, and social media management.',icon:'🎨'},
+  ];
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{marginBottom:20}},
+      React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Talent Marketing'),
+      React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Pitch tools, deal templates, and AiC Sports services')),
+    React.createElement('div',{style:{display:'flex',gap:6,marginBottom:20,flexWrap:'wrap'}},
+      ['pitches','services','roster-stats'].map(t=>React.createElement('button',{key:t,onClick:()=>setActiveTab(t),
+        style:{padding:'6px 16px',borderRadius:999,background:activeTab===t?C.primary:C.bg,color:activeTab===t?'#fff':C.textSecondary,fontSize:13,fontWeight:activeTab===t?600:400,border:`1px solid ${activeTab===t?C.primary:C.border}`,cursor:'pointer',transition:'all .15s',textTransform:'capitalize'}},
+        t.replace('-',' ')))),
+    activeTab==='pitches'&&React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}},
+      pitchTemplates.map((p,i)=>React.createElement('div',{key:i,className:'card'},
+        React.createElement('div',{style:{fontSize:32,marginBottom:12}},p.icon),
+        React.createElement('h3',{style:{fontSize:15,fontWeight:700,marginBottom:6}},p.title),
+        React.createElement('p',{style:{fontSize:13,color:C.textSecondary,marginBottom:12}},p.desc),
+        React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:4,marginBottom:12}},
+          p.tags.map(t=>React.createElement('span',{key:t,className:'badge badge-red'},t))),
+        React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
+          React.createElement('span',{style:{fontSize:15,fontWeight:700,color:C.success}},p.value),
+          React.createElement('button',{className:'btn btn-primary',style:{fontSize:12,padding:'6px 12px'},onClick:()=>alert('Template copied to clipboard!')},'Use Template'))))),
+    activeTab==='services'&&React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}},
+      services.map((s,i)=>React.createElement('div',{key:i,className:'card'},
+        React.createElement('div',{style:{fontSize:32,marginBottom:10}},s.icon),
+        React.createElement('h3',{style:{fontSize:15,fontWeight:700,marginBottom:6}},s.title),
+        React.createElement('p',{style:{fontSize:13,color:C.textSecondary}},s.desc)))),
+    activeTab==='roster-stats'&&(loading?React.createElement(Spinner):
+    !athletes.length?React.createElement(Empty,{icon:'🏈',text:'No athletes on roster'}):
+    React.createElement('div',{className:'card'},
+      React.createElement('table',{style:{width:'100%',borderCollapse:'collapse'}},
+        React.createElement('thead',null,
+          React.createElement('tr',{style:{borderBottom:`2px solid ${C.border}`}},
+            ['Athlete','Position','School','Followers','Earned','Deals'].map(h=>
+              React.createElement('th',{key:h,style:{padding:'10px 12px',textAlign:'left',fontSize:12,color:C.textMuted,fontWeight:600}},h)))),
+        React.createElement('tbody',null,
+          athletes.map(a=>{
+            const totalF=(a.socialHandles||[]).reduce((s,h)=>s+(h.followers||0),0);
+            return React.createElement('tr',{key:a._id,style:{borderBottom:`1px solid ${C.border}`}},
+              React.createElement('td',{style:{padding:'12px'}},
+                React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10}},
+                  React.createElement(Avatar,{name:a.name,src:a.avatar,size:32}),
+                  React.createElement('span',{style:{fontSize:14,fontWeight:600}},a.name))),
+              React.createElement('td',{style:{padding:'12px',fontSize:13,color:C.textSecondary}},a.position||'—'),
+              React.createElement('td',{style:{padding:'12px',fontSize:13,color:C.textSecondary}},a.school||'—'),
+              React.createElement('td',{style:{padding:'12px',fontSize:13,fontWeight:600}},formatNum(totalF)),
+              React.createElement('td',{style:{padding:'12px',fontSize:13,fontWeight:600,color:C.success}},formatMoney(a.totalEarnings||0)),
+              React.createElement('td',{style:{padding:'12px',fontSize:13}},a.dealsCompleted||0));}))))));
+};
+
+// ── Sponsor Portal ─────────────────────────────────────────────────────────────
+const SponsorPortal=({token,user})=>{
+  const[athletes,setAthletes]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[filters,setFilters]=useState({search:'',position:''});
+  const[selected,setSelected]=useState(null);
+  const isBrand=user.role==='brand';
+  const positions=['QB','WR','RB','TE','OL','DL','LB','DB'];
+  const load=useCallback(async()=>{
+    setLoading(true);
+    const p=new URLSearchParams();
+    if(filters.search)p.set('search',filters.search);
+    const data=await api('GET',`/auth/athletes?${p}`,null,token).catch(()=>({athletes:[]}));
+    let list=data.athletes||[];
+    if(filters.position)list=list.filter(a=>a.position?.toUpperCase()===filters.position.toUpperCase());
+    setAthletes(list);setLoading(false);
+  },[token,filters]);
+  useEffect(()=>{load();},[load]);
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#CC0000)`,borderRadius:16,padding:'32px',marginBottom:24,color:'#fff'}},
+      React.createElement('h1',{style:{fontSize:28,fontWeight:800,marginBottom:8}},'🏈 AiC Sports Athlete Marketplace'),
+      React.createElement('p',{style:{fontSize:15,opacity:.8,marginBottom:16}},'Connect your brand with football\'s top NIL athletes. Backed by a Heisman winner, NFLPA agent & Super Bowl-winning coach.'),
+      React.createElement('div',{style:{display:'flex',gap:24,flexWrap:'wrap'}},
+        [['100+','Athletes Represented'],['$2M+','NIL Value Managed'],['🏆','Jayden Daniels & more']].map(([v,l])=>
+          React.createElement('div',{key:l},
+            React.createElement('div',{style:{fontSize:20,fontWeight:800}},v),
+            React.createElement('div',{style:{fontSize:12,opacity:.7}},l))))),
+    React.createElement('div',{style:{display:'flex',gap:10,marginBottom:20,flexWrap:'wrap'}},
+      React.createElement('input',{className:'input',placeholder:'🔍 Search athletes…',value:filters.search,onChange:e=>setFilters(f=>({...f,search:e.target.value})),style:{maxWidth:260}}),
+      React.createElement('select',{className:'input',value:filters.position,onChange:e=>setFilters(f=>({...f,position:e.target.value})),style:{maxWidth:140}},
+        React.createElement('option',{value:''},'All Positions'),
+        positions.map(p=>React.createElement('option',{key:p,value:p},p))),
+      React.createElement('button',{className:'btn btn-primary',onClick:load},'Search')),
+    loading?React.createElement(Spinner):
+    !athletes.length?React.createElement(Empty,{icon:'🏈',text:'No athletes match your search'}):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}},
+      athletes.map(a=>{
+        const totalF=(a.socialHandles||[]).reduce((s,h)=>s+(h.followers||0),0);
+        return React.createElement('div',{key:a._id,className:'card',style:{cursor:'pointer'},
+          onClick:()=>setSelected(a),
+          onMouseEnter:e=>e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,.1)',
+          onMouseLeave:e=>e.currentTarget.style.boxShadow='none'},
+          React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#1A1A1A)`,borderRadius:'8px 8px 0 0',margin:'-20px -20px 14px',padding:'16px 20px',display:'flex',alignItems:'center',gap:12}},
+            React.createElement(Avatar,{name:a.name,src:a.avatar,size:44}),
+            React.createElement('div',null,
+              React.createElement('div',{style:{color:'#fff',fontWeight:700,fontSize:14}},a.name),
+              React.createElement('div',{style:{color:'rgba(255,255,255,.6)',fontSize:12}},a.position?`${a.position} · `:'',a.school||a.sport||'Football'))),
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
+            [['Total Reach',formatNum(totalF),C.primary],['Brand Deals',a.dealsCompleted||0,C.success]].map(([lbl,val,col])=>
+              React.createElement('div',{key:lbl,style:{textAlign:'center',padding:'10px',background:C.bg,borderRadius:8}},
+                React.createElement('div',{style:{fontSize:17,fontWeight:800,color:col}},val),
+                React.createElement('div',{style:{fontSize:10,color:C.textMuted}},lbl)))),
+          a.socialHandles?.length?React.createElement('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:12}},
+            a.socialHandles.map(s=>React.createElement('span',{key:s.platform,style:{fontSize:11,background:C.bg,padding:'2px 7px',borderRadius:4}},
+              platformEmoji[s.platform]+' '+formatNum(s.followers||0)))):null,
+          isBrand&&React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center',fontSize:13},
+            onClick:e=>{e.stopPropagation();alert('Request sent! AiC Sports will connect you with this athlete\'s team within 24 hours.');}},
+            'Request Partnership 🤝'));})),
+    React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:'Athlete Profile'},
+      selected&&React.createElement('div',null,
+        React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#CC0000)`,borderRadius:10,padding:'24px',marginBottom:16,textAlign:'center'}},
+          React.createElement(Avatar,{name:selected.name,src:selected.avatar,size:72,style:{margin:'0 auto 12px'}}),
+          React.createElement('h2',{style:{color:'#fff',fontSize:20,fontWeight:700}},selected.name),
+          React.createElement('p',{style:{color:'rgba(255,255,255,.7)',fontSize:13}},selected.position?`${selected.position} · `:'',selected.school||selected.sport||'Football')),
+        selected.bio&&React.createElement('p',{style:{fontSize:14,color:C.textSecondary,marginBottom:16,textAlign:'center'}},selected.bio),
+        selected.socialHandles?.length?React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}},
+          selected.socialHandles.map(s=>React.createElement('div',{key:s.platform,style:{background:C.bg,padding:12,borderRadius:8,textAlign:'center'}},
+            React.createElement('div',{style:{fontSize:24}},platformEmoji[s.platform]||'📱'),
+            React.createElement('div',{style:{fontSize:16,fontWeight:800,marginTop:4}},formatNum(s.followers||0)),
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted,textTransform:'capitalize'}},s.platform)))):null,
+        isBrand&&React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center',marginBottom:10},
+          onClick:()=>{setSelected(null);alert('Request sent! AiC Sports will connect you within 24 hours.');}},
+          '🤝 Request Partnership with '+selected.name.split(' ')[0]),
+        React.createElement('div',{style:{background:'#FFF7F7',border:'1px solid #FEE2E2',borderRadius:8,padding:10,textAlign:'center',fontSize:12,color:'#7F1D1D'}},
+          '🏈 All inquiries handled by AiC Sports — Athletes in Control · Irvine, CA'))));
+};
+
 // ── Profile ───────────────────────────────────────────────────────────────────
 const Profile=({token,user,onUpdate})=>{
   const[form,setForm]=useState({
     name:user.name||'',bio:user.bio||'',sport:user.sport||'',school:user.school||'',
     position:user.position||'',graduationYear:user.graduationYear||'',
+    proStatus:user.proStatus||'',nflTeam:user.nflTeam||'',statsUrl:user.statsUrl||'',
     company:user.company||'',industry:user.industry||'',website:user.website||'',agency:user.agency||''
   });
   const[social,setSocial]=useState({platform:'instagram',handle:'',followers:''});
@@ -857,7 +1462,15 @@ const Profile=({token,user,onUpdate})=>{
             React.createElement('div',null,React.createElement('label',{className:'label'},'School / Team'),React.createElement('input',{className:'input',value:form.school,onChange:set('school'),placeholder:'Ohio State'}))),
           React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
             React.createElement('div',null,React.createElement('label',{className:'label'},'Position'),React.createElement('input',{className:'input',value:form.position,onChange:set('position'),placeholder:'QB'})),
-            React.createElement('div',null,React.createElement('label',{className:'label'},'Graduation Year'),React.createElement('input',{className:'input',type:'number',value:form.graduationYear,onChange:set('graduationYear'),placeholder:'2027'})))),
+            React.createElement('div',null,React.createElement('label',{className:'label'},'Graduation Year'),React.createElement('input',{className:'input',type:'number',value:form.graduationYear,onChange:set('graduationYear'),placeholder:'2027'}))),
+          React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
+            React.createElement('div',null,React.createElement('label',{className:'label'},'Status'),
+              React.createElement('select',{className:'input',value:form.proStatus,onChange:set('proStatus')},
+                React.createElement('option',{value:''},'Select…'),
+                React.createElement('option',{value:'collegiate'},'Collegiate'),
+                React.createElement('option',{value:'professional'},'Professional / NFL'))),
+            React.createElement('div',null,React.createElement('label',{className:'label'},'NFL Team (if pro)'),React.createElement('input',{className:'input',value:form.nflTeam,onChange:set('nflTeam'),placeholder:'Washington Commanders'}))),
+          React.createElement('div',{style:{marginBottom:14}},React.createElement('label',{className:'label'},'Stats URL'),React.createElement('input',{className:'input',value:form.statsUrl,onChange:set('statsUrl'),placeholder:'https://www.espn.com/nfl/player/_/id/…'}))),
         user.role==='brand'&&React.createElement(React.Fragment,null,
           React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
             React.createElement('div',null,React.createElement('label',{className:'label'},'Company'),React.createElement('input',{className:'input',value:form.company,onChange:set('company')})),
@@ -932,7 +1545,7 @@ const App=()=>{
   const onUpdate=(u)=>setUser(u);
 
   if(booting)return React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',flexDirection:'column',gap:12}},
-    React.createElement('div',{style:{width:40,height:40,background:C.primary,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}},'⚡'),
+    React.createElement('div',{style:{width:40,height:40,background:C.primary,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}},'🏈'),
     React.createElement(Spinner));
 
   if(!user)return React.createElement(AuthCtx.Provider,{value:{user,token}},React.createElement(AuthScreen,{onAuth}));
@@ -945,6 +1558,11 @@ const App=()=>{
       case'content':return React.createElement(ContentHub,{token,user});
       case'analytics':return React.createElement(Analytics,{token,user});
       case'campaigns':return React.createElement(Campaigns,{token});
+      case'roster':return React.createElement(Roster,{token,user,onNavigate:setView});
+      case'media-kits':return React.createElement(MediaKits,{token,user});
+      case'talent-marketing':return React.createElement(TalentMarketing,{token,user});
+      case'sponsor-portal':return React.createElement(SponsorPortal,{token,user});
+      case'rd-tracker':return React.createElement(RDTracker,{token,user});
       case'profile':return React.createElement(Profile,{token,user,onUpdate});
       default:return React.createElement(Dashboard,{token,user,onNavigate:setView});
     }
@@ -957,8 +1575,8 @@ const App=()=>{
         // Mobile header
         React.createElement('div',{className:'show-mobile',style:{position:'sticky',top:0,zIndex:50,background:'#fff',borderBottom:`1px solid ${C.border}`,padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}},
           React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
-            React.createElement('div',{style:{width:28,height:28,background:C.primary,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}},'⚡'),
-            React.createElement('span',{style:{fontWeight:800,fontSize:15}},'Digital NIL')),
+            React.createElement('div',{style:{width:28,height:28,background:C.primary,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}},'🏈'),
+            React.createElement('span',{style:{fontWeight:800,fontSize:15}},'AiC NIL')),
           React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
             unread>0&&React.createElement('span',{style:{background:C.danger,color:'#fff',borderRadius:'999px',fontSize:11,fontWeight:700,padding:'2px 7px'}},unread),
             React.createElement(Avatar,{name:user.name,src:user.avatar,size:28}))),

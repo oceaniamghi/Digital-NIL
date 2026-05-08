@@ -13,6 +13,7 @@ import campaignRoutes from './routes/campaigns.js';
 import contentRoutes from './routes/content.js';
 import analyticsRoutes from './routes/analytics.js';
 import activityRoutes from './routes/activity.js';
+import timelogRoutes from './routes/timelogs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/timelogs', timelogRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

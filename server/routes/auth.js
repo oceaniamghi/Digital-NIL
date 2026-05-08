@@ -60,6 +60,7 @@ router.get('/me', requireAuth, (req, res) => {
 router.put('/profile', requireAuth, async (req, res) => {
   try {
     const allowed = ['name', 'bio', 'avatar', 'sport', 'school', 'position', 'graduationYear',
+      'proStatus', 'nflTeam', 'statsUrl',
       'socialHandles', 'company', 'industry', 'website', 'logo', 'agency'];
     const updates = {};
     for (const key of allowed) {
@@ -94,6 +95,19 @@ router.put('/social', requireAuth, async (req, res) => {
 
     const { password: _, ...userObj } = user.toObject();
     res.json({ user: userObj });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/auth/athletes/:id — public athlete profile (for media kit sharing)
+router.get('/athletes/:id', async (req, res) => {
+  try {
+    const athlete = await User.findById(req.params.id)
+      .select('-password -email')
+      .where('role').equals('athlete');
+    if (!athlete) return res.status(404).json({ error: 'Athlete not found' });
+    res.json({ athlete });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
