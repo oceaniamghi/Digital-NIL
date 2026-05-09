@@ -58,25 +58,35 @@ router.get('/games', requireAuth, async (req, res) => {
     const data = await cfbdFetch(`/games/players?${qs}`);
     // Flatten into per-game rows for easier rendering
     const games = [];
+    let gameNum = 0;
     for (const game of (data || [])) {
-      const team = game.teams?.find(t => t.players?.some(p => String(p.id) === String(playerId)));
-      if (!team) continue;
-      const player = team.players?.find(p => String(p.id) === String(playerId));
-      if (player) {
-        const statMap = {};
-        for (const cat of (player.categories || [])) {
-          for (const type of (cat.types || [])) {
-            statMap[`${cat.name}_${type.name}`] = type.stat;
-          }
+      const playerTeam = game.teams?.find(t =>
+        t.categories?.some(cat =>
+          cat.types?.some(type =>
+            type.athletes?.some(a => String(a.id) === String(playerId))
+          )
+        )
+      );
+      if (!playerTeam) continue;
+      gameNum++;
+      const opponentTeam = game.teams?.find(t => t.team !== playerTeam.team);
+      const statMap = {};
+      for (const cat of (playerTeam.categories || [])) {
+        for (const type of (cat.types || [])) {
+          const athlete = type.athletes?.find(a => String(a.id) === String(playerId));
+          if (athlete) statMap[`${cat.name}_${type.name}`] = athlete.stat;
         }
-        games.push({
-          gameId: game.id,
-          week: game.week,
-          opponent: game.homeTeam === team.school ? game.awayTeam : game.homeTeam,
-          homeAway: game.homeTeam === team.school ? 'home' : 'away',
-          ...statMap
-        });
       }
+      games.push({
+        gameId: game.id, game: gameNum,
+        homeAway: playerTeam.homeAway,
+        opponent: opponentTeam?.team || '—',
+        result: playerTeam.points != null && opponentTeam?.points != null
+          ? (playerTeam.points > opponentTeam.points ? 'W' : playerTeam.points < opponentTeam.points ? 'L' : 'T')
+            + ' ' + playerTeam.points + '-' + opponentTeam.points
+          : '',
+        ...statMap
+      });
     }
     res.json({ games });
   } catch (err) {
@@ -142,24 +152,37 @@ router.get('/player/:id/profile', requireAuth, async (req, res) => {
 
     const games = [];
     if (gamesRaw.status === 'fulfilled' && Array.isArray(gamesRaw.value)) {
+      let gameNum = 0;
       for (const game of gamesRaw.value) {
-        const teamData = game.teams?.find(t => t.players?.some(p => String(p.id) === String(id)));
-        if (!teamData) continue;
-        const player = teamData.players?.find(p => String(p.id) === String(id));
-        if (player) {
-          const statMap = {};
-          for (const cat of (player.categories || [])) {
-            for (const type of (cat.types || [])) {
-              statMap[`${cat.name}_${type.name}`] = type.stat;
-            }
+        // structure: game.teams[].categories[].types[].athletes[{id,name,stat}]
+        const playerTeam = game.teams?.find(t =>
+          t.categories?.some(cat =>
+            cat.types?.some(type =>
+              type.athletes?.some(a => String(a.id) === String(id))
+            )
+          )
+        );
+        if (!playerTeam) continue;
+        gameNum++;
+        const opponentTeam = game.teams?.find(t => t.team !== playerTeam.team);
+        const statMap = {};
+        for (const cat of (playerTeam.categories || [])) {
+          for (const type of (cat.types || [])) {
+            const athlete = type.athletes?.find(a => String(a.id) === String(id));
+            if (athlete) statMap[`${cat.name}_${type.name}`] = athlete.stat;
           }
-          games.push({
-            gameId: game.id, week: game.week,
-            opponent: game.homeTeam === teamData.school ? game.awayTeam : game.homeTeam,
-            homeAway: game.homeTeam === teamData.school ? 'home' : 'away',
-            ...statMap
-          });
         }
+        games.push({
+          gameId: game.id,
+          game: gameNum,
+          homeAway: playerTeam.homeAway,
+          opponent: opponentTeam?.team || '—',
+          result: playerTeam.points != null && opponentTeam?.points != null
+            ? (playerTeam.points > opponentTeam.points ? 'W' : playerTeam.points < opponentTeam.points ? 'L' : 'T')
+              + ' ' + playerTeam.points + '-' + opponentTeam.points
+            : '',
+          ...statMap
+        });
       }
     }
     res.json({ stats, games, year: yr, team });

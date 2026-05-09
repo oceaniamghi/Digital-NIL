@@ -1655,13 +1655,15 @@ const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
         React.createElement('table',{style:{width:'100%',borderCollapse:'collapse',fontSize:12}},
           React.createElement('thead',null,
             React.createElement('tr',{style:{background:C.bg,borderBottom:`2px solid ${C.border}`}},
-              ['Wk','Opponent','H/A',...new Set(games.flatMap(g=>Object.keys(g).filter(k=>!['gameId','week','opponent','homeAway'].includes(k))))].map(h=>
+              ['#','Opponent','H/A','Result',...new Set(games.flatMap(g=>Object.keys(g).filter(k=>!['gameId','game','opponent','homeAway','result'].includes(k))))].map(h=>
                 React.createElement('th',{key:h,style:{padding:'8px 10px',textAlign:'left',color:C.textMuted,fontWeight:600,whiteSpace:'nowrap'}},h)))),
           React.createElement('tbody',null,
             games.map((g,i)=>{
-              const cols=['week','opponent','homeAway',...new Set(games.flatMap(gg=>Object.keys(gg).filter(k=>!['gameId','week','opponent','homeAway'].includes(k))))];
-              return React.createElement('tr',{key:g.gameId||i,style:{borderBottom:`1px solid ${C.border}`}},
-                cols.map(c=>React.createElement('td',{key:c,style:{padding:'7px 10px',color:c==='opponent'?C.text:C.textSecondary}},
+              const statCols=[...new Set(games.flatMap(gg=>Object.keys(gg).filter(k=>!['gameId','game','opponent','homeAway','result'].includes(k))))];
+              const allCols=['game','opponent','homeAway','result',...statCols];
+              return React.createElement('tr',{key:g.gameId||i,style:{borderBottom:`1px solid ${C.border}`,background:i%2===0?'transparent':C.bg+'44'}},
+                allCols.map(c=>React.createElement('td',{key:c,style:{padding:'7px 10px',whiteSpace:'nowrap',
+                  color:c==='opponent'?C.text:c==='result'?(g[c]?.startsWith('W')?C.success:g[c]?.startsWith('L')?C.danger:C.textSecondary):C.textSecondary}},
                   c==='homeAway'?(g[c]==='home'?'🏠':'✈️'):g[c]||'—')));
             }))))));
 };
