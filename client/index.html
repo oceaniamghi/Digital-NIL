@@ -1587,7 +1587,7 @@ const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
 
   const selectPlayer=(pid,team)=>{
     setPlayerId(pid);setPlayerTeam(team||'');setSearchResults(null);
-    loadStats(pid,year,team);
+    loadStats(pid,year);
   };
 
   useEffect(()=>{if(initId){setPlayerId(initId);loadStats(initId,year);}},[initId]);
@@ -1608,7 +1608,7 @@ const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
         React.createElement('input',{className:'input',placeholder:'Search player name…',value:searchName,onChange:e=>setSearchName(e.target.value),
           onKeyDown:e=>{if(e.key==='Enter')search();},style:{flex:1}}),
         React.createElement('button',{className:'btn btn-secondary',onClick:search,disabled:loading},loading?'…':'Search')),
-      React.createElement('select',{className:'input',value:year,onChange:e=>{const y=Number(e.target.value);setYear(y);if(playerId)loadStats(playerId,y,playerTeam);},style:{maxWidth:100}},
+      React.createElement('select',{className:'input',value:year,onChange:e=>{const y=Number(e.target.value);setYear(y);if(playerId)loadStats(playerId,y);},style:{maxWidth:100}},
         years.map(y=>React.createElement('option',{key:y,value:y},y)))),
 
     // Search results dropdown
