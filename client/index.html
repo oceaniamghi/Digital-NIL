@@ -476,13 +476,117 @@ const Opportunities=({token,user})=>{
             applying?'Applying…':'Apply for this Deal 🚀')))));
 };
 
+// ── Deal Form (brand / agent creates a deal) ──────────────────────────────────
+const DealForm=({token,user,roster,onSave,onClose})=>{
+  const isAgent=user.role==='agent';
+  const blank={title:'',description:'',type:'social_post',platforms:[],sports:'',minFollowers:0,
+    amount:500,compType:'flat',disclosureTag:'#ad',expiresAt:'',startDate:'',endDate:'',
+    isPublic:true,athleteId:''};
+  const[f,setF]=useState(blank);
+  const[saving,setSaving]=useState(false);
+  const[err,setErr]=useState('');
+
+  const set=k=>v=>setF(p=>({...p,[k]:v}));
+  const togglePlat=p=>setF(prev=>{
+    const ps=prev.platforms.includes(p)?prev.platforms.filter(x=>x!==p):[...prev.platforms,p];
+    return{...prev,platforms:ps};
+  });
+
+  const submit=async e=>{
+    e.preventDefault();setSaving(true);setErr('');
+    try{
+      const body={
+        title:f.title,description:f.description,type:f.type,
+        platforms:f.platforms,
+        sports:f.sports?f.sports.split(',').map(s=>s.trim()).filter(Boolean):[],
+        minFollowers:Number(f.minFollowers)||0,
+        compensation:{amount:Number(f.amount),type:f.compType},
+        disclosureTag:f.disclosureTag,
+        expiresAt:f.expiresAt||undefined,startDate:f.startDate||undefined,endDate:f.endDate||undefined,
+        isPublic:f.isPublic,
+        athleteId:isAgent?f.athleteId:undefined
+      };
+      await api('POST','/deals',body,token);
+      onSave();
+    }catch(e){setErr(e.message);}
+    setSaving(false);
+  };
+
+  const inputStyle={marginBottom:14};
+  const plats=['instagram','tiktok','twitter','youtube','facebook'];
+
+  return React.createElement('form',{onSubmit:submit},
+    React.createElement('div',{style:inputStyle},
+      React.createElement('label',{className:'label'},'Deal Title *'),
+      React.createElement('input',{className:'input',value:f.title,onChange:e=>set('title')(e.target.value),required:true,placeholder:'e.g. Fall Collection Launch — WR/DB Athletes'})),
+    React.createElement('div',{style:inputStyle},
+      React.createElement('label',{className:'label'},'Description *'),
+      React.createElement('textarea',{className:'input',rows:3,value:f.description,onChange:e=>set('description')(e.target.value),required:true,placeholder:'What does this deal involve? Requirements, deliverables overview…',style:{resize:'vertical'}})),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}},
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'Deal Type'),
+        React.createElement('select',{className:'input',value:f.type,onChange:e=>set('type')(e.target.value)},
+          Object.entries(typeLabel).map(([v,l])=>React.createElement('option',{key:v,value:v},l)))),
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'Disclosure Tag'),
+        React.createElement('select',{className:'input',value:f.disclosureTag,onChange:e=>set('disclosureTag')(e.target.value)},
+          ['#ad','#sponsored','#partner','#gifted','#collab'].map(t=>React.createElement('option',{key:t,value:t},t))))),
+    React.createElement('div',{style:inputStyle},
+      React.createElement('label',{className:'label'},'Platforms'),
+      React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:8}},
+        plats.map(p=>React.createElement('label',{key:p,style:{display:'flex',alignItems:'center',gap:5,cursor:'pointer',fontSize:13,padding:'6px 10px',borderRadius:8,border:`1px solid ${f.platforms.includes(p)?C.primary:C.border}`,background:f.platforms.includes(p)?C.primaryLight:'transparent',color:f.platforms.includes(p)?C.primary:C.text}},
+          React.createElement('input',{type:'checkbox',checked:f.platforms.includes(p),onChange:()=>togglePlat(p),style:{accentColor:C.primary}}),
+          platformEmoji[p],' ',p.charAt(0).toUpperCase()+p.slice(1))))),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}},
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'Compensation ($) *'),
+        React.createElement('input',{className:'input',type:'number',min:0,value:f.amount,onChange:e=>set('amount')(e.target.value),required:true})),
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'Pay Structure'),
+        React.createElement('select',{className:'input',value:f.compType,onChange:e=>set('compType')(e.target.value)},
+          [['flat','Flat Fee'],['per_post','Per Post'],['per_thousand_impressions','Per 1K Impressions'],['rev_share','Revenue Share']].map(([v,l])=>React.createElement('option',{key:v,value:v},l))))),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}},
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'Sports (comma separated)'),
+        React.createElement('input',{className:'input',value:f.sports,onChange:e=>set('sports')(e.target.value),placeholder:'football, basketball'})),
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'Min Followers'),
+        React.createElement('input',{className:'input',type:'number',min:0,value:f.minFollowers,onChange:e=>set('minFollowers')(e.target.value)}))),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:14}},
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'Start Date'),
+        React.createElement('input',{className:'input',type:'date',value:f.startDate,onChange:e=>set('startDate')(e.target.value)})),
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'End Date'),
+        React.createElement('input',{className:'input',type:'date',value:f.endDate,onChange:e=>set('endDate')(e.target.value)})),
+      React.createElement('div',null,
+        React.createElement('label',{className:'label'},'Expires (listing)'),
+        React.createElement('input',{className:'input',type:'date',value:f.expiresAt,onChange:e=>set('expiresAt')(e.target.value)}))),
+    isAgent&&React.createElement('div',{style:inputStyle},
+      React.createElement('label',{className:'label'},'Assign to Athlete (optional — assigns deal directly)'),
+      React.createElement('select',{className:'input',value:f.athleteId,onChange:e=>set('athleteId')(e.target.value)},
+        React.createElement('option',{value:''},'Post as open opportunity'),
+        (roster||[]).map(a=>React.createElement('option',{key:a._id,value:a._id},a.name+(a.sport?' · '+a.sport:''))))),
+    React.createElement('div',{style:{marginBottom:14,display:'flex',alignItems:'center',gap:8}},
+      React.createElement('input',{type:'checkbox',id:'pub',checked:f.isPublic,onChange:e=>set('isPublic')(e.target.checked),style:{accentColor:C.primary}}),
+      React.createElement('label',{htmlFor:'pub',style:{fontSize:13,cursor:'pointer'}},'Visible in public marketplace')),
+    err&&React.createElement('div',{style:{background:C.dangerLight,color:'#991B1B',padding:10,borderRadius:8,marginBottom:12,fontSize:13}},err),
+    React.createElement('div',{style:{display:'flex',gap:10,justifyContent:'flex-end'}},
+      React.createElement('button',{type:'button',className:'btn btn-secondary',onClick:onClose},'Cancel'),
+      React.createElement('button',{type:'submit',className:'btn btn-primary',disabled:saving},saving?'Posting…':'Post Deal')));
+};
+
 // ── My Deals ──────────────────────────────────────────────────────────────────
 const MyDeals=({token,user})=>{
   const[deals,setDeals]=useState([]);
   const[loading,setLoading]=useState(true);
   const[tab,setTab]=useState('all');
   const[selected,setSelected]=useState(null);
+  const[showCreate,setShowCreate]=useState(false);
+  const[roster,setRoster]=useState([]);
   const isBrand=user.role==='brand';
+  const isAgent=user.role==='agent';
+  const canCreate=isBrand||isAgent;
 
   const load=useCallback(async()=>{
     setLoading(true);
@@ -493,7 +597,13 @@ const MyDeals=({token,user})=>{
 
   useEffect(()=>{load();},[load]);
 
-  const tabs=['all','active','applied','completed','declined'];
+  useEffect(()=>{
+    if(isAgent){
+      api('GET','/auth/athletes',null,token).then(d=>setRoster(d.athletes||[])).catch(()=>{});
+    }
+  },[isAgent,token]);
+
+  const tabs=['all','open','active','applied','completed','declined'];
 
   const action=async(dealId,act,extra={})=>{
     try{
@@ -502,61 +612,88 @@ const MyDeals=({token,user})=>{
     }catch(err){alert(err.message);}
   };
 
+  const deleteDeal=async id=>{
+    if(!confirm('Delete this deal?'))return;
+    try{await api('DELETE',`/deals/${id}`,null,token);load();}catch(err){alert(err.message);}
+  };
+
   return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
-    React.createElement('h1',{style:{fontSize:22,fontWeight:700,marginBottom:4}},'My Deals'),
-    React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginBottom:20}},'Manage your active and past sponsorship deals'),
+    React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}},
+      React.createElement('h1',{style:{fontSize:22,fontWeight:700}},isAgent?'Roster Deals':isBrand?'My Deals':'My Deals'),
+      canCreate&&React.createElement('button',{className:'btn btn-primary',onClick:()=>setShowCreate(true)},'+ Post Deal')),
+    React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginBottom:20}},
+      isAgent?'Deals across your athlete roster':isBrand?'Manage your sponsorship deals and applications':'Your active and past sponsorship deals'),
     React.createElement('div',{style:{display:'flex',gap:6,marginBottom:20,flexWrap:'wrap'}},
       tabs.map(t=>React.createElement('button',{key:t,onClick:()=>setTab(t),
         style:{padding:'6px 14px',borderRadius:999,background:tab===t?C.primary:C.bg,color:tab===t?'#fff':C.textSecondary,fontSize:13,fontWeight:tab===t?600:400,border:`1px solid ${tab===t?C.primary:C.border}`,cursor:'pointer',transition:'all .15s',textTransform:'capitalize'}},t))),
     loading?React.createElement(Spinner):
-    !deals.length?React.createElement(Empty,{icon:'🤝',text:'No deals found'}):
+    !deals.length?React.createElement(Empty,{icon:'🤝',text:canCreate?'No deals yet — post your first deal above':'No deals found'}):
     React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:12}},
       deals.map(d=>{
-        const other=isBrand?d.athlete:d.brand;
-        const otherName=isBrand?(d.athlete?.name||'Open'):(d.brand?.company||d.brand?.name);
+        const otherName=isAgent?(d.athlete?.name||'Unassigned'):isBrand?(d.athlete?.name||'Open'):(d.brand?.company||d.brand?.name||'Agency');
+        const otherSrc=isAgent?d.athlete?.avatar:isBrand?d.athlete?.avatar:d.brand?.logo;
         return React.createElement('div',{key:d._id,className:'card',style:{cursor:'pointer'},
           onClick:()=>setSelected(d)},
           React.createElement('div',{style:{display:'flex',alignItems:'center',gap:14}},
-            React.createElement(Avatar,{name:otherName,src:isBrand?d.athlete?.avatar:d.brand?.logo,size:44}),
+            React.createElement(Avatar,{name:otherName,src:otherSrc,size:44}),
             React.createElement('div',{style:{flex:1}},
               React.createElement('div',{style:{fontSize:15,fontWeight:700,marginBottom:2}},d.title),
-              React.createElement('div',{style:{fontSize:13,color:C.textSecondary}},otherName,d.athlete?.sport?' · '+d.athlete.sport:'')),
+              React.createElement('div',{style:{fontSize:13,color:C.textSecondary}},
+                otherName,
+                d.athlete?.sport?' · '+d.athlete.sport:'',
+                isAgent&&d.brand?.name?' · via '+(d.brand?.company||d.brand?.name):'')),
             React.createElement('div',{style:{textAlign:'right',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}},
               React.createElement(Badge,{status:d.status}),
               React.createElement('div',{style:{fontSize:16,fontWeight:800,color:C.success}},formatMoney(d.compensation?.amount||0)),
               React.createElement('div',{style:{fontSize:11,color:C.textMuted}},new Date(d.createdAt).toLocaleDateString()))));})),
     // Deal detail modal
-    React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:selected?.title||'Deal'},
+    React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:selected?.title||'Deal',maxWidth:680},
       selected&&React.createElement('div',null,
-        React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:10,marginBottom:16}},
+        React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}},
           React.createElement(Badge,{status:selected.status}),
-          React.createElement('span',{className:'badge badge-blue'},typeLabel[selected.type])),
+          React.createElement('span',{className:'badge badge-blue'},typeLabel[selected.type]),
+          selected.isPublic&&React.createElement('span',{className:'badge badge-gray'},'Public')),
         React.createElement('p',{style:{fontSize:14,color:C.textSecondary,marginBottom:16}},selected.description),
-        React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}},
-          [['Compensation',formatMoney(selected.compensation?.amount)],['Type',selected.compensation?.type?.replace(/_/g,' ')],
-           ['Started',selected.startDate?new Date(selected.startDate).toLocaleDateString():'TBD'],
-           ['Ends',selected.endDate?new Date(selected.endDate).toLocaleDateString():'TBD']].map(([k,v])=>
+        React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}},
+          [['Compensation',formatMoney(selected.compensation?.amount)],
+           ['Pay Structure',(selected.compensation?.type||'').replace(/_/g,' ')],
+           ['Platforms',(selected.platforms||[]).map(p=>(platformEmoji[p]||'')+' '+p).join(', ')||'Any'],
+           ['Disclosure',selected.disclosureTag||'#ad'],
+           ['Start',selected.startDate?new Date(selected.startDate).toLocaleDateString():'TBD'],
+           ['End',selected.endDate?new Date(selected.endDate).toLocaleDateString():'TBD']].map(([k,v])=>
           React.createElement('div',{key:k,style:{background:C.bg,padding:10,borderRadius:8}},
-            React.createElement('div',{style:{fontSize:11,color:C.textMuted}},k),
-            React.createElement('div',{style:{fontSize:14,fontWeight:600}},v)))),
-        // Brand actions on applied deals
-        isBrand&&selected.status==='applied'&&selected.applications?.length?
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginBottom:2}},k),
+            React.createElement('div',{style:{fontSize:13,fontWeight:600}},v)))),
+        // Applications list (brand/agent view)
+        (isBrand||isAgent)&&selected.status==='applied'&&selected.applications?.length?
           React.createElement('div',{style:{marginBottom:16}},
-            React.createElement('h4',{style:{fontSize:13,fontWeight:700,marginBottom:10}},'Applications'),
+            React.createElement('h4',{style:{fontSize:13,fontWeight:700,marginBottom:10}},'Applications ('+selected.applications.filter(a=>a.status==='pending').length+' pending)'),
             selected.applications.filter(a=>a.status==='pending').map(app=>
               React.createElement('div',{key:app._id,style:{display:'flex',alignItems:'center',gap:10,padding:'10px',background:C.bg,borderRadius:8,marginBottom:8}},
                 React.createElement(Avatar,{name:app.athlete?.name,src:app.athlete?.avatar,size:36}),
                 React.createElement('div',{style:{flex:1}},
                   React.createElement('div',{style:{fontSize:13,fontWeight:600}},app.athlete?.name||'Athlete'),
-                  app.message&&React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},app.message)),
-                React.createElement('button',{className:'btn btn-success',style:{padding:'6px 12px',fontSize:12},
-                  onClick:()=>action(selected._id,'accept',{athleteId:app.athlete?._id})},'Accept')))):null,
-        selected.status==='active'&&isBrand?
-          React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center'},
+                  React.createElement('div',{style:{fontSize:12,color:C.textMuted}},app.athlete?.sport||''),
+                  app.message&&React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginTop:2}},'"'+app.message+'"')),
+                React.createElement('div',{style:{display:'flex',gap:6}},
+                  React.createElement('button',{className:'btn btn-success',style:{padding:'6px 12px',fontSize:12},
+                    onClick:()=>action(selected._id,'accept',{athleteId:app.athlete?._id})},'Accept'),
+                  React.createElement('button',{className:'btn btn-ghost',style:{padding:'6px 10px',fontSize:12,color:C.danger},
+                    onClick:()=>action(selected._id,'decline')},'Pass'))))):null,
+        selected.status==='active'&&(isBrand||isAgent)?
+          React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center',marginBottom:8},
             onClick:()=>action(selected._id,'complete')},'Mark as Completed ✓'):null,
-        selected.status==='active'&&!isBrand?
-          React.createElement('div',{style:{background:C.successLight,color:'#065F46',padding:'12px',borderRadius:8,fontSize:13,textAlign:'center'}},
-            '✅ This deal is active! Submit your content to continue.'):null)));
+        selected.status==='active'&&!isBrand&&!isAgent?
+          React.createElement('div',{style:{background:C.successLight,color:'#065F46',padding:'12px',borderRadius:8,fontSize:13,textAlign:'center',marginBottom:8}},
+            '✅ This deal is active! Submit your content in the Content Hub.'):null,
+        selected.status==='open'&&(isBrand||isAgent)?
+          React.createElement('button',{className:'btn btn-ghost',style:{width:'100%',justifyContent:'center',color:C.danger,fontSize:13},
+            onClick:()=>deleteDeal(selected._id)},'Delete Deal'):null)),
+    // Create deal modal
+    React.createElement(Modal,{open:showCreate,onClose:()=>setShowCreate(false),title:'Post a New Deal',maxWidth:720},
+      React.createElement(DealForm,{token,user,roster,
+        onSave:()=>{setShowCreate(false);load();},
+        onClose:()=>setShowCreate(false)})));
 };
 
 // ── Content Hub ───────────────────────────────────────────────────────────────

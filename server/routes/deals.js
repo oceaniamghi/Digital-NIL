@@ -32,17 +32,25 @@ router.get('/opportunities', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/deals/my-deals — athlete's or brand's deals
+// GET /api/deals/my-deals — athlete's, brand's, or agent's deals
 router.get('/my-deals', requireAuth, async (req, res) => {
   try {
     const { status } = req.query;
-    const query = req.user.role === 'brand'
-      ? { brand: req.user._id }
-      : { athlete: req.user._id };
+    let query;
+
+    if (req.user.role === 'brand') {
+      query = { brand: req.user._id };
+    } else if (req.user.role === 'agent') {
+      const agent = await User.findById(req.user._id).select('athletes');
+      query = { athlete: { $in: agent.athletes || [] } };
+    } else {
+      query = { athlete: req.user._id };
+    }
+
     if (status) query.status = status;
 
     const deals = await Deal.find(query)
-      .populate('brand', 'name company logo avatar')
+      .populate('brand', 'name company logo avatar agency')
       .populate('athlete', 'name avatar sport school socialHandles')
       .sort({ updatedAt: -1 });
 
@@ -66,20 +74,29 @@ router.get('/:id', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/deals — brand creates a deal
-router.post('/', requireAuth, requireRole('brand'), async (req, res) => {
+// POST /api/deals — brand or agent creates a deal
+router.post('/', requireAuth, requireRole('brand', 'agent'), async (req, res) => {
   try {
     const {
       title, description, type, platforms, sports, minFollowers,
       compensation, deliverables, disclosureTag, expiresAt,
-      startDate, endDate, campaign, isPublic, featuredImage
+      startDate, endDate, campaign, isPublic, featuredImage, athleteId
     } = req.body;
+
+    // Agents must specify an athlete from their roster
+    if (req.user.role === 'agent' && athleteId) {
+      const agent = await User.findById(req.user._id).select('athletes');
+      const inRoster = agent.athletes.some(a => a.toString() === athleteId);
+      if (!inRoster) return res.status(403).json({ error: 'Athlete not in your roster' });
+    }
 
     const deal = await Deal.create({
       title, description, type, platforms, sports, minFollowers,
       compensation, deliverables, disclosureTag, expiresAt,
       startDate, endDate, campaign, isPublic, featuredImage,
-      brand: req.user._id
+      brand: req.user._id,
+      athlete: athleteId || undefined,
+      status: athleteId ? 'active' : 'open'
     });
 
     await Activity.create({
@@ -130,6 +147,49 @@ router.put('/:id/apply', requireAuth, requireRole('athlete'), async (req, res) =
       type: 'deal_applied',
       title: 'New deal application',
       message: `${req.user.name} applied for: ${deal.title}`,
+      relatedDeal: deal._id
+    });
+
+    res.json({ deal });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/deals/:id/apply-for — agent applies on behalf of one of their athletes
+router.put('/:id/apply-for', requireAuth, requireRole('agent'), async (req, res) => {
+  try {
+    const { athleteId, message } = req.body;
+    if (!athleteId) return res.status(400).json({ error: 'athleteId required' });
+
+    const agent = await User.findById(req.user._id).select('athletes');
+    const inRoster = agent.athletes.some(a => a.toString() === athleteId);
+    if (!inRoster) return res.status(403).json({ error: 'Athlete not in your roster' });
+
+    const deal = await Deal.findById(req.params.id);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    if (deal.status !== 'open') return res.status(400).json({ error: 'Deal is not open' });
+
+    const alreadyApplied = deal.applications.some(a => a.athlete.toString() === athleteId);
+    if (alreadyApplied) return res.status(409).json({ error: 'Already applied' });
+
+    deal.applications.push({ athlete: athleteId, message: message || '' });
+    deal.status = 'applied';
+    await deal.save();
+
+    const athlete = await User.findById(athleteId).select('name');
+    await Activity.create({
+      user: athleteId,
+      type: 'deal_applied',
+      title: 'Applied for deal',
+      message: `Your agent applied for: ${deal.title}`,
+      relatedDeal: deal._id
+    });
+    await Activity.create({
+      user: deal.brand,
+      type: 'deal_applied',
+      title: 'New deal application',
+      message: `${athlete?.name || 'An athlete'} (via agent) applied for: ${deal.title}`,
       relatedDeal: deal._id
     });
 
