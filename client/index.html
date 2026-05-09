@@ -1550,6 +1550,7 @@ const SponsorPortal=({token,user})=>{
 // Uses the College Football Data API (api.collegefootballdata.com) proxied through /api/cfbd
 const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
   const[playerId,setPlayerId]=useState(initId||'');
+  const[playerTeam,setPlayerTeam]=useState('');
   const[searchName,setSearchName]=useState(athleteName||'');
   const[searchResults,setSearchResults]=useState(null);
   const[stats,setStats]=useState(null);
@@ -1557,34 +1558,36 @@ const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
   const[year,setYear]=useState(new Date().getFullYear());
   const[loading,setLoading]=useState(false);
   const[err,setErr]=useState('');
+  const[resolvedTeam,setResolvedTeam]=useState('');
   const years=[2025,2024,2023,2022,2021,2020];
 
   const search=async()=>{
     if(!searchName.trim())return;
     setLoading(true);setErr('');setSearchResults(null);
     try{
-      const p=new URLSearchParams({name:searchName});
-      if(athleteTeam)p.set('team',athleteTeam);
-      const d=await api('GET',`/cfbd/search?${p}`,null,token);
+      const d=await api('GET',`/cfbd/search?name=${encodeURIComponent(searchName)}`,null,token);
       setSearchResults(d.players||[]);
     }catch(e){setErr(e.message);}
     setLoading(false);
   };
 
-  const loadStats=async(pid,yr)=>{
+  const loadStats=async(pid,yr,team)=>{
     const id=pid||playerId;
     if(!id)return;
     setLoading(true);setErr('');
     try{
-      const d=await api('GET',`/cfbd/player/${id}/profile?year=${yr||year}`,null,token);
+      const qs=new URLSearchParams({year:String(yr||year)});
+      if(team)qs.set('team',team);
+      const d=await api('GET',`/cfbd/player/${id}/profile?${qs}`,null,token);
       setStats(d.stats||[]);setGames(d.games||[]);
+      if(d.team)setResolvedTeam(d.team);
     }catch(e){setErr(e.message);}
     setLoading(false);
   };
 
-  const selectPlayer=pid=>{
-    setPlayerId(pid);setSearchResults(null);
-    loadStats(pid,year);
+  const selectPlayer=(pid,team)=>{
+    setPlayerId(pid);setPlayerTeam(team||'');setSearchResults(null);
+    loadStats(pid,year,team);
   };
 
   useEffect(()=>{if(initId){setPlayerId(initId);loadStats(initId,year);}},[initId]);
@@ -1605,14 +1608,14 @@ const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
         React.createElement('input',{className:'input',placeholder:'Search player name…',value:searchName,onChange:e=>setSearchName(e.target.value),
           onKeyDown:e=>{if(e.key==='Enter')search();},style:{flex:1}}),
         React.createElement('button',{className:'btn btn-secondary',onClick:search,disabled:loading},loading?'…':'Search')),
-      React.createElement('select',{className:'input',value:year,onChange:e=>{const y=Number(e.target.value);setYear(y);if(playerId)loadStats(playerId,y);},style:{maxWidth:100}},
+      React.createElement('select',{className:'input',value:year,onChange:e=>{const y=Number(e.target.value);setYear(y);if(playerId)loadStats(playerId,y,playerTeam);},style:{maxWidth:100}},
         years.map(y=>React.createElement('option',{key:y,value:y},y)))),
 
     // Search results dropdown
     searchResults&&searchResults.length>0&&React.createElement('div',{style:{background:'#fff',border:`1px solid ${C.border}`,borderRadius:8,marginBottom:12,overflow:'hidden',boxShadow:'0 4px 12px rgba(0,0,0,.08)'}},
       searchResults.slice(0,8).map(p=>React.createElement('button',{key:p.id,
         style:{width:'100%',textAlign:'left',padding:'10px 14px',borderBottom:`1px solid ${C.border}`,background:'transparent',fontSize:13,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'},
-        onClick:()=>selectPlayer(p.id)},
+        onClick:()=>selectPlayer(p.id,p.team)},
         React.createElement('span',null,
           React.createElement('strong',null,p.name),
           React.createElement('span',{style:{color:C.textSecondary,marginLeft:8}},p.team),
@@ -1632,7 +1635,7 @@ const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
 
     // Season stat cards
     playerId&&!loading&&stats&&Object.keys(statsByCat).length>0&&React.createElement('div',null,
-      React.createElement('h4',{style:{fontSize:13,fontWeight:700,color:C.textSecondary,marginBottom:10,textTransform:'uppercase',letterSpacing:.5}},year+' Season Stats'),
+      React.createElement('h4',{style:{fontSize:13,fontWeight:700,color:C.textSecondary,marginBottom:10,textTransform:'uppercase',letterSpacing:.5}},year+' Season Stats'+(resolvedTeam?' · '+resolvedTeam:'')),
       React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12,marginBottom:16}},
         Object.entries(statsByCat).map(([cat,rows])=>
           React.createElement('div',{key:cat,className:'card',style:{padding:'12px 14px'}},

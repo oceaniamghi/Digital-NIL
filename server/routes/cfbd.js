@@ -35,25 +35,26 @@ router.get('/search', requireAuth, async (req, res) => {
 // Season-level stats for a player
 router.get('/stats', requireAuth, async (req, res) => {
   try {
-    const { playerId, year = new Date().getFullYear(), team, name } = req.query;
-    const qs = new URLSearchParams({ year: String(year) });
-    if (playerId) qs.set('playerId', playerId);
-    if (team) qs.set('team', team);
-    if (name) qs.set('player', name);
-    const data = await cfbdFetch(`/stats/player/season?${qs}`);
-    res.json({ stats: data });
+    const { playerId, year = new Date().getFullYear(), team } = req.query;
+    if (!team) return res.status(400).json({ error: 'team required' });
+    const data = await cfbdFetch(`/stats/player/season?year=${year}&team=${encodeURIComponent(team)}`);
+    const filtered = playerId
+      ? (Array.isArray(data) ? data.filter(s => String(s.playerId) === String(playerId)) : [])
+      : (Array.isArray(data) ? data : []);
+    res.json({ stats: filtered });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/cfbd/games?playerId=&year=
+// GET /api/cfbd/games?playerId=&year=&team=
 // Game-by-game stats for a player
 router.get('/games', requireAuth, async (req, res) => {
   try {
-    const { playerId, year = new Date().getFullYear() } = req.query;
+    const { playerId, year = new Date().getFullYear(), team } = req.query;
     if (!playerId) return res.status(400).json({ error: 'playerId required' });
-    const qs = new URLSearchParams({ year: String(year), playerId, seasonType: 'regular' });
+    if (!team) return res.status(400).json({ error: 'team required' });
+    const qs = new URLSearchParams({ year: String(year), team, seasonType: 'regular' });
     const data = await cfbdFetch(`/games/players?${qs}`);
     // Flatten into per-game rows for easier rendering
     const games = [];
@@ -112,25 +113,39 @@ router.get('/roster', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/cfbd/player/:id/profile
-// Combined search + stats + recruiting for one player — single call from the client
+// GET /api/cfbd/player/:id/profile?year=&team=
+// Combined stats + games for one player. Uses /player/usage to resolve team when not provided.
 router.get('/player/:id/profile', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { year = new Date().getFullYear() } = req.query;
+    const yr = Number(req.query.year) || new Date().getFullYear();
+    let team = req.query.team;
+
+    // Resolve team via usage endpoint if not supplied
+    if (!team) {
+      const usage = await cfbdFetch(`/player/usage?year=${yr}&playerId=${id}`).catch(() => []);
+      const entry = Array.isArray(usage) ? usage.find(u => String(u.id) === String(id)) : null;
+      team = entry?.team;
+    }
+
+    if (!team) {
+      return res.json({ stats: [], games: [], year: yr, note: 'No data found for this player/year' });
+    }
+
     const [statsRaw, gamesRaw] = await Promise.allSettled([
-      cfbdFetch(`/stats/player/season?year=${year}&playerId=${id}`),
-      cfbdFetch(`/games/players?year=${year}&playerId=${id}&seasonType=regular`)
+      cfbdFetch(`/stats/player/season?year=${yr}&team=${encodeURIComponent(team)}`),
+      cfbdFetch(`/games/players?year=${yr}&team=${encodeURIComponent(team)}&seasonType=regular`)
     ]);
 
-    const stats = statsRaw.status === 'fulfilled' ? statsRaw.value : [];
-    // Flatten game stats (same logic as /games route)
+    const allStats = statsRaw.status === 'fulfilled' && Array.isArray(statsRaw.value) ? statsRaw.value : [];
+    const stats = allStats.filter(s => String(s.playerId) === String(id));
+
     const games = [];
-    if (gamesRaw.status === 'fulfilled') {
+    if (gamesRaw.status === 'fulfilled' && Array.isArray(gamesRaw.value)) {
       for (const game of gamesRaw.value) {
-        const team = game.teams?.find(t => t.players?.some(p => String(p.id) === String(id)));
-        if (!team) continue;
-        const player = team.players?.find(p => String(p.id) === String(id));
+        const teamData = game.teams?.find(t => t.players?.some(p => String(p.id) === String(id)));
+        if (!teamData) continue;
+        const player = teamData.players?.find(p => String(p.id) === String(id));
         if (player) {
           const statMap = {};
           for (const cat of (player.categories || [])) {
@@ -138,11 +153,16 @@ router.get('/player/:id/profile', requireAuth, async (req, res) => {
               statMap[`${cat.name}_${type.name}`] = type.stat;
             }
           }
-          games.push({ gameId: game.id, week: game.week, opponent: game.homeTeam === team.school ? game.awayTeam : game.homeTeam, homeAway: game.homeTeam === team.school ? 'home' : 'away', ...statMap });
+          games.push({
+            gameId: game.id, week: game.week,
+            opponent: game.homeTeam === teamData.school ? game.awayTeam : game.homeTeam,
+            homeAway: game.homeTeam === teamData.school ? 'home' : 'away',
+            ...statMap
+          });
         }
       }
     }
-    res.json({ stats, games, year: Number(year) });
+    res.json({ stats, games, year: yr, team });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
