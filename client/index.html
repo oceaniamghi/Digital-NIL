@@ -1587,10 +1587,30 @@ const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
 
   const selectPlayer=(pid,team)=>{
     setPlayerId(pid);setPlayerTeam(team||'');setSearchResults(null);
-    loadStats(pid,year);
+    loadLatest(pid);
   };
 
-  useEffect(()=>{if(initId){setPlayerId(initId);loadStats(initId,year);}},[initId]);
+  const loadLatest=async(pid)=>{
+    const id=pid||playerId;
+    if(!id)return;
+    setLoading(true);setErr('');
+    for(const yr of years){
+      try{
+        const d=await api('GET',`/cfbd/player/${id}/profile?year=${yr}`,null,token);
+        if((d.stats&&d.stats.length>0)||(d.games&&d.games.length>0)){
+          setStats(d.stats||[]);setGames(d.games||[]);
+          if(d.team)setResolvedTeam(d.team);
+          setYear(yr);
+          setLoading(false);
+          return;
+        }
+      }catch(e){}
+    }
+    setStats([]);setGames([]);
+    setLoading(false);
+  };
+
+  useEffect(()=>{if(initId){setPlayerId(initId);loadLatest(initId);}},[initId]);
 
   // Group season stats by category
   const statsByCat={};
