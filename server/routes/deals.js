@@ -114,6 +114,24 @@ router.post('/', requireAuth, requireRole('brand', 'agent'), async (req, res) =>
   }
 });
 
+// PUT /api/deals/:id — brand edits a deal
+router.put('/:id', requireAuth, requireRole('brand', 'agent'), async (req, res) => {
+  try {
+    const allowed = ['title','description','type','platforms','sports','minFollowers',
+      'compensation','deliverables','disclosureTag','expiresAt','startDate','endDate','isPublic','featuredImage'];
+    const updates = {};
+    for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
+    const deal = await Deal.findOneAndUpdate(
+      { _id: req.params.id, brand: req.user._id },
+      updates, { new: true }
+    ).populate('brand','name company logo avatar').populate('athlete','name avatar sport school');
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    res.json({ deal });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/deals/:id/apply — athlete applies for open deal
 router.put('/:id/apply', requireAuth, requireRole('athlete'), async (req, res) => {
   try {
