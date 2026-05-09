@@ -1,0 +1,151 @@
+import express from 'express';
+import { requireAuth } from '../middleware/auth.js';
+
+const router = express.Router();
+const BASE = 'https://api.collegefootballdata.com';
+
+function cfbdHeaders() {
+  const key = process.env.CFBD_API_KEY;
+  if (!key) throw new Error('CFBD_API_KEY not set');
+  return { 'Authorization': `Bearer ${key}`, 'Accept': 'application/json' };
+}
+
+async function cfbdFetch(path) {
+  const res = await fetch(`${BASE}${path}`, { headers: cfbdHeaders() });
+  if (!res.ok) throw new Error(`CFBD API ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+// GET /api/cfbd/search?name=&team=
+// Search for a player by name (and optionally school)
+router.get('/search', requireAuth, async (req, res) => {
+  try {
+    const { name, team } = req.query;
+    if (!name) return res.status(400).json({ error: 'name required' });
+    const qs = new URLSearchParams({ searchTerm: name });
+    if (team) qs.set('team', team);
+    const data = await cfbdFetch(`/player/search?${qs}`);
+    res.json({ players: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/cfbd/stats?playerId=&year=&team=
+// Season-level stats for a player
+router.get('/stats', requireAuth, async (req, res) => {
+  try {
+    const { playerId, year = new Date().getFullYear(), team, name } = req.query;
+    const qs = new URLSearchParams({ year: String(year) });
+    if (playerId) qs.set('playerId', playerId);
+    if (team) qs.set('team', team);
+    if (name) qs.set('player', name);
+    const data = await cfbdFetch(`/stats/player/season?${qs}`);
+    res.json({ stats: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/cfbd/games?playerId=&year=
+// Game-by-game stats for a player
+router.get('/games', requireAuth, async (req, res) => {
+  try {
+    const { playerId, year = new Date().getFullYear() } = req.query;
+    if (!playerId) return res.status(400).json({ error: 'playerId required' });
+    const qs = new URLSearchParams({ year: String(year), playerId, seasonType: 'regular' });
+    const data = await cfbdFetch(`/games/players?${qs}`);
+    // Flatten into per-game rows for easier rendering
+    const games = [];
+    for (const game of (data || [])) {
+      const team = game.teams?.find(t => t.players?.some(p => String(p.id) === String(playerId)));
+      if (!team) continue;
+      const player = team.players?.find(p => String(p.id) === String(playerId));
+      if (player) {
+        const statMap = {};
+        for (const cat of (player.categories || [])) {
+          for (const type of (cat.types || [])) {
+            statMap[`${cat.name}_${type.name}`] = type.stat;
+          }
+        }
+        games.push({
+          gameId: game.id,
+          week: game.week,
+          opponent: game.homeTeam === team.school ? game.awayTeam : game.homeTeam,
+          homeAway: game.homeTeam === team.school ? 'home' : 'away',
+          ...statMap
+        });
+      }
+    }
+    res.json({ games });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/cfbd/recruiting?name=&year=
+// Recruiting profile & ranking
+router.get('/recruiting', requireAuth, async (req, res) => {
+  try {
+    const { name, year, team } = req.query;
+    const qs = new URLSearchParams();
+    if (name) qs.set('searchTerm', name);
+    if (year) qs.set('year', year);
+    if (team) qs.set('team', team);
+    const data = await cfbdFetch(`/recruiting/players?${qs}`);
+    res.json({ recruits: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/cfbd/roster?team=&year=
+// Full team roster — useful for browsing athletes by school
+router.get('/roster', requireAuth, async (req, res) => {
+  try {
+    const { team, year = new Date().getFullYear() } = req.query;
+    if (!team) return res.status(400).json({ error: 'team required' });
+    const data = await cfbdFetch(`/roster?team=${encodeURIComponent(team)}&year=${year}`);
+    res.json({ roster: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/cfbd/player/:id/profile
+// Combined search + stats + recruiting for one player — single call from the client
+router.get('/player/:id/profile', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { year = new Date().getFullYear() } = req.query;
+    const [statsRaw, gamesRaw] = await Promise.allSettled([
+      cfbdFetch(`/stats/player/season?year=${year}&playerId=${id}`),
+      cfbdFetch(`/games/players?year=${year}&playerId=${id}&seasonType=regular`)
+    ]);
+
+    const stats = statsRaw.status === 'fulfilled' ? statsRaw.value : [];
+    // Flatten game stats (same logic as /games route)
+    const games = [];
+    if (gamesRaw.status === 'fulfilled') {
+      for (const game of gamesRaw.value) {
+        const team = game.teams?.find(t => t.players?.some(p => String(p.id) === String(id)));
+        if (!team) continue;
+        const player = team.players?.find(p => String(p.id) === String(id));
+        if (player) {
+          const statMap = {};
+          for (const cat of (player.categories || [])) {
+            for (const type of (cat.types || [])) {
+              statMap[`${cat.name}_${type.name}`] = type.stat;
+            }
+          }
+          games.push({ gameId: game.id, week: game.week, opponent: game.homeTeam === team.school ? game.awayTeam : game.homeTeam, homeAway: game.homeTeam === team.school ? 'home' : 'away', ...statMap });
+        }
+      }
+    }
+    res.json({ stats, games, year: Number(year) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;

@@ -14,6 +14,7 @@ import contentRoutes from './routes/content.js';
 import analyticsRoutes from './routes/analytics.js';
 import activityRoutes from './routes/activity.js';
 import timelogRoutes from './routes/timelogs.js';
+import cfbdRoutes from './routes/cfbd.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/content', contentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/timelogs', timelogRoutes);
+app.use('/api/cfbd', cfbdRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

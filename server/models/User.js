@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema({
   proStatus: { type: String, enum: ['collegiate', 'professional', ''], default: '' },
   nflTeam: { type: String, default: '' },
   statsUrl: { type: String, default: '' },
+  cfbPlayerId: { type: String, default: '' },
   socialHandles: [socialHandleSchema],
   nilValue: { type: Number, default: 0 },
   totalEarnings: { type: Number, default: 0 },

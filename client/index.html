@@ -1191,6 +1191,12 @@ const Roster=({token,user,onNavigate})=>{
             React.createElement('div',null,
               React.createElement('div',{style:{fontSize:13,fontWeight:700}},formatNum(s.followers||0)+' followers'),
               React.createElement('div',{style:{fontSize:11,color:C.textMuted}},s.handle?`@${s.handle}`:'Not connected'))))):null,
+        React.createElement('div',{className:'card',style:{marginTop:4,marginBottom:12}},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
+            React.createElement('span',{style:{fontSize:16}},'🏈'),
+            React.createElement('span',{style:{fontWeight:700,fontSize:13}},'CFB Stats'),
+            React.createElement('span',{style:{fontSize:11,color:C.textMuted,marginLeft:'auto'}},'collegefootballdata.com')),
+          React.createElement(CFBStats,{token,athleteName:selected.name,athleteTeam:selected.school,cfbPlayerId:selected.cfbPlayerId})),
         React.createElement('div',{style:{display:'flex',gap:10}},
           React.createElement('button',{className:'btn btn-primary',style:{flex:1,justifyContent:'center'},onClick:()=>{setSelected(null);onNavigate('media-kits');}},'📋 Media Kit'),
           React.createElement('button',{className:'btn btn-secondary',style:{flex:1,justifyContent:'center'},onClick:()=>setSelected(null)},'Close')))));
@@ -1403,12 +1409,129 @@ const SponsorPortal=({token,user})=>{
           '🏈 All inquiries handled by AiC Sports — Athletes in Control · Irvine, CA'))));
 };
 
+// ── CFB Stats Widget ──────────────────────────────────────────────────────────
+// Uses the College Football Data API (api.collegefootballdata.com) proxied through /api/cfbd
+const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
+  const[playerId,setPlayerId]=useState(initId||'');
+  const[searchName,setSearchName]=useState(athleteName||'');
+  const[searchResults,setSearchResults]=useState(null);
+  const[stats,setStats]=useState(null);
+  const[games,setGames]=useState(null);
+  const[year,setYear]=useState(new Date().getFullYear());
+  const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState('');
+  const years=[2025,2024,2023,2022,2021,2020];
+
+  const search=async()=>{
+    if(!searchName.trim())return;
+    setLoading(true);setErr('');setSearchResults(null);
+    try{
+      const p=new URLSearchParams({name:searchName});
+      if(athleteTeam)p.set('team',athleteTeam);
+      const d=await api('GET',`/cfbd/search?${p}`,null,token);
+      setSearchResults(d.players||[]);
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
+
+  const loadStats=async(pid,yr)=>{
+    const id=pid||playerId;
+    if(!id)return;
+    setLoading(true);setErr('');
+    try{
+      const d=await api('GET',`/cfbd/player/${id}/profile?year=${yr||year}`,null,token);
+      setStats(d.stats||[]);setGames(d.games||[]);
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
+
+  const selectPlayer=pid=>{
+    setPlayerId(pid);setSearchResults(null);
+    loadStats(pid,year);
+  };
+
+  useEffect(()=>{if(initId){setPlayerId(initId);loadStats(initId,year);}},[initId]);
+
+  // Group season stats by category
+  const statsByCat={};
+  for(const s of(stats||[])){
+    if(!statsByCat[s.category])statsByCat[s.category]=[];
+    statsByCat[s.category].push(s);
+  }
+
+  const statColor={passing:C.primary,rushing:C.success,receiving:'#7C3AED',defense:C.warning,kicking:C.textSecondary,punting:C.textSecondary};
+
+  return React.createElement('div',null,
+    // Header + year picker
+    React.createElement('div',{style:{display:'flex',gap:10,alignItems:'center',marginBottom:14,flexWrap:'wrap'}},
+      React.createElement('div',{style:{display:'flex',gap:6,flex:1,minWidth:220}},
+        React.createElement('input',{className:'input',placeholder:'Search player name…',value:searchName,onChange:e=>setSearchName(e.target.value),
+          onKeyDown:e=>{if(e.key==='Enter')search();},style:{flex:1}}),
+        React.createElement('button',{className:'btn btn-secondary',onClick:search,disabled:loading},loading?'…':'Search')),
+      React.createElement('select',{className:'input',value:year,onChange:e=>{const y=Number(e.target.value);setYear(y);if(playerId)loadStats(playerId,y);},style:{maxWidth:100}},
+        years.map(y=>React.createElement('option',{key:y,value:y},y)))),
+
+    // Search results dropdown
+    searchResults&&searchResults.length>0&&React.createElement('div',{style:{background:'#fff',border:`1px solid ${C.border}`,borderRadius:8,marginBottom:12,overflow:'hidden',boxShadow:'0 4px 12px rgba(0,0,0,.08)'}},
+      searchResults.slice(0,8).map(p=>React.createElement('button',{key:p.id,
+        style:{width:'100%',textAlign:'left',padding:'10px 14px',borderBottom:`1px solid ${C.border}`,background:'transparent',fontSize:13,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'},
+        onClick:()=>selectPlayer(p.id)},
+        React.createElement('span',null,
+          React.createElement('strong',null,p.name),
+          React.createElement('span',{style:{color:C.textSecondary,marginLeft:8}},p.team),
+          React.createElement('span',{style:{background:`${C.primary}22`,color:C.primary,borderRadius:4,padding:'1px 6px',fontSize:11,marginLeft:6}},p.position||'—')),
+        React.createElement('span',{style:{fontSize:11,color:C.textMuted}},'#'+p.jersey+' · '+p.year)))),
+    searchResults&&searchResults.length===0&&React.createElement('div',{style:{fontSize:13,color:C.textMuted,marginBottom:12,padding:'8px 0'}},
+      'No players found. Try a different name or check spelling.'),
+
+    err&&React.createElement('div',{style:{color:C.danger,fontSize:13,marginBottom:12}},err),
+
+    !playerId&&!loading&&React.createElement('div',{style:{textAlign:'center',padding:'32px 16px',color:C.textMuted}},
+      React.createElement('div',{style:{fontSize:32,marginBottom:8}},'🏈'),
+      React.createElement('div',{style:{fontSize:14,marginBottom:4}},'Search for a college football player above'),
+      React.createElement('div',{style:{fontSize:12}},'Powered by College Football Data API')),
+
+    loading&&React.createElement(Spinner),
+
+    // Season stat cards
+    playerId&&!loading&&stats&&Object.keys(statsByCat).length>0&&React.createElement('div',null,
+      React.createElement('h4',{style:{fontSize:13,fontWeight:700,color:C.textSecondary,marginBottom:10,textTransform:'uppercase',letterSpacing:.5}},year+' Season Stats'),
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12,marginBottom:16}},
+        Object.entries(statsByCat).map(([cat,rows])=>
+          React.createElement('div',{key:cat,className:'card',style:{padding:'12px 14px'}},
+            React.createElement('div',{style:{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:statColor[cat]||C.primary,marginBottom:8}},cat),
+            rows.map(s=>React.createElement('div',{key:s.statType,style:{display:'flex',justifyContent:'space-between',fontSize:13,padding:'3px 0',borderBottom:`1px solid ${C.border}`}},
+              React.createElement('span',{style:{color:C.textSecondary}},s.statType.replace(/_/g,' ')),
+              React.createElement('span',{style:{fontWeight:700}},s.stat))))))),
+
+    // No stats message
+    playerId&&!loading&&stats&&Object.keys(statsByCat).length===0&&React.createElement('div',{style:{textAlign:'center',padding:'20px',color:C.textMuted,fontSize:13}},
+      'No stats found for '+year+'. Try a different year.'),
+
+    // Game log table
+    playerId&&!loading&&games&&games.length>0&&React.createElement('div',null,
+      React.createElement('h4',{style:{fontSize:13,fontWeight:700,color:C.textSecondary,marginBottom:10,textTransform:'uppercase',letterSpacing:.5}},year+' Game Log'),
+      React.createElement('div',{style:{overflowX:'auto'}},
+        React.createElement('table',{style:{width:'100%',borderCollapse:'collapse',fontSize:12}},
+          React.createElement('thead',null,
+            React.createElement('tr',{style:{background:C.bg,borderBottom:`2px solid ${C.border}`}},
+              ['Wk','Opponent','H/A',...new Set(games.flatMap(g=>Object.keys(g).filter(k=>!['gameId','week','opponent','homeAway'].includes(k))))].map(h=>
+                React.createElement('th',{key:h,style:{padding:'8px 10px',textAlign:'left',color:C.textMuted,fontWeight:600,whiteSpace:'nowrap'}},h)))),
+          React.createElement('tbody',null,
+            games.map((g,i)=>{
+              const cols=['week','opponent','homeAway',...new Set(games.flatMap(gg=>Object.keys(gg).filter(k=>!['gameId','week','opponent','homeAway'].includes(k))))];
+              return React.createElement('tr',{key:g.gameId||i,style:{borderBottom:`1px solid ${C.border}`}},
+                cols.map(c=>React.createElement('td',{key:c,style:{padding:'7px 10px',color:c==='opponent'?C.text:C.textSecondary}},
+                  c==='homeAway'?(g[c]==='home'?'🏠':'✈️'):g[c]||'—')));
+            }))))));
+};
+
 // ── Profile ───────────────────────────────────────────────────────────────────
 const Profile=({token,user,onUpdate})=>{
   const[form,setForm]=useState({
     name:user.name||'',bio:user.bio||'',sport:user.sport||'',school:user.school||'',
     position:user.position||'',graduationYear:user.graduationYear||'',
-    proStatus:user.proStatus||'',nflTeam:user.nflTeam||'',statsUrl:user.statsUrl||'',
+    proStatus:user.proStatus||'',nflTeam:user.nflTeam||'',statsUrl:user.statsUrl||'',cfbPlayerId:user.cfbPlayerId||'',
     company:user.company||'',industry:user.industry||'',website:user.website||'',agency:user.agency||''
   });
   const[social,setSocial]=useState({platform:'instagram',handle:'',followers:''});
@@ -1470,7 +1593,9 @@ const Profile=({token,user,onUpdate})=>{
                 React.createElement('option',{value:'collegiate'},'Collegiate'),
                 React.createElement('option',{value:'professional'},'Professional / NFL'))),
             React.createElement('div',null,React.createElement('label',{className:'label'},'NFL Team (if pro)'),React.createElement('input',{className:'input',value:form.nflTeam,onChange:set('nflTeam'),placeholder:'Washington Commanders'}))),
-          React.createElement('div',{style:{marginBottom:14}},React.createElement('label',{className:'label'},'Stats URL'),React.createElement('input',{className:'input',value:form.statsUrl,onChange:set('statsUrl'),placeholder:'https://www.espn.com/nfl/player/_/id/…'}))),
+          React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
+            React.createElement('div',null,React.createElement('label',{className:'label'},'Stats URL'),React.createElement('input',{className:'input',value:form.statsUrl,onChange:set('statsUrl'),placeholder:'https://www.espn.com/nfl/player/_/id/…'})),
+            React.createElement('div',null,React.createElement('label',{className:'label'},'CFB Player ID'),React.createElement('input',{className:'input',value:form.cfbPlayerId,onChange:set('cfbPlayerId'),placeholder:'Auto-filled when you search below'})))),
         user.role==='brand'&&React.createElement(React.Fragment,null,
           React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
             React.createElement('div',null,React.createElement('label',{className:'label'},'Company'),React.createElement('input',{className:'input',value:form.company,onChange:set('company')})),
@@ -1496,7 +1621,15 @@ const Profile=({token,user,onUpdate})=>{
           ['twitter','instagram','tiktok','youtube','facebook'].map(p=>React.createElement('option',{key:p,value:p},platformEmoji[p]+' '+p.charAt(0).toUpperCase()+p.slice(1)))),
         React.createElement('input',{className:'input',value:social.handle,onChange:e=>setSocial(s=>({...s,handle:e.target.value})),placeholder:'@handle',style:{maxWidth:160}}),
         React.createElement('input',{className:'input',type:'number',value:social.followers,onChange:e=>setSocial(s=>({...s,followers:e.target.value})),placeholder:'Followers',style:{maxWidth:130}}),
-        React.createElement('button',{type:'submit',className:'btn btn-primary'},'Connect'))));
+        React.createElement('button',{type:'submit',className:'btn btn-primary'},'Connect'))),
+    // CFB Stats (athlete only)
+    user.role==='athlete'&&React.createElement('div',{className:'card',style:{marginTop:20}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:4}},
+        React.createElement('span',{style:{fontSize:20}},'🏈'),
+        React.createElement('h3',{style:{fontWeight:700,fontSize:15}},'College Football Stats'),
+        React.createElement('span',{style:{fontSize:11,color:C.textMuted,marginLeft:'auto'}},'via collegefootballdata.com')),
+      React.createElement('p',{style:{fontSize:12,color:C.textSecondary,marginBottom:14}},'Search for your CFBD player profile to display live stats on your media kit and roster card. Save your CFB Player ID above to auto-load on every visit.'),
+      React.createElement(CFBStats,{token,athleteName:user.name,athleteTeam:user.school,cfbPlayerId:user.cfbPlayerId})));
 };
 
 // ── Main App ──────────────────────────────────────────────────────────────────

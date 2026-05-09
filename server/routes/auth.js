@@ -60,7 +60,7 @@ router.get('/me', requireAuth, (req, res) => {
 router.put('/profile', requireAuth, async (req, res) => {
   try {
     const allowed = ['name', 'bio', 'avatar', 'sport', 'school', 'position', 'graduationYear',
-      'proStatus', 'nflTeam', 'statsUrl',
+      'proStatus', 'nflTeam', 'statsUrl', 'cfbPlayerId',
       'socialHandles', 'company', 'industry', 'website', 'logo', 'agency'];
     const updates = {};
     for (const key of allowed) {
