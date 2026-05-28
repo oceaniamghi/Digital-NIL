@@ -30,11 +30,13 @@ const dealSchema = new mongoose.Schema({
   },
 
   // Status workflow: open → applied → active → completed / declined
+  // 'offered' = a brand offered this deal to a specific athlete, awaiting their acceptance
   status: {
     type: String,
-    enum: ['open', 'applied', 'active', 'completed', 'declined', 'expired'],
+    enum: ['open', 'offered', 'applied', 'active', 'completed', 'declined', 'expired'],
     default: 'open'
   },
+  offerMessage: { type: String, default: '' },
 
   // Deliverables
   deliverables: [deliverableSchema],

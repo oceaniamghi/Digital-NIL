@@ -16,6 +16,8 @@ const userSchema = new mongoose.Schema({
   avatar: { type: String, default: '' },
   bio: { type: String, default: '', maxlength: 500 },
   verified: { type: Boolean, default: false },
+  managed: { type: Boolean, default: false }, // true = roster record created by an agent (data, not a billable login seat)
+  lastLoginAt: { type: Date },
 
   // Athlete fields
   sport: { type: String, default: '' },
@@ -26,7 +28,17 @@ const userSchema = new mongoose.Schema({
   nflTeam: { type: String, default: '' },
   statsUrl: { type: String, default: '' },
   cfbPlayerId: { type: String, default: '' },
+  jerseyNumber: { type: Number },
+  heightDisplay: { type: String, default: '' },   // e.g. "6'3\""
+  weightLbs: { type: Number, default: 0 },          // e.g. 245
+  fortyTime: { type: Number, default: 0 },          // e.g. 4.52
+  classYear: { type: String, default: '' },         // e.g. "Junior"
+  highlightUrl: { type: String, default: '' },      // YouTube/Hudl link
+  draftRound: { type: String, default: '' },        // e.g. "1st - 2nd"
+  draftTrend: { type: String, enum: ['up','down','steady',''], default: 'steady' },
+  interestedTeams: [{ type: String }],              // e.g. ["NY Giants","Dallas Cowboys"]
   socialHandles: [socialHandleSchema],
+  agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // agent who created/represents this athlete; null = not on any agent's list
   nilValue: { type: Number, default: 0 },
   totalEarnings: { type: Number, default: 0 },
   dealsCompleted: { type: Number, default: 0 },
@@ -40,6 +52,9 @@ const userSchema = new mongoose.Schema({
   // Agent fields
   agency: { type: String, default: '' },
   athletes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+  // Athlete bookmarks — opportunities saved from Discover
+  savedDeals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Deal' }],
 
   createdAt: { type: Date, default: Date.now }
 });

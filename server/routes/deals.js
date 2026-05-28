@@ -44,7 +44,9 @@ router.get('/my-deals', requireAuth, async (req, res) => {
       const agent = await User.findById(req.user._id).select('athletes');
       query = { athlete: { $in: agent.athletes || [] } };
     } else {
-      query = { athlete: req.user._id };
+      // Athlete: deals assigned to them OR ones they've applied to (applications
+      // don't set deal.athlete until accepted, so include applications.athlete).
+      query = { $or: [{ athlete: req.user._id }, { 'applications.athlete': req.user._id }] };
     }
 
     if (status) query.status = status;
@@ -55,6 +57,18 @@ router.get('/my-deals', requireAuth, async (req, res) => {
       .sort({ updatedAt: -1 });
 
     res.json({ deals });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/deals/saved — athlete's bookmarked opportunities
+router.get('/saved', requireAuth, requireRole('athlete'), async (req, res) => {
+  try {
+    const me = await User.findById(req.user._id)
+      .select('savedDeals')
+      .populate({ path: 'savedDeals', populate: { path: 'brand', select: 'name company logo avatar' } });
+    res.json({ deals: (me.savedDeals || []).filter(Boolean) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -328,6 +342,99 @@ router.put('/:id/metrics', requireAuth, async (req, res) => {
     const { impressions, clicks, engagements, reach } = req.body;
     deal.metrics = { impressions, clicks, engagements, reach };
     await deal.save();
+    res.json({ deal });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/deals/:id/save — athlete bookmarks an opportunity ($addToSet = dedup)
+router.put('/:id/save', requireAuth, requireRole('athlete'), async (req, res) => {
+  try {
+    const deal = await Deal.findById(req.params.id).select('_id');
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    await User.findByIdAndUpdate(req.user._id, { $addToSet: { savedDeals: deal._id } });
+    res.json({ saved: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/deals/:id/save — athlete removes a bookmark
+router.delete('/:id/save', requireAuth, requireRole('athlete'), async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, { $pull: { savedDeals: req.params.id } });
+    res.json({ saved: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/deals/offer — brand sends a direct offer to a specific athlete
+router.post('/offer', requireAuth, requireRole('brand'), async (req, res) => {
+  try {
+    const { athleteId, title, description, compensation, deliverables, platforms, offerMessage } = req.body;
+    if (!athleteId) return res.status(400).json({ error: 'athleteId required' });
+    if (!title) return res.status(400).json({ error: 'title required' });
+    if (!compensation?.amount) return res.status(400).json({ error: 'compensation amount required' });
+
+    const athlete = await User.findOne({ _id: athleteId, role: 'athlete' }).select('name');
+    if (!athlete) return res.status(404).json({ error: 'Athlete not found' });
+
+    // Dedup: one live offer/active deal per brand+athlete at a time.
+    const existing = await Deal.findOne({
+      brand: req.user._id, athlete: athleteId, status: { $in: ['offered', 'active'] }
+    });
+    if (existing) return res.status(409).json({ error: 'You already have an active offer with this athlete' });
+
+    const deal = await Deal.create({
+      title,
+      description: description || `Offer from ${req.user.company || req.user.name}`,
+      brand: req.user._id,
+      athlete: athleteId,
+      platforms: platforms || [],
+      compensation,
+      deliverables: deliverables || [],
+      offerMessage: offerMessage || '',
+      status: 'offered',
+      isPublic: false
+    });
+
+    await Activity.create({
+      user: athleteId,
+      type: 'deal_offer',
+      title: 'New deal offer',
+      message: `${req.user.company || req.user.name} sent you an offer: ${title}`,
+      relatedDeal: deal._id
+    });
+
+    const populated = await deal.populate('brand', 'name company logo avatar');
+    res.status(201).json({ deal: populated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/deals/:id/accept-offer — athlete accepts a brand's direct offer
+router.put('/:id/accept-offer', requireAuth, requireRole('athlete'), async (req, res) => {
+  try {
+    const deal = await Deal.findById(req.params.id);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    if (deal.status !== 'offered' || deal.athlete?.toString() !== req.user._id.toString()) {
+      return res.status(400).json({ error: 'No pending offer to accept' });
+    }
+    deal.status = 'active';
+    deal.startDate = deal.startDate || new Date();
+    await deal.save();
+
+    await Activity.create({
+      user: deal.brand,
+      type: 'deal_accepted',
+      title: 'Offer accepted!',
+      message: `${req.user.name} accepted your offer: ${deal.title}`,
+      relatedDeal: deal._id
+    });
+
     res.json({ deal });
   } catch (err) {
     res.status(500).json({ error: err.message });
