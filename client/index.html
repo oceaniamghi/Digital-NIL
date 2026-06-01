@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-<meta name="theme-color" content="#0A0A0A"/>
-<title>AiC NIL — Athletes in Control</title>
+<meta name="theme-color" content="#1E1E1E"/>
+<title>Digital NIL — Athlete Marketing Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#0A0A0A}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#E5E2E1;min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+html,body{background:#1E1E1E}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#D4D4D4;min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 button{cursor:pointer;border:none;font-family:inherit;color:inherit}
 input,textarea,select{font-family:inherit;color:inherit}
 ::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:#0A0A0A}
+::-webkit-scrollbar-track{background:#1E1E1E}
 ::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#3A3939}
 .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle;line-height:1}
@@ -32,18 +32,18 @@ input,textarea,select{font-family:inherit;color:inherit}
 <script>
 const {useState,useEffect,useRef,useCallback,createContext,useContext}=React;
 
-// ── Theme constants (Dark Glassmorphism, AiC NIL) ────────────────────────────
+// ── Theme constants (VSCode Dark — black / white / dark gray monochrome) ─────
 const C={
-  primary:'#CC0000',primaryDark:'#930000',primaryLight:'rgba(204,0,0,.12)',primarySoft:'rgba(204,0,0,.18)',
-  primaryFg:'#FFB4A8',
-  success:'#00FF66',successLight:'rgba(0,255,102,.10)',successFg:'#00FF66',
-  warning:'#FFCC00',warningLight:'rgba(255,204,0,.10)',warningFg:'#FFCC00',
-  danger:'#FF5566',dangerLight:'rgba(255,85,102,.10)',dangerFg:'#FFB4AB',
-  bg:'#0A0A0A',bgDeep:'#0E0E0E',surface:'#131313',surfaceDim:'#1C1B1B',surface1:'#201F1F',surface2:'#2A2A2A',surface3:'#353534',
-  glass:'rgba(26,26,26,.65)',glassHi:'rgba(38,38,38,.72)',
-  border:'rgba(255,255,255,.08)',borderHi:'rgba(255,255,255,.14)',borderRed:'rgba(204,0,0,.40)',
-  textPrimary:'#FFFFFF',text:'#E5E2E1',textSecondary:'#94A3B8',textMuted:'#64748B',
-  sidebar:'#0E0E0E',sidebarHover:'rgba(255,255,255,.06)',sidebarActive:'#CC0000'
+  primary:'#4D4D4D',primaryDark:'#5A5A5A',primaryLight:'rgba(255,255,255,.08)',primarySoft:'rgba(255,255,255,.12)',
+  primaryFg:'#FFFFFF',
+  success:'#4EC9B0',successLight:'rgba(78,201,176,.12)',successFg:'#4EC9B0',
+  warning:'#CCA700',warningLight:'rgba(204,167,0,.12)',warningFg:'#D7BA7D',
+  danger:'#F14C4C',dangerLight:'rgba(241,76,76,.12)',dangerFg:'#F48771',
+  bg:'#1E1E1E',bgDeep:'#181818',surface:'#252526',surfaceDim:'#2D2D30',surface1:'#2D2D30',surface2:'#3C3C3C',surface3:'#4D4D4D',
+  glass:'rgba(37,37,38,.78)',glassHi:'rgba(45,45,48,.85)',
+  border:'rgba(255,255,255,.10)',borderHi:'rgba(255,255,255,.16)',borderRed:'rgba(255,255,255,.22)',
+  textPrimary:'#FFFFFF',text:'#D4D4D4',textSecondary:'#A0A0A0',textMuted:'#6E6E6E',
+  sidebar:'#252526',sidebarHover:'rgba(255,255,255,.06)',sidebarActive:'#37373D'
 };
 
 // ── Global styles injected ───────────────────────────────────────────────────
@@ -57,8 +57,8 @@ style.textContent=`
 }
 body{background:${C.bg};color:${C.text};overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(60% 50% at 80% 0%,rgba(204,0,0,.10) 0%,transparent 60%),
-             radial-gradient(50% 40% at 0% 100%,rgba(204,0,0,.06) 0%,transparent 60%)}
+  background:radial-gradient(60% 50% at 80% 0%,rgba(255,255,255,.10) 0%,transparent 60%),
+             radial-gradient(50% 40% at 0% 100%,rgba(255,255,255,.06) 0%,transparent 60%)}
 #root{position:relative;z-index:2}
 
 /* ── Weather ambient backdrop ──────────────────────────────────────────────── */
@@ -91,17 +91,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @media(max-width:768px){.wx-badge{left:14px;bottom:88px}}
 
 .glass{background:${C.glass};backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid ${C.border}}
-.card{position:relative;background:rgba(26,26,26,.40);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid ${C.border};border-radius:16px;padding:20px;transition:border-color .25s,transform .25s,box-shadow .25s}
-.card-hover:hover{transform:translateY(-2px);border-color:${C.borderRed};box-shadow:0 8px 32px rgba(204,0,0,.10)}
+.card{position:relative;background:rgba(37,37,38,.40);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid ${C.border};border-radius:16px;padding:20px;transition:border-color .25s,transform .25s,box-shadow .25s}
+.card-hover:hover{transform:translateY(-2px);border-color:${C.borderRed};box-shadow:0 8px 32px rgba(255,255,255,.10)}
 .card-accent{position:relative;overflow:hidden}
 .card-accent::before{content:'';position:absolute;left:0;top:0;width:2px;height:100%;background:${C.primary}}
-.stat-card{position:relative;background:rgba(26,26,26,.40);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid ${C.border};border-radius:16px;padding:18px 18px;overflow:hidden}
+.stat-card{position:relative;background:rgba(37,37,38,.40);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid ${C.border};border-radius:16px;padding:18px 18px;overflow:hidden}
 .stat-card::before{content:'';position:absolute;left:0;top:0;width:2px;height:100%;background:${C.primary}}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600;transition:all .15s;border:1px solid transparent;letter-spacing:.01em}
 .btn:active{transform:scale(.97)}
-.btn-primary{background:${C.primary};color:#FFFFFF;box-shadow:0 0 0 0 rgba(204,0,0,.0)}
-.btn-primary:hover{background:${C.primaryDark};box-shadow:0 4px 24px rgba(204,0,0,.30)}
+.btn-primary{background:${C.primary};color:#FFFFFF;box-shadow:0 0 0 0 rgba(255,255,255,.0)}
+.btn-primary:hover{background:${C.primaryDark};box-shadow:0 4px 24px rgba(255,255,255,.14)}
 .btn-secondary{background:${C.surface1};color:${C.text};border-color:${C.border}}
 .btn-secondary:hover{background:${C.surface2};border-color:${C.borderHi}}
 .btn-danger{background:${C.danger};color:#fff}.btn-danger:hover{filter:brightness(1.08)}
@@ -111,8 +111,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-family:'JetBrains Mono',ui-monospace,monospace;border:1px solid transparent}
 .badge .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
-.badge-blue{background:rgba(91,140,255,.10);color:#9BB6FF;border-color:rgba(91,140,255,.20)}
-.badge-green{background:${C.successLight};color:${C.success};border-color:rgba(0,255,102,.20);box-shadow:0 0 15px rgba(0,255,102,.10)}
+.badge-blue{background:rgba(160,160,160,.10);color:#A0A0A0;border-color:rgba(160,160,160,.20)}
+.badge-green{background:${C.successLight};color:${C.success};border-color:rgba(78,201,176,.20);box-shadow:0 0 15px rgba(78,201,176,.10)}
 .badge-green .dot{background:${C.success};animation:pulse 2s infinite}
 .badge-yellow{background:${C.warningLight};color:${C.warning};border-color:rgba(255,204,0,.20)}
 .badge-yellow .dot{background:${C.warning}}
@@ -136,18 +136,18 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 
 .tabs-pill{display:inline-flex;align-items:center;gap:4px;padding:4px;background:${C.surfaceDim};border:1px solid ${C.border};border-radius:12px}
 .tabs-pill button{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;color:${C.textSecondary};background:transparent;transition:all .15s;letter-spacing:.01em}
-.tabs-pill button.active{background:${C.primary};color:#fff;box-shadow:0 0 16px rgba(204,0,0,.30)}
+.tabs-pill button.active{background:${C.primary};color:#fff;box-shadow:0 0 16px rgba(255,255,255,.14)}
 .tabs-pill button:not(.active):hover{color:${C.text};background:rgba(255,255,255,.04)}
 
 /* HUD-style tab bar (Stitch "Kinetic HUD" inspired) — chamfered glass surface with corner brackets and ambient glow */
-.hud-tabs{position:relative;display:flex;align-items:center;gap:2px;padding:6px;background:rgba(10,10,10,.55);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid ${C.border};border-radius:14px;overflow:hidden}
+.hud-tabs{position:relative;display:flex;align-items:center;gap:2px;padding:6px;background:rgba(24,24,24,.55);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid ${C.border};border-radius:14px;overflow:hidden}
 .hud-tabs::before,.hud-tabs::after{content:'';position:absolute;width:12px;height:12px;pointer-events:none}
 .hud-tabs::before{top:-1px;left:-1px;border-top:1px solid ${C.primary};border-left:1px solid ${C.primary};border-top-left-radius:14px}
 .hud-tabs::after{bottom:-1px;right:-1px;border-bottom:1px solid ${C.primary};border-right:1px solid ${C.primary};border-bottom-right-radius:14px}
 .hud-tabs button{position:relative;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:9px;background:transparent;color:${C.textSecondary};font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;transition:all .18s;white-space:nowrap}
 .hud-tabs button .material-symbols-outlined{font-size:16px}
 .hud-tabs button:hover:not(.active){color:#fff;background:rgba(255,255,255,.04)}
-.hud-tabs button.active{background:linear-gradient(180deg,rgba(204,0,0,.20),rgba(204,0,0,.08));color:#fff;box-shadow:inset 0 0 0 1px rgba(204,0,0,.50),0 0 18px rgba(204,0,0,.30)}
+.hud-tabs button.active{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 0 18px rgba(255,255,255,.14)}
 .hud-tabs button.active::after{content:'';position:absolute;left:10px;right:10px;bottom:-1px;height:2px;background:${C.primary};box-shadow:0 0 10px ${C.primary};border-radius:1px}
 .hud-tabs .hud-spacer{flex:1}
 .hud-tabs .hud-meta{display:flex;align-items:center;gap:6px;padding:0 10px;color:${C.textMuted};font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.10em}
@@ -161,7 +161,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .list-row{display:flex;align-items:center;gap:14px;padding:14px;background:${C.glass};backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid ${C.border};border-radius:14px;transition:all .2s;cursor:pointer;position:relative;overflow:hidden}
 .list-row:hover{border-color:${C.borderRed};transform:translateY(-1px)}
 
-.fab{position:fixed;right:20px;bottom:96px;width:56px;height:56px;border-radius:50%;background:${C.primary};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(204,0,0,.45);z-index:90;border:none;cursor:pointer;transition:transform .2s}
+.fab{position:fixed;right:20px;bottom:96px;width:56px;height:56px;border-radius:50%;background:${C.primary};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(255,255,255,.18);z-index:90;border:none;cursor:pointer;transition:transform .2s}
 .fab:hover{transform:scale(1.06)}
 .fab .material-symbols-outlined{font-size:28px}
 
@@ -190,56 +190,56 @@ a{color:inherit;text-decoration:none}
 @media(min-width:769px){.page-wrap{max-width:none!important;margin-left:0!important;margin-right:0!important;width:auto}}
 
 /* ── Onboarding Welcome Slider ───────────────────────────────────────────── */
-.ob-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 50% 24%,rgba(204,0,0,.18) 0%,#0A0A0A 70%);z-index:300;overflow:hidden;animation:ob-fade-in .5s ease}
-.ob-screen::before{content:'';position:absolute;top:-180px;left:-180px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(204,0,0,.20),transparent 70%);filter:blur(50px);animation:ob-orb 16s ease-in-out infinite;pointer-events:none}
-.ob-screen::after{content:'';position:absolute;bottom:-200px;right:-200px;width:540px;height:540px;border-radius:50%;background:radial-gradient(circle,rgba(204,0,0,.10),transparent 70%);filter:blur(60px);animation:ob-orb 22s ease-in-out infinite reverse;pointer-events:none}
+.ob-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 50% 24%,rgba(255,255,255,.18) 0%,#1E1E1E 70%);z-index:300;overflow:hidden;animation:ob-fade-in .5s ease}
+.ob-screen::before{content:'';position:absolute;top:-180px;left:-180px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);filter:blur(50px);animation:ob-orb 16s ease-in-out infinite;pointer-events:none}
+.ob-screen::after{content:'';position:absolute;bottom:-200px;right:-200px;width:540px;height:540px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.10),transparent 70%);filter:blur(60px);animation:ob-orb 22s ease-in-out infinite reverse;pointer-events:none}
 @keyframes ob-fade-in{from{opacity:0}to{opacity:1}}
 @keyframes ob-orb{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-30px) scale(1.12)}}
-.ob-slider{position:relative;width:100%;max-width:460px;background:rgba(26,26,26,.74);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.10);border-radius:28px;padding:28px 26px 24px;box-shadow:0 32px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;z-index:1}
-.ob-skip{position:absolute;top:18px;right:20px;background:transparent;color:#94A3B8;font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px;transition:color .2s,background .2s}
+.ob-slider{position:relative;width:100%;max-width:460px;background:rgba(37,37,38,.74);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.10);border-radius:28px;padding:28px 26px 24px;box-shadow:0 32px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;z-index:1}
+.ob-skip{position:absolute;top:18px;right:20px;background:transparent;color:#A0A0A0;font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px;transition:color .2s,background .2s}
 .ob-skip:hover{color:#fff;background:rgba(255,255,255,.06)}
 .ob-brand{display:flex;align-items:center;gap:10px;margin-bottom:18px;align-self:flex-start}
-.ob-brand-mark{width:34px;height:34px;background:#CC0000;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 6px 18px rgba(204,0,0,.40)}
+.ob-brand-mark{width:34px;height:34px;background:#4D4D4D;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 6px 18px rgba(255,255,255,.18)}
 .ob-brand-name{font-weight:800;font-size:15px;color:#fff;letter-spacing:-.01em}
 .ob-stage{width:100%;position:relative;min-height:380px;overflow:hidden}
 .ob-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;opacity:0;transform:translateX(28px);transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.4,0,.2,1);pointer-events:none}
 .ob-slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
-.ob-mockup{width:100%;height:210px;background:linear-gradient(160deg,rgba(14,14,14,.85),rgba(26,26,26,.65));border:1px solid rgba(255,255,255,.06);border-radius:18px;margin-bottom:22px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
-.ob-mockup::before{content:'';position:absolute;top:-50%;left:-50%;width:80%;height:80%;background:radial-gradient(circle,rgba(204,0,0,.22),transparent 60%);filter:blur(30px);animation:ob-glow 7s ease-in-out infinite;pointer-events:none}
+.ob-mockup{width:100%;height:210px;background:linear-gradient(160deg,rgba(14,14,14,.85),rgba(37,37,38,.65));border:1px solid rgba(255,255,255,.06);border-radius:18px;margin-bottom:22px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.ob-mockup::before{content:'';position:absolute;top:-50%;left:-50%;width:80%;height:80%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 60%);filter:blur(30px);animation:ob-glow 7s ease-in-out infinite;pointer-events:none}
 @keyframes ob-glow{0%,100%{transform:translate(0,0)}50%{transform:translate(60%,40%)}}
 .ob-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:8px}
-.ob-desc{font-size:14px;color:#94A3B8;line-height:1.55;max-width:340px}
+.ob-desc{font-size:14px;color:#A0A0A0;line-height:1.55;max-width:340px}
 .ob-dots{display:flex;gap:8px;margin:22px 0 18px}
 .ob-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18);cursor:pointer;border:none;padding:0;transition:all .25s}
-.ob-dot.active{background:#CC0000;width:26px;border-radius:4px;box-shadow:0 0 10px rgba(204,0,0,.6)}
+.ob-dot.active{background:#4D4D4D;width:26px;border-radius:4px;box-shadow:0 0 10px rgba(255,255,255,.18)}
 .ob-actions{width:100%;display:flex;gap:10px}
 .ob-actions .ob-next{flex:1;justify-content:center}
 /* Slide 1 — profile card */
 .ob-profile{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;z-index:1}
-.ob-avatar{width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#CC0000,#7F0000);display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 0 30px rgba(204,0,0,.55),inset 0 0 0 2px rgba(255,255,255,.12)}
+.ob-avatar{width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#4D4D4D,#333333);display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 0 30px rgba(255,255,255,.18),inset 0 0 0 2px rgba(255,255,255,.12)}
 .ob-handle{font-weight:700;color:#fff;font-size:14px}
 .ob-socials{display:flex;gap:8px;margin-top:2px}
-.ob-soc-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:999px;font-size:11px;color:#E5E2E1;font-weight:600}
-.ob-share{margin-top:8px;padding:7px 14px;background:#CC0000;color:#fff;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;box-shadow:0 6px 18px rgba(204,0,0,.40);display:inline-flex;align-items:center;gap:6px}
+.ob-soc-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:999px;font-size:11px;color:#D4D4D4;font-weight:600}
+.ob-share{margin-top:8px;padding:7px 14px;background:#4D4D4D;color:#fff;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;box-shadow:0 6px 18px rgba(255,255,255,.18);display:inline-flex;align-items:center;gap:6px}
 /* Slide 2 — stats */
 .ob-stats{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px;width:90%;z-index:1}
 .ob-stat-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;text-align:left}
-.ob-stat-label{font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.08em;font-family:'JetBrains Mono',monospace}
+.ob-stat-label{font-size:10px;color:#A0A0A0;text-transform:uppercase;letter-spacing:.08em;font-family:'JetBrains Mono',monospace}
 .ob-stat-val{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.01em}
 .ob-stat-bars{display:flex;gap:3px;align-items:flex-end;height:26px}
-.ob-bar{flex:1;background:linear-gradient(180deg,#CC0000,#7F0000);border-radius:2px;animation:ob-bar-rise .9s cubic-bezier(.4,0,.2,1) both}
-.ob-bar.g{background:linear-gradient(180deg,#00FF66,#008833)}
+.ob-bar{flex:1;background:linear-gradient(180deg,#4D4D4D,#333333);border-radius:2px;animation:ob-bar-rise .9s cubic-bezier(.4,0,.2,1) both}
+.ob-bar.g{background:linear-gradient(180deg,#4EC9B0,#008833)}
 @keyframes ob-bar-rise{from{height:0!important}}
-.ob-trend{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#00FF66;font-weight:700}
+.ob-trend{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#4EC9B0;font-weight:700}
 /* Slide 3 — brands & contract */
 .ob-brands{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;z-index:1;width:90%}
 .ob-brand-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .ob-brand-chip{padding:6px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;font-size:12px;font-weight:800;color:#fff;letter-spacing:.04em}
-.ob-contract{width:100%;background:linear-gradient(135deg,rgba(0,255,102,.08),rgba(26,26,26,.65));border:1px solid rgba(0,255,102,.30);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.ob-contract-title{font-size:10px;color:#94A3B8;font-weight:600;margin-bottom:2px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase}
+.ob-contract{width:100%;background:linear-gradient(135deg,rgba(78,201,176,.08),rgba(37,37,38,.65));border:1px solid rgba(78,201,176,.30);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ob-contract-title{font-size:10px;color:#A0A0A0;font-weight:600;margin-bottom:2px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase}
 .ob-contract-name{font-size:13px;font-weight:700;color:#fff;text-align:left}
-.ob-approved{padding:4px 10px;background:rgba(0,255,102,.15);color:#00FF66;border:1px solid rgba(0,255,102,.40);border-radius:6px;font-size:10px;font-weight:800;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;box-shadow:0 0 14px rgba(0,255,102,.30);animation:ob-stamp-pulse 2.2s ease-in-out infinite;white-space:nowrap}
-@keyframes ob-stamp-pulse{0%,100%{box-shadow:0 0 14px rgba(0,255,102,.30)}50%{box-shadow:0 0 22px rgba(0,255,102,.55)}}
+.ob-approved{padding:4px 10px;background:rgba(78,201,176,.15);color:#4EC9B0;border:1px solid rgba(78,201,176,.40);border-radius:6px;font-size:10px;font-weight:800;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;box-shadow:0 0 14px rgba(78,201,176,.30);animation:ob-stamp-pulse 2.2s ease-in-out infinite;white-space:nowrap}
+@keyframes ob-stamp-pulse{0%,100%{box-shadow:0 0 14px rgba(78,201,176,.30)}50%{box-shadow:0 0 22px rgba(78,201,176,.55)}}
 @media(max-width:480px){
   .ob-slider{padding:24px 18px 20px;border-radius:24px}
   .ob-stage{min-height:360px}
@@ -250,12 +250,12 @@ a{color:inherit;text-decoration:none}
 /* ── CRM / Pipeline ──────────────────────────────────────────────────────── */
 .kanban{display:flex;gap:14px;overflow-x:auto;padding:4px 4px 16px;align-items:flex-start}
 .kanban-col{flex:0 0 268px;width:268px;background:rgba(20,20,20,.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid ${C.border};border-radius:16px;padding:12px;transition:border-color .18s,background .18s;min-height:120px}
-.kanban-col.drag-over{border-color:${C.borderRed};background:rgba(204,0,0,.06)}
+.kanban-col.drag-over{border-color:${C.borderRed};background:rgba(255,255,255,.06)}
 .kanban-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 4px}
 .kanban-col-title{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${C.textSecondary}}
 .kanban-col-count{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;color:${C.textMuted};background:${C.surface1};border:1px solid ${C.border};border-radius:999px;padding:1px 7px}
 .kanban-col-sum{font-size:10px;color:${C.textMuted};margin:0 4px 10px;font-family:'JetBrains Mono',ui-monospace,monospace}
-.kanban-card{background:rgba(38,38,38,.55);border:1px solid ${C.border};border-radius:12px;padding:12px;margin-bottom:10px;cursor:grab;transition:border-color .15s,transform .15s,box-shadow .15s}
+.kanban-card{background:rgba(45,45,48,.55);border:1px solid ${C.border};border-radius:12px;padding:12px;margin-bottom:10px;cursor:grab;transition:border-color .15s,transform .15s,box-shadow .15s}
 .kanban-card:hover{border-color:${C.borderRed};transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,0,0,.30)}
 .kanban-card:active{cursor:grabbing}
 .kanban-card.dragging{opacity:.4}
@@ -270,7 +270,7 @@ a{color:inherit;text-decoration:none}
 .stage-step{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${C.textMuted};background:${C.surface1};border:1px solid ${C.border};border-radius:6px;padding:4px 7px;cursor:pointer;transition:all .15s}
 .stage-step:hover{color:#fff;border-color:${C.borderHi}}
 .stage-step.done{color:${C.primaryFg};border-color:${C.borderRed};background:${C.primaryLight}}
-.stage-step.current{color:#fff;background:${C.primary};border-color:${C.primary};box-shadow:0 0 12px rgba(204,0,0,.30)}
+.stage-step.current{color:#fff;background:${C.primary};border-color:${C.primary};box-shadow:0 0 12px rgba(255,255,255,.14)}
 .crm-tl-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid ${C.border}}
 .crm-tl-icon{width:30px;height:30px;flex-shrink:0;border-radius:8px;background:${C.surface1};border:1px solid ${C.border};display:flex;align-items:center;justify-content:center}
 .crm-tl-icon .material-symbols-outlined{font-size:16px}
@@ -404,7 +404,7 @@ function useAuth(){return useContext(AuthCtx);}
 // ── Utility components ───────────────────────────────────────────────────────
 const Avatar=({name='',src,size=36,style:s={}})=>{
   const initials=(name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const colors=['#3B5BFF','#7C3AED','#10B981','#F59E0B','#CC0000','#06B6D4'];
+  const colors=['#3B5BFF','#7C3AED','#10B981','#F59E0B','#4D4D4D','#06B6D4'];
   const bg=colors[(name.charCodeAt(0)||0)%colors.length];
   const ring='1px solid rgba(255,255,255,.10)';
   if(src)return React.createElement('img',{src,style:{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:ring,...s}});
@@ -533,10 +533,10 @@ const Sidebar=({view,setView,user,onLogout,unread})=>{
     style:{position:'fixed',left:0,top:0,bottom:0,width:expanded?220:64,background:C.sidebar,borderRight:`1px solid ${C.border}`,display:'flex',flexDirection:'column',flexShrink:0,transition:'width .25s cubic-bezier(.4,0,.2,1)',zIndex:60,overflow:'hidden'}},
     // Logo + pin toggle
     React.createElement('div',{style:{padding:'18px 12px 14px',display:'flex',alignItems:'center',gap:12,minHeight:64}},
-      React.createElement('div',{style:{width:40,height:40,background:C.primary,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 4px 16px rgba(204,0,0,.30)'}},
+      React.createElement('div',{style:{width:40,height:40,background:C.primary,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 4px 16px rgba(255,255,255,.14)'}},
         React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:22}},'bolt')),
       expanded?React.createElement('div',{style:{flex:1,minWidth:0,opacity:expanded?1:0,transition:'opacity .2s'}},
-        React.createElement('div',{style:{color:'#fff',fontWeight:800,fontSize:16,letterSpacing:'-.02em'}},'AiC NIL'),
+        React.createElement('div',{style:{color:'#fff',fontWeight:800,fontSize:16,letterSpacing:'-.02em'}},'Digital NIL'),
         React.createElement('div',{className:'mono',style:{fontSize:9,color:C.textMuted,marginTop:2}},'v1.0.4 · ELITE')):null,
       expanded?React.createElement('button',{onClick:togglePin,style:{width:24,height:24,borderRadius:6,background:'transparent',color:C.textMuted,display:'flex',alignItems:'center',justifyContent:'center'},title:pinned?'Unpin':'Pin'},
         React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16}},pinned?'keep':'keep_off')):null),
@@ -545,7 +545,7 @@ const Sidebar=({view,setView,user,onLogout,unread})=>{
       nav.map(n=>{
         const active=navMatches(n.id,view);
         return React.createElement('button',{key:n.id,onClick:()=>setView(n.id),title:n.label,
-          style:{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'10px 12px',background:active?C.primary:'transparent',color:active?'#fff':C.textSecondary,borderRadius:10,fontSize:13,fontWeight:active?600:500,transition:'all .15s',textAlign:'left',position:'relative',boxShadow:active?'0 4px 16px rgba(204,0,0,.30)':'none'}},
+          style:{width:'100%',display:'flex',alignItems:'center',gap:14,padding:'10px 12px',background:active?C.primary:'transparent',color:active?'#fff':C.textSecondary,borderRadius:10,fontSize:13,fontWeight:active?600:500,transition:'all .15s',textAlign:'left',position:'relative',boxShadow:active?'0 4px 16px rgba(255,255,255,.14)':'none'}},
           React.createElement('span',{className:'material-symbols-outlined'+(active?' mi-fill':''),style:{fontSize:22,flexShrink:0}},n.icon),
           expanded?React.createElement('span',{style:{flex:1,whiteSpace:'nowrap',opacity:expanded?1:0,transition:'opacity .2s'}},n.label):null,
           expanded&&n.id==='inbox'&&unread>0?React.createElement('span',{className:'mono',style:{background:active?'rgba(255,255,255,.20)':C.primary,color:'#fff',borderRadius:'999px',fontSize:10,fontWeight:700,padding:'2px 7px'}},unread):null);
@@ -580,7 +580,7 @@ const MobileTopBar=({user,unread,onProfile,onNotifications})=>{
     React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10}},
       React.createElement('button',{onClick:onProfile,style:{padding:0,background:'transparent'}},
         React.createElement(Avatar,{name:user?.name,src:user?.avatar,size:36})),
-      React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:18,letterSpacing:'-.02em'}},'AiC NIL')),
+      React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:18,letterSpacing:'-.02em'}},'Digital NIL')),
     React.createElement('button',{onClick:onNotifications,style:{position:'relative',width:38,height:38,borderRadius:10,background:C.surface1,color:C.primary,display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${C.border}`}},
       React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:20}},'notifications'),
       unread>0?React.createElement('span',{style:{position:'absolute',top:6,right:6,width:8,height:8,borderRadius:'50%',background:C.primary,boxShadow:'0 0 8px '+C.primary}}):null));
@@ -606,22 +606,22 @@ const AuthScreen=({onAuth})=>{
 
   return React.createElement('div',{style:{minHeight:'100vh',display:'flex'}},
     // Left panel
-    React.createElement('div',{className:'hide-mobile',style:{width:'45%',background:`linear-gradient(135deg,#0A0A0A 0%,#7F0000 100%)`,display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 48px'}},
+    React.createElement('div',{className:'hide-mobile',style:{width:'45%',background:`linear-gradient(135deg,#1E1E1E 0%,#333333 100%)`,display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 48px'}},
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:40}},
         React.createElement('div',{style:{width:44,height:44,background:C.primary,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}},'🏈'),
-        React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:22,letterSpacing:'-0.5px'}},'AiC NIL')),
-      React.createElement('h1',{style:{color:'#fff',fontSize:36,fontWeight:800,lineHeight:1.2,marginBottom:16}},'Athletes\nin Control.'),
-      React.createElement('p',{style:{color:'#94A3B8',fontSize:15,lineHeight:1.6,marginBottom:12}},'The NIL platform powering AiC Sports — backed by a Heisman winner, NFLPA agent, and a Super Bowl-winning coach.'),
-      React.createElement('p',{style:{color:'#64748B',fontSize:13,marginBottom:32,fontStyle:'italic'}},'Home of Jayden Daniels & the AiC roster.'),
+        React.createElement('span',{style:{color:'#fff',fontWeight:800,fontSize:22,letterSpacing:'-0.5px'}},'Digital NIL')),
+      React.createElement('h1',{style:{color:'#fff',fontSize:36,fontWeight:800,lineHeight:1.2,marginBottom:16}},'The athlete\nNIL platform.'),
+      React.createElement('p',{style:{color:'#A0A0A0',fontSize:15,lineHeight:1.6,marginBottom:12}},'The NIL platform for athletes, brands, and agents — manage deals, content, and payouts in one place.'),
+      React.createElement('p',{style:{color:'#6E6E6E',fontSize:13,marginBottom:32,fontStyle:'italic'}},'Football-first, built for athletes of every sport.'),
       React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:16}},
-        [['🏈','Football-First NIL Agency'],['💰','Deals for 100+ Athletes'],['📋','Auto-Generated Media Kits'],['📊','Real-Time Analytics']].map(([icon,text])=>
-          React.createElement('div',{key:text,style:{display:'flex',alignItems:'center',gap:12,color:'#CBD5E1',fontSize:15}},
+        [['🏈','Football-First, All-Sport'],['💰','Deal & Payout Management'],['📋','Auto-Generated Media Kits'],['📊','Real-Time Analytics']].map(([icon,text])=>
+          React.createElement('div',{key:text,style:{display:'flex',alignItems:'center',gap:12,color:'#D4D4D4',fontSize:15}},
             React.createElement('span',{style:{fontSize:20}},icon),text)))),
     // Right panel
     React.createElement('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px',background:C.glass,backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',borderLeft:`1px solid ${C.border}`}},
       React.createElement('div',{style:{width:'100%',maxWidth:400}},
         React.createElement('h2',{style:{fontSize:26,fontWeight:800,marginBottom:6,color:'#fff',letterSpacing:'-.02em'}},tab==='login'?'Welcome back':'Create account'),
-        React.createElement('p',{style:{color:C.textSecondary,marginBottom:24,fontSize:14}},tab==='login'?'Sign in to your account':'Join the AiC Sports NIL platform'),
+        React.createElement('p',{style:{color:C.textSecondary,marginBottom:24,fontSize:14}},tab==='login'?'Sign in to your account':'Join the Digital NIL NIL platform'),
         // Tabs
         React.createElement('div',{className:'tabs-pill',style:{marginBottom:20,width:'100%'}},
           ['login','register'].map(t=>React.createElement('button',{key:t,onClick:()=>{setTab(t);setError('');},className:tab===t?'active':'',style:{flex:1}},
@@ -765,12 +765,12 @@ const AthleteDashboard=({token,user,onNavigate})=>{
                   React.createElement('div',{style:{minWidth:0}},
                     React.createElement('p',{style:{fontSize:14,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:140}},d.title),
                     React.createElement('p',{style:{fontSize:12,color:C.textMuted,marginTop:2}},d.brand?.company||d.brand?.name||'Open'))),
-                React.createElement('span',{style:monoChip({padding:'4px 8px',background:'rgba(0,255,102,.10)',color:C.success,border:'1px solid rgba(0,255,102,.20)',borderRadius:6,whiteSpace:'nowrap'})},formatMoney(d.compensation?.amount||0)))):
+                React.createElement('span',{style:monoChip({padding:'4px 8px',background:'rgba(78,201,176,.10)',color:C.success,border:'1px solid rgba(78,201,176,.20)',borderRadius:6,whiteSpace:'nowrap'})},formatMoney(d.compensation?.amount||0)))):
               React.createElement('div',{style:{padding:'16px 0',fontSize:13,color:C.textMuted,textAlign:'center'}},'No open opportunities right now.')),
           React.createElement('button',{style:{width:'100%',marginTop:16,padding:'12px 0',fontSize:14,fontWeight:600,color:C.primaryFg,borderTop:`1px solid ${C.border}`,background:'transparent'},onClick:()=>onNavigate('opportunities')},'Browse All →')),
 
         // Portfolio Valuation (real career earnings + pipeline)
-        React.createElement('div',{className:'card',style:{padding:22,position:'relative',overflow:'hidden',background:`linear-gradient(135deg,${C.glass},rgba(204,0,0,.12))`,cursor:'pointer'},onClick:()=>onNavigate('financials')},
+        React.createElement('div',{className:'card',style:{padding:22,position:'relative',overflow:'hidden',background:`linear-gradient(135deg,${C.glass},rgba(255,255,255,.12))`,cursor:'pointer'},onClick:()=>onNavigate('financials')},
           React.createElement('h3',{style:{fontSize:14,fontWeight:600,marginBottom:10,color:C.textSecondary,letterSpacing:'.05em',textTransform:'uppercase'}},'Career Earnings'),
           React.createElement('div',{style:{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap'}},
             React.createElement('span',{style:{fontSize:32,fontWeight:800,letterSpacing:'-.02em',color:'#fff',lineHeight:1}},formatMoney(totalEarnings)),
@@ -784,7 +784,7 @@ const AthleteDashboard=({token,user,onNavigate})=>{
                 const idx=4-((now-m+12)%12);if(idx>=0&&idx<5)months[idx]+=d.compensation?.amount||0;
               });
               const max=Math.max(...months,1);
-              return months.map((v,i)=>React.createElement('div',{key:i,style:{flex:1,background:i===4?C.primary:'rgba(255,180,168,.20)',height:`${Math.max(8,v/max*100)}%`,borderRadius:'2px 2px 0 0'}}));
+              return months.map((v,i)=>React.createElement('div',{key:i,style:{flex:1,background:i===4?C.primary:'rgba(255,255,255,.20)',height:`${Math.max(8,v/max*100)}%`,borderRadius:'2px 2px 0 0'}}));
             })())))),
 
     // NIL stats row (was workout stats)
@@ -793,10 +793,10 @@ const AthleteDashboard=({token,user,onNavigate})=>{
         const followers=s.totalFollowers||(user.socialHandles||[]).reduce((a,h)=>a+(h.followers||0),0);
         const completionRate=deals.length?Math.round(completedCount/deals.length*100):0;
         return [
-          {accent:C.primary,bg:'rgba(204,0,0,.10)',icon:'handshake',cap:'Active Deals',val:String(activeCount),label:'Live partnerships',pct:Math.min(100,activeCount*20)},
-          {accent:'#b7c4ff',bg:'rgba(183,196,255,.10)',icon:'payments',cap:'Pipeline',val:formatMoney(pipeline),label:'Open + pending value',pct:Math.min(100,pipeline/50000*100)},
-          {accent:C.success,bg:'rgba(0,255,102,.10)',icon:'task_alt',cap:'Completion',val:completionRate+'%',label:'Deal completion rate',pct:completionRate},
-          {accent:C.primaryFg,bg:'rgba(255,180,168,.10)',icon:'group',cap:'Audience',val:formatNum(followers),label:'Followers across platforms',pct:Math.min(100,followers/100000*100)}
+          {accent:C.primary,bg:'rgba(255,255,255,.10)',icon:'handshake',cap:'Active Deals',val:String(activeCount),label:'Live partnerships',pct:Math.min(100,activeCount*20)},
+          {accent:'#A0A0A0',bg:'rgba(160,160,160,.10)',icon:'payments',cap:'Pipeline',val:formatMoney(pipeline),label:'Open + pending value',pct:Math.min(100,pipeline/50000*100)},
+          {accent:C.success,bg:'rgba(78,201,176,.10)',icon:'task_alt',cap:'Completion',val:completionRate+'%',label:'Deal completion rate',pct:completionRate},
+          {accent:C.primaryFg,bg:'rgba(255,255,255,.10)',icon:'group',cap:'Audience',val:formatNum(followers),label:'Followers across platforms',pct:Math.min(100,followers/100000*100)}
         ];
       })().map((st,i)=>React.createElement('div',{key:i,className:'card',style:{padding:22,position:'relative',overflow:'hidden'}},
         React.createElement('div',{style:{position:'absolute',left:0,top:0,width:2,height:'100%',background:st.accent}}),
@@ -842,7 +842,7 @@ const AthleteDashboard=({token,user,onNavigate})=>{
               React.createElement('span',{style:{fontSize:18,fontWeight:600,color:'#fff'}},'Sponsor Interest'),
               React.createElement('span',{style:monoChip({color:C.success})},'+8.1%')),
             React.createElement('div',{style:{height:8,borderRadius:999,background:C.surface3,overflow:'hidden'}},
-              React.createElement('div',{style:{height:'100%',background:'#b7c4ff',width:'45%'}}))),
+              React.createElement('div',{style:{height:'100%',background:'#A0A0A0',width:'45%'}}))),
           React.createElement('div',{className:'grid-col3',style:{paddingTop:8,display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}},
             [
               [String(deals.filter(d=>d.status==='applied').length),'Pending Deals'],
@@ -901,9 +901,9 @@ const Dashboard=({token,user,onNavigate})=>{
       React.createElement('p',{className:'page-subtitle'},'Here\'s your control center.')),
 
     // Featured / hero card
-    React.createElement('div',{className:'card card-hover',style:{marginBottom:24,padding:24,background:'linear-gradient(135deg,rgba(204,0,0,.18) 0%,rgba(26,26,26,.65) 60%)',border:`1px solid ${C.borderRed}`,cursor:'pointer'},onClick:()=>onNavigate(isAthlete?'opportunities':'my-deals')},
+    React.createElement('div',{className:'card card-hover',style:{marginBottom:24,padding:24,background:'linear-gradient(135deg,rgba(255,255,255,.18) 0%,rgba(37,37,38,.65) 60%)',border:`1px solid ${C.borderRed}`,cursor:'pointer'},onClick:()=>onNavigate(isAthlete?'opportunities':'my-deals')},
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:16}},
-        React.createElement('div',{style:{width:56,height:56,background:C.primary,borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 8px 24px rgba(204,0,0,.40)'}},
+        React.createElement('div',{style:{width:56,height:56,background:C.primary,borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 8px 24px rgba(255,255,255,.18)'}},
           React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:28}},'rocket_launch')),
         React.createElement('div',{style:{flex:1}},
           React.createElement('div',{className:'kicker',style:{marginBottom:4}},'Featured'),
@@ -915,7 +915,7 @@ const Dashboard=({token,user,onNavigate})=>{
     React.createElement('div',{className:'stat-grid',style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:16,marginBottom:28}},
       stats.map((st,i)=>React.createElement('div',{key:i,className:'stat-card card-hover'},
         React.createElement('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}},
-          React.createElement('div',{style:{width:36,height:36,borderRadius:10,background:'rgba(204,0,0,.10)',color:st.accent,display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid rgba(204,0,0,.20)`}},
+          React.createElement('div',{style:{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.10)',color:st.accent,display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid rgba(255,255,255,.14)`}},
             React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:20,color:st.accent}},st.icon)),
           React.createElement('span',{className:'badge badge-green'},React.createElement('span',{className:'dot'}),'LIVE')),
         React.createElement('div',{className:'mono',style:{fontSize:10,color:C.textSecondary,marginBottom:6,textTransform:'uppercase'}},st.label),
@@ -1255,8 +1255,8 @@ const MyDeals=({token,user})=>{
     // Bento stat overview (Stitch design)
     React.createElement('div',{className:'stat-grid',style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:24}},
       [
-        {label:'Total Pipeline',value:formatMoney(pipeline),icon:'monetization_on',accent:C.primary,bg:'rgba(204,0,0,.10)'},
-        {label:'Closed Deals',value:String(closedCount),icon:'check_circle',accent:C.success,bg:'rgba(0,255,102,.10)'},
+        {label:'Total Pipeline',value:formatMoney(pipeline),icon:'monetization_on',accent:C.primary,bg:'rgba(255,255,255,.10)'},
+        {label:'Closed Deals',value:String(closedCount),icon:'check_circle',accent:C.success,bg:'rgba(78,201,176,.10)'},
         {label:'Pending Offers',value:String(pendingCount),icon:'hourglass_empty',accent:C.warning,bg:'rgba(255,204,0,.10)'}
       ].map(s=>React.createElement('div',{key:s.label,className:'card',style:{padding:22,display:'flex',alignItems:'center',gap:16,position:'relative',overflow:'hidden'}},
         React.createElement('div',{style:{position:'absolute',left:0,top:0,width:2,height:'100%',background:s.accent}}),
@@ -1334,7 +1334,7 @@ const MyDeals=({token,user})=>{
               return React.createElement('tr',{key:d._id,style:{borderBottom:`1px solid ${C.border}`,cursor:'pointer'},onClick:()=>setSelected(d)},
                 React.createElement('td',{style:{padding:'18px 24px'}},
                   React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12}},
-                    React.createElement('div',{style:{width:36,height:36,borderRadius:8,background:urgent?'rgba(255,204,0,.10)':'rgba(204,0,0,.10)',display:'flex',alignItems:'center',justifyContent:'center'}},
+                    React.createElement('div',{style:{width:36,height:36,borderRadius:8,background:urgent?'rgba(255,204,0,.10)':'rgba(255,255,255,.10)',display:'flex',alignItems:'center',justifyContent:'center'}},
                       React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18,color:urgent?C.warning:C.primary}},d.type==='appearance'?'stadium':d.type==='video'?'movie':'shopping_bag')),
                     React.createElement('div',null,
                       React.createElement('div',{style:{fontSize:14,fontWeight:600,color:'#fff'}},d.title),
@@ -1527,7 +1527,7 @@ const Messages=({token,user})=>{
                 background:me?C.primary:C.glass,color:'#fff',
                 border:me?'none':`1px solid ${C.border}`,
                 backdropFilter:me?'none':'blur(12px)',
-                fontSize:14,lineHeight:1.5,boxShadow:me?'0 4px 16px rgba(204,0,0,.20)':'none',wordBreak:'break-word',maxWidth:'100%'}},m.text),
+                fontSize:14,lineHeight:1.5,boxShadow:me?'0 4px 16px rgba(255,255,255,.14)':'none',wordBreak:'break-word',maxWidth:'100%'}},m.text),
               React.createElement('span',{className:'mono',style:{fontSize:9,color:C.textMuted,padding:'0 4px'}},timeAgo(m.at))));
         }):React.createElement('div',{style:{textAlign:'center',color:C.textMuted,fontSize:13,padding:40}},'No messages yet — say hi.')),
       // Composer
@@ -1538,9 +1538,9 @@ const Messages=({token,user})=>{
           React.createElement('textarea',{rows:1,placeholder:'Type a message…',value:draft,onChange:e=>setDraft(e.target.value),
             onKeyDown:e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}},
             style:{flex:1,background:'transparent',border:'none',outline:'none',color:C.text,fontSize:14,padding:'10px 6px',resize:'none',minHeight:24,maxHeight:120,fontFamily:'inherit'}}),
-          React.createElement('button',{onClick:send,disabled:!draft.trim(),style:{width:38,height:38,background:draft.trim()?C.primary:C.surface2,color:'#fff',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s',boxShadow:draft.trim()?'0 4px 16px rgba(204,0,0,.30)':'none'}},
+          React.createElement('button',{onClick:send,disabled:!draft.trim(),style:{width:38,height:38,background:draft.trim()?C.primary:C.surface2,color:'#fff',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s',boxShadow:draft.trim()?'0 4px 16px rgba(255,255,255,.14)':'none'}},
             React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:20}},'send'))),
-        React.createElement('p',{className:'mono',style:{fontSize:9,color:C.textMuted,textAlign:'center',marginTop:8,letterSpacing:'.08em'}},'END-TO-END ENCRYPTED VIA AIC SECURE PROTOCOL')));
+        React.createElement('p',{className:'mono',style:{fontSize:9,color:C.textMuted,textAlign:'center',marginTop:8,letterSpacing:'.08em'}},'END-TO-END ENCRYPTED VIA DIGITAL NIL SECURE PROTOCOL')));
   };
 
   // Layout: dual-pane on desktop, list-only on mobile (chat takes over when selected on mobile)
@@ -1735,13 +1735,13 @@ const Financials=({token,user})=>{
     // ── Bottom action cards (Stitch design) ──
     React.createElement('section',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}},
       React.createElement('div',{className:'card card-hover',style:{padding:22,display:'flex',alignItems:'center',gap:18,cursor:'pointer'}},
-        React.createElement('div',{style:{width:64,height:64,borderRadius:14,background:'rgba(204,0,0,.10)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:`1px solid rgba(204,0,0,.20)`}},
+        React.createElement('div',{style:{width:64,height:64,borderRadius:14,background:'rgba(255,255,255,.10)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:`1px solid rgba(255,255,255,.14)`}},
           React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:30,color:C.primary}},'account_balance')),
         React.createElement('div',null,
           React.createElement('h3',{style:{fontSize:16,fontWeight:700,color:'#fff',marginBottom:4}},'Manage Bank Accounts'),
           React.createElement('p',{style:{fontSize:13,color:C.textMuted}},'Update payout methods and tax documentation.'))),
       React.createElement('div',{className:'card card-hover',style:{padding:22,display:'flex',alignItems:'center',gap:18,cursor:'pointer'}},
-        React.createElement('div',{style:{width:64,height:64,borderRadius:14,background:'rgba(204,0,0,.10)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:`1px solid rgba(204,0,0,.20)`}},
+        React.createElement('div',{style:{width:64,height:64,borderRadius:14,background:'rgba(255,255,255,.10)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:`1px solid rgba(255,255,255,.14)`}},
           React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:30,color:C.primary}},'monitoring')),
         React.createElement('div',null,
           React.createElement('h3',{style:{fontSize:16,fontWeight:700,color:'#fff',marginBottom:4}},'Projected Earnings'),
@@ -1909,7 +1909,7 @@ const Analytics=({token,user})=>{
           breakdown.map((b,i)=>{
             const total=breakdown.reduce((s,x)=>s+x.count,0)||1;
             const pct=Math.round((b.count/total)*100);
-            const colors={active:C.success,completed:C.primary,declined:C.danger,applied:C.warning,open:'#94A3B8'};
+            const colors={active:C.success,completed:C.primary,declined:C.danger,applied:C.warning,open:'#A0A0A0'};
             return React.createElement('div',{key:i},
               React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:4}},
                 React.createElement('span',{style:{fontWeight:500,textTransform:'capitalize'}},b._id),
@@ -2329,7 +2329,7 @@ const Roster=({token,user,onNavigate})=>{
   const[pos,setPos]=useState('');
   const[showAdd,setShowAdd]=useState(false);
   const[backfilling,setBackfilling]=useState(false);
-  const positionColors={QB:'#CC0000',WR:'#F59E0B',RB:'#10B981',TE:'#7C3AED',OL:'#3B82F6',DL:'#6B7280',LB:'#EC4899',DB:'#0EA5E9'};
+  const positionColors={QB:'#4D4D4D',WR:'#F59E0B',RB:'#10B981',TE:'#7C3AED',OL:'#3B82F6',DL:'#6B7280',LB:'#EC4899',DB:'#0EA5E9'};
   const load=useCallback(async()=>{
     setLoading(true);
     const p=search?`?search=${encodeURIComponent(search)}`:'';
@@ -2445,7 +2445,7 @@ const MediaKits=({token,user})=>{
       athletes.map(a=>{
         const totalF=(a.socialHandles||[]).reduce((s,h)=>s+(h.followers||0),0);
         return React.createElement('div',{key:a._id,className:'card'},
-          React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#CC0000)`,borderRadius:'8px 8px 0 0',margin:'-20px -20px 16px',padding:'20px',display:'flex',alignItems:'center',gap:14}},
+          React.createElement('div',{style:{background:`linear-gradient(135deg,#1E1E1E,#4D4D4D)`,borderRadius:'8px 8px 0 0',margin:'-20px -20px 16px',padding:'20px',display:'flex',alignItems:'center',gap:14}},
             React.createElement(Avatar,{name:a.name,src:a.avatar,size:56}),
             React.createElement('div',null,
               React.createElement('h3',{style:{color:'#fff',fontSize:16,fontWeight:700}},a.name),
@@ -2468,7 +2468,7 @@ const MediaKits=({token,user})=>{
               exportingId===a._id+':card'?'…':React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'image'))));})),
     React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:'Media Kit Preview',maxWidth:500},
       selected&&React.createElement('div',null,
-        React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#CC0000)`,borderRadius:10,padding:'24px',marginBottom:16,textAlign:'center'}},
+        React.createElement('div',{style:{background:`linear-gradient(135deg,#1E1E1E,#4D4D4D)`,borderRadius:10,padding:'24px',marginBottom:16,textAlign:'center'}},
           React.createElement(Avatar,{name:selected.name,src:selected.avatar,size:72,style:{margin:'0 auto 12px'}}),
           React.createElement('h2',{style:{color:'#fff',fontSize:20,fontWeight:700}},selected.name),
           React.createElement('p',{style:{color:'rgba(255,255,255,.7)',fontSize:13}},selected.position?`${selected.position} · `:'',selected.school||selected.sport||'Football Athlete')),
@@ -2480,7 +2480,7 @@ const MediaKits=({token,user})=>{
             React.createElement('div',{style:{fontSize:11,color:C.textMuted,textTransform:'capitalize'}},s.platform),
             s.handle&&React.createElement('div',{style:{fontSize:11,color:C.textMuted}},`@${s.handle}`)))):null,
         React.createElement('div',{style:{background:C.dangerLight,border:`1px solid ${C.borderRed}`,borderRadius:8,padding:12,textAlign:'center',fontSize:12,color:C.dangerFg}},
-          '🏈 Represented by AiC Sports — Athletes in Control · Irvine, CA'))));
+          '🏈 Represented by Digital NIL'))));
 };
 
 // ── Talent Marketing (Agent) ──────────────────────────────────────────────────
@@ -2498,7 +2498,7 @@ const TalentMarketing=({token,user})=>{
     {title:'Video Campaign',desc:'Dedicated YouTube or TikTok video integration with deliverables.',icon:'🎬',tags:['video','youtube','tiktok'],value:'$2K–$15K'},
   ];
   const services=[
-    {title:'Football Representation',desc:'NFL, college, and transfer portal athletes. NFLPA-certified agent on staff.',icon:'🏈'},
+    {title:'Football Representation',desc:'NFL, college, and transfer-portal athletes — and every other sport.',icon:'🏈'},
     {title:'Coaches & Executives',desc:'Representation for coaching staff, OCs, DCs, and football executives.',icon:'📋'},
     {title:'Media & Broadcasting',desc:'Connecting players to broadcast deals, podcasts, and media properties.',icon:'📺'},
     {title:'Brand Partnerships',desc:'Matching athletes with brands that align with their personal brand.',icon:'🤝'},
@@ -2508,7 +2508,7 @@ const TalentMarketing=({token,user})=>{
   return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
     React.createElement('div',{style:{marginBottom:20}},
       React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Talent Marketing'),
-      React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Pitch tools, deal templates, and AiC Sports services')),
+      React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Pitch tools, deal templates, and Digital NIL services')),
     React.createElement('div',{style:{display:'flex',gap:6,marginBottom:20,flexWrap:'wrap'}},
       ['pitches','services','roster-stats'].map(t=>React.createElement('button',{key:t,onClick:()=>setActiveTab(t),
         style:{padding:'6px 16px',borderRadius:999,background:activeTab===t?C.primary:C.bg,color:activeTab===t?'#fff':C.textSecondary,fontSize:13,fontWeight:activeTab===t?600:400,border:`1px solid ${activeTab===t?C.primary:C.border}`,cursor:'pointer',transition:'all .15s',textTransform:'capitalize'}},
@@ -2570,11 +2570,11 @@ const SponsorPortal=({token,user})=>{
   },[token,filters]);
   useEffect(()=>{load();},[load]);
   return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
-    React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#CC0000)`,borderRadius:16,padding:'32px',marginBottom:24,color:'#fff'}},
-      React.createElement('h1',{style:{fontSize:28,fontWeight:800,marginBottom:8}},'🏈 AiC Sports Athlete Marketplace'),
-      React.createElement('p',{style:{fontSize:15,opacity:.8,marginBottom:16}},'Connect your brand with football\'s top NIL athletes. Backed by a Heisman winner, NFLPA agent & Super Bowl-winning coach.'),
+    React.createElement('div',{style:{background:`linear-gradient(135deg,#1E1E1E,#4D4D4D)`,borderRadius:16,padding:'32px',marginBottom:24,color:'#fff'}},
+      React.createElement('h1',{style:{fontSize:28,fontWeight:800,marginBottom:8}},'🏈 Digital NIL Athlete Marketplace'),
+      React.createElement('p',{style:{fontSize:15,opacity:.8,marginBottom:16}},'Connect your brand with top NIL athletes across every sport — discover, offer, and close deals in one place.'),
       React.createElement('div',{style:{display:'flex',gap:24,flexWrap:'wrap'}},
-        [['100+','Athletes Represented'],['$2M+','NIL Value Managed'],['🏆','Jayden Daniels & more']].map(([v,l])=>
+        [['NIL','Deal Management'],['24/7','Marketplace Access'],['1-tap','Media Kits']].map(([v,l])=>
           React.createElement('div',{key:l},
             React.createElement('div',{style:{fontSize:20,fontWeight:800}},v),
             React.createElement('div',{style:{fontSize:12,opacity:.7}},l))))),
@@ -2593,7 +2593,7 @@ const SponsorPortal=({token,user})=>{
           onClick:()=>setSelected(a),
           onMouseEnter:e=>e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,.1)',
           onMouseLeave:e=>e.currentTarget.style.boxShadow='none'},
-          React.createElement('div',{style:{background:`linear-gradient(135deg,#0A0A0A,#1A1A1A)`,borderRadius:'8px 8px 0 0',margin:'-20px -20px 14px',padding:'16px 20px',display:'flex',alignItems:'center',gap:12}},
+          React.createElement('div',{style:{background:`linear-gradient(135deg,#1E1E1E,#1A1A1A)`,borderRadius:'8px 8px 0 0',margin:'-20px -20px 14px',padding:'16px 20px',display:'flex',alignItems:'center',gap:12}},
             React.createElement(Avatar,{name:a.name,src:a.avatar,size:44}),
             React.createElement('div',null,
               React.createElement('div',{style:{color:'#fff',fontWeight:700,fontSize:14}},a.name),
@@ -2607,10 +2607,10 @@ const SponsorPortal=({token,user})=>{
             a.socialHandles.map(s=>React.createElement('span',{key:s.platform,style:{fontSize:11,background:C.surfaceDim,padding:'2px 7px',borderRadius:4}},
               platformEmoji[s.platform]+' '+formatNum(s.followers||0)))):null,
           isBrand&&React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center',fontSize:13},
-            onClick:e=>{e.stopPropagation();alert('Request sent! AiC Sports will connect you with this athlete\'s team within 24 hours.');}},
+            onClick:e=>{e.stopPropagation();alert('Request sent! Digital NIL will connect you with this athlete\'s team within 24 hours.');}},
             'Request Partnership 🤝'));})),
     React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:'Athlete Profile',maxWidth:880},
-      React.createElement(AthleteProfile,{token,athlete:selected,viewer:user,onInquire:()=>{setSelected(null);alert('Request sent! AiC Sports will connect you with '+selected.name.split(' ')[0]+"'s team within 24 hours.");}})));
+      React.createElement(AthleteProfile,{token,athlete:selected,viewer:user,onInquire:()=>{setSelected(null);alert('Request sent! Digital NIL will connect you with '+selected.name.split(' ')[0]+"'s team within 24 hours.");}})));
 };
 
 // ── CFB Stats Widget ──────────────────────────────────────────────────────────
@@ -2706,7 +2706,8 @@ const CFBStats=({token,athleteName,athleteTeam,cfbPlayerId:initId})=>{
         React.createElement('span',null,
           React.createElement('strong',null,p.name),
           React.createElement('span',{style:{color:C.textSecondary,marginLeft:8}},p.team),
-          React.createElement('span',{style:{background:`${C.primary}22`,color:C.primary,borderRadius:4,padding:'1px 6px',fontSize:11,marginLeft:6}},p.position||'—')),
+          React.createElement('span',{style:{background:`${C.primary}22`,color:C.primary,borderRadius:4,padding:'1px 6px',fontSize:11,marginLeft:6}},p.position||'—'),
+          p.teamCount>1&&React.createElement('span',{style:{color:C.textMuted,marginLeft:6,fontSize:11}},'· also '+p.teams.filter(t=>t!==p.team).join(', '))),
         React.createElement('span',{style:{fontSize:11,color:C.textMuted}},'#'+p.jersey+' · '+p.year)))),
     searchResults&&searchResults.length===0&&React.createElement('div',{style:{fontSize:13,color:C.textMuted,marginBottom:12,padding:'8px 0'}},
       'No players found. Try a different name or check spelling.'),
@@ -2857,7 +2858,7 @@ const ReelEmbed=({primaryUrl,name,school,position,sport,token})=>{
     return()=>{dead=true;try{player&&player.destroy&&player.destroy();}catch(e){}try{if(host.current)host.current.innerHTML='';}catch(e){}};
   },[currentId]);
 
-  if(exhausted||!currentId)return React.createElement('a',{href:primaryUrl,target:'_blank',rel:'noopener noreferrer',style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,background:'linear-gradient(160deg,#0E0E0E,#1C1B1B)',color:C.text,textDecoration:'none'}},
+  if(exhausted||!currentId)return React.createElement('a',{href:primaryUrl,target:'_blank',rel:'noopener noreferrer',style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,background:'linear-gradient(160deg,#252526,#1C1B1B)',color:C.text,textDecoration:'none'}},
     React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:42,color:C.primary}},'play_circle'),
     React.createElement('div',{style:{fontSize:14,fontWeight:700}},'Watch on YouTube'),
     React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Opens in a new tab ↗'));
@@ -2962,7 +2963,7 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
     React.createElement('div',{style:{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap',background:C.glass,border:`1px solid ${C.border}`,borderRadius:16,padding:20,marginBottom:16}},
       React.createElement('div',{style:{position:'relative',flexShrink:0}},
         React.createElement(Avatar,{name:a.name,src:a.avatar,size:84}),
-        React.createElement('div',{style:{position:'absolute',inset:-3,borderRadius:'50%',border:`2px solid ${C.primary}`,boxShadow:'0 0 18px rgba(204,0,0,.5)',pointerEvents:'none'}})),
+        React.createElement('div',{style:{position:'absolute',inset:-3,borderRadius:'50%',border:`2px solid ${C.primary}`,boxShadow:'0 0 18px rgba(255,255,255,.18)',pointerEvents:'none'}})),
       React.createElement('div',{style:{flex:1,minWidth:200}},
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
           React.createElement('h2',{style:{fontSize:22,fontWeight:800,color:'#fff'}},a.name),
@@ -2977,7 +2978,7 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
           React.createElement('span',null,React.createElement('strong',{style:{color:C.text}},a.dealsCompleted||0),' deals'))),
       React.createElement('div',{style:{display:'flex',gap:8,flexShrink:0,flexWrap:'wrap'}},
         isBrand?React.createElement('button',{className:'btn btn-primary',onClick:()=>setShowOffer(true)},'Send Offer'):
-        canInquire?React.createElement('button',{className:'btn btn-primary',onClick:()=>onInquire?onInquire(a):alert('Inquiry sent! AiC Sports will connect you with '+a.name.split(' ')[0]+"'s team within 24 hours.")},'Inquire for Deal'):null,
+        canInquire?React.createElement('button',{className:'btn btn-primary',onClick:()=>onInquire?onInquire(a):alert('Inquiry sent! Digital NIL will connect you with '+a.name.split(' ')[0]+"'s team within 24 hours.")},'Inquire for Deal'):null,
         React.createElement('button',{className:'btn btn-secondary',onClick:share},'Share Profile'),
         token?React.createElement('button',{className:'btn btn-secondary',onClick:()=>exportFile('pdf'),disabled:!!exporting},
           React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'picture_as_pdf'),exporting==='pdf'?'Generating…':'Media Kit'):null,
@@ -3000,11 +3001,11 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
         hl.type==='embed'?React.createElement('div',{style:{position:'relative',paddingTop:'56.25%',borderRadius:12,overflow:'hidden',border:`1px solid ${C.border}`}},
             hl.source==='YouTube'?React.createElement(ReelEmbed,{primaryUrl:a.highlightUrl,name:a.name,school:a.school,position:a.position,sport:a.sport,token}):
             React.createElement('iframe',{src:hl.src,title:'Highlights',allow:'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',allowFullScreen:true,style:{position:'absolute',inset:0,width:'100%',height:'100%',border:0}})):
-          hl.type==='link'?React.createElement('a',{href:hl.src,target:'_blank',rel:'noopener noreferrer',style:{height:200,borderRadius:12,border:`1px solid ${C.borderRed}`,background:'linear-gradient(160deg,#0E0E0E,#1C1B1B)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,color:C.text,textDecoration:'none',cursor:'pointer'}},
+          hl.type==='link'?React.createElement('a',{href:hl.src,target:'_blank',rel:'noopener noreferrer',style:{height:200,borderRadius:12,border:`1px solid ${C.borderRed}`,background:'linear-gradient(160deg,#252526,#1C1B1B)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,color:C.text,textDecoration:'none',cursor:'pointer'}},
             React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:42,color:C.primary}},'play_circle'),
             React.createElement('div',{style:{fontSize:14,fontWeight:700}},'Watch on '+hl.source),
             React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Opens in a new tab ↗')):
-          React.createElement('div',{style:{height:200,borderRadius:12,border:`1px solid ${C.border}`,background:'linear-gradient(160deg,#0E0E0E,#1C1B1B)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.textMuted}},
+          React.createElement('div',{style:{height:200,borderRadius:12,border:`1px solid ${C.border}`,background:'linear-gradient(160deg,#252526,#1C1B1B)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.textMuted}},
             React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:42,color:C.primary}},'smart_display'),
             React.createElement('div',{style:{fontSize:13}},'No highlight reel linked yet'))),
       React.createElement('div',{style:{background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:16}},
@@ -3039,13 +3040,22 @@ const AthleteForm=({token,onSave,onClose})=>{
   const[cfbq,setCfbq]=useState('');
   const[cfbResults,setCfbResults]=useState(null);
   const[cfbBusy,setCfbBusy]=useState(false);
+  const[tbTeam,setTbTeam]=useState('');
+  const[tbBusy,setTbBusy]=useState(false);
+  const[tbYear,setTbYear]=useState(null);
   const set=k=>v=>setF(p=>({...p,[k]:v}));
   const inToFt=inch=>{if(!inch)return'';return Math.floor(inch/12)+"'"+(inch%12)+'"';};
   const cfbSearch=async()=>{
     if(!cfbq.trim())return;
-    setCfbBusy(true);setErr('');
+    setCfbBusy(true);setErr('');setTbYear(null);
     try{const d=await api('GET','/cfbd/search?name='+encodeURIComponent(cfbq.trim()),null,token);setCfbResults(d.players||[]);}catch(e){setErr(e.message);}
     setCfbBusy(false);
+  };
+  const tbBrowse=async()=>{
+    if(!tbTeam.trim())return;
+    setTbBusy(true);setErr('');
+    try{const d=await api('GET','/cfbd/roster?team='+encodeURIComponent(tbTeam.trim()),null,token);setCfbResults(d.roster||[]);setTbYear(d.year||null);}catch(e){setErr(e.message);}
+    setTbBusy(false);
   };
   const pickCfb=p=>{
     setF(prev=>({...prev,
@@ -3085,8 +3095,12 @@ const AthleteForm=({token,onSave,onClose})=>{
       React.createElement('div',{style:{display:'flex',gap:8}},
         React.createElement('input',{className:'input',placeholder:'Search a real CFB player…',value:cfbq,onChange:e=>setCfbq(e.target.value),onKeyDown:e=>{if(e.key==='Enter'){e.preventDefault();cfbSearch();}},style:{flex:1}}),
         React.createElement('button',{type:'button',className:'btn btn-primary',onClick:cfbSearch,disabled:cfbBusy},cfbBusy?'…':'Find')),
-      cfbResults&&cfbResults.length>0&&React.createElement('div',{style:{marginTop:8,maxHeight:210,overflowY:'auto',display:'flex',flexDirection:'column',gap:4}},
-        cfbResults.slice(0,8).map(p=>React.createElement('button',{key:p.id,type:'button',onClick:()=>pickCfb(p),
+      React.createElement('div',{style:{display:'flex',gap:8,marginTop:6}},
+        React.createElement('input',{className:'input',placeholder:"Or browse a team's roster (e.g. UCLA)",value:tbTeam,onChange:e=>setTbTeam(e.target.value),onKeyDown:e=>{if(e.key==='Enter'){e.preventDefault();tbBrowse();}},style:{flex:1}}),
+        React.createElement('button',{type:'button',className:'btn btn-secondary',onClick:tbBrowse,disabled:tbBusy},tbBusy?'…':'Browse')),
+      tbYear&&cfbResults&&cfbResults.length>0&&React.createElement('div',{style:{marginTop:8,fontSize:11,color:C.textMuted}},'Showing '+tbTeam+' roster · '+tbYear+' season'+(tbYear!==new Date().getFullYear()?' (latest CFBD has)':'')),
+      cfbResults&&cfbResults.length>0&&React.createElement('div',{style:{marginTop:8,maxHeight:tbYear?320:210,overflowY:'auto',display:'flex',flexDirection:'column',gap:4}},
+        cfbResults.slice(0,tbYear?200:8).map(p=>React.createElement('button',{key:p.id,type:'button',onClick:()=>pickCfb(p),
           style:{display:'flex',alignItems:'center',gap:10,textAlign:'left',padding:'7px 10px',background:'transparent',border:`1px solid ${C.border}`,borderRadius:8,color:C.text,cursor:'pointer'}},
           React.createElement('img',{src:espnHeadshot(p.id),alt:'',onError:e=>{e.target.style.visibility='hidden';},style:{width:30,height:30,borderRadius:'50%',objectFit:'cover',background:C.surface2,flexShrink:0}}),
           React.createElement('span',{style:{flex:1,fontSize:13}},React.createElement('strong',null,p.name),React.createElement('span',{style:{color:C.textSecondary,marginLeft:6,fontSize:12}},(p.position||'')+' · '+p.team)),
@@ -3264,7 +3278,7 @@ const Profile=({token,user,onUpdate})=>{
           React.createElement('span',{style:{width:6,height:6,borderRadius:'50%',background:C.success,boxShadow:'0 0 8px '+C.success,animation:'pulse 2s infinite'}}),user.role.toUpperCase()+' · LIVE')),
       // Stats strip — same Stitch/HUD treatment used on athlete profile
       React.createElement('section',{className:'stat-grid',style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:20}},
-        stats.map(s=>React.createElement('div',{key:s.label,className:'stat-card',style:{background:'linear-gradient(180deg,rgba(204,0,0,.05) 0%,rgba(10,10,10,0) 100%),'+C.glass}},
+        stats.map(s=>React.createElement('div',{key:s.label,className:'stat-card',style:{background:'linear-gradient(180deg,rgba(255,255,255,.05) 0%,rgba(24,24,24,0) 100%),'+C.glass}},
           React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
             React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16,color:C.primary}},s.icon),
             React.createElement('span',{className:'mono',style:{fontSize:10,color:C.textSecondary,letterSpacing:'.08em'}},s.label)),
@@ -3303,7 +3317,7 @@ const Profile=({token,user,onUpdate})=>{
   const statusLabel=user.proStatus==='professional'?(user.nflTeam||'Professional'):(form.graduationYear?`Class of ${form.graduationYear}`:'Collegiate');
 
   return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1140,margin:'0 auto'}},
-    success&&React.createElement('div',{style:{background:C.successLight,color:C.success,padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13,border:`1px solid rgba(0,255,102,.20)`}},success),
+    success&&React.createElement('div',{style:{background:C.successLight,color:C.success,padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13,border:`1px solid rgba(78,201,176,.20)`}},success),
     error&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13,border:`1px solid rgba(255,85,102,.20)`}},error),
 
     // ── Section 1: Header / Hero ──────────────────────────────────────────────
@@ -3311,7 +3325,7 @@ const Profile=({token,user,onUpdate})=>{
       React.createElement('div',{style:{position:'absolute',top:0,right:0,padding:24,opacity:.08,pointerEvents:'none'}},
         React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:160}},'shield')),
       React.createElement('div',{style:{position:'relative',flexShrink:0}},
-        React.createElement('div',{style:{width:152,height:152,borderRadius:'50%',border:`4px solid ${C.primary}`,padding:4,boxShadow:'0 0 24px rgba(204,0,0,.30)'}},
+        React.createElement('div',{style:{width:152,height:152,borderRadius:'50%',border:`4px solid ${C.primary}`,padding:4,boxShadow:'0 0 24px rgba(255,255,255,.14)'}},
           React.createElement(Avatar,{name:user.name,src:user.avatar,size:140,style:{width:140,height:140,fontSize:48}})),
         React.createElement('div',{className:'mono',style:{position:'absolute',bottom:-4,right:4,background:C.success,color:'#031',fontSize:9,fontWeight:800,padding:'3px 8px',borderRadius:999,display:'flex',alignItems:'center',gap:4}},
           React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:12}},'verified'),'VERIFIED')),
@@ -3343,7 +3357,7 @@ const Profile=({token,user,onUpdate})=>{
         {label:'CAMPS & APPEARANCES',value:camps.length,sub:camps.filter(d=>d.status==='completed').length+' completed',icon:'event'},
         {label:'CAREER EARNINGS',value:formatMoney(completedEarnings||user.totalEarnings||0),sub:`${completedDeals.length} deals paid`,icon:'payments'},
         {label:'AUDIENCE',value:formatNum(totalFollowers),sub:(user.socialHandles||[]).length+' platforms',icon:'group'}
-      ].map(s=>React.createElement('div',{key:s.label,className:'stat-card',style:{background:'linear-gradient(180deg,rgba(204,0,0,.05) 0%,rgba(10,10,10,0) 100%),'+C.glass}},
+      ].map(s=>React.createElement('div',{key:s.label,className:'stat-card',style:{background:'linear-gradient(180deg,rgba(255,255,255,.05) 0%,rgba(24,24,24,0) 100%),'+C.glass}},
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
           React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16,color:C.primary}},s.icon),
           React.createElement('span',{className:'mono',style:{fontSize:10,color:C.textSecondary,letterSpacing:'.08em'}},s.label)),
@@ -3361,8 +3375,8 @@ const Profile=({token,user,onUpdate})=>{
         hlEmbed.type==='embed'?React.createElement('div',{className:'card',style:{aspectRatio:'16/9',position:'relative',overflow:'hidden',padding:0}},
           hlEmbed.source==='YouTube'?React.createElement(ReelEmbed,{primaryUrl:user.highlightUrl,name:user.name,school:user.school,position:user.position,sport:user.sport,token}):
           React.createElement('iframe',{src:hlEmbed.src,title:'Highlights',allow:'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',allowFullScreen:true,style:{position:'absolute',inset:0,width:'100%',height:'100%',border:0}})):
-        React.createElement(hlEmbed.type==='link'?'a':'div',Object.assign({className:'card',style:{aspectRatio:'16/9',position:'relative',overflow:'hidden',padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:`radial-gradient(circle at 50% 40%,rgba(204,0,0,.25) 0%,${C.bgDeep} 70%)`,textDecoration:'none',cursor:hlEmbed.type==='link'?'pointer':'default'}},hlEmbed.type==='link'?{href:user.highlightUrl,target:'_blank',rel:'noreferrer'}:{}),
-          React.createElement('div',{style:{width:72,height:72,borderRadius:'50%',background:C.primary,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 28px rgba(204,0,0,.45)'}},
+        React.createElement(hlEmbed.type==='link'?'a':'div',Object.assign({className:'card',style:{aspectRatio:'16/9',position:'relative',overflow:'hidden',padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:`radial-gradient(circle at 50% 40%,rgba(255,255,255,.14) 0%,${C.bgDeep} 70%)`,textDecoration:'none',cursor:hlEmbed.type==='link'?'pointer':'default'}},hlEmbed.type==='link'?{href:user.highlightUrl,target:'_blank',rel:'noreferrer'}:{}),
+          React.createElement('div',{style:{width:72,height:72,borderRadius:'50%',background:C.primary,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 28px rgba(255,255,255,.18)'}},
             React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:36}},'play_arrow')),
           React.createElement('div',{style:{position:'absolute',left:0,right:0,bottom:0,padding:16,background:'linear-gradient(180deg,transparent 0%,rgba(0,0,0,.85) 100%)'}},
             React.createElement('div',{style:{fontWeight:700,color:'#fff',fontSize:14}},hlEmbed.type==='link'?('Watch on '+hlEmbed.source):'No highlight reel yet'),
@@ -3394,7 +3408,7 @@ const Profile=({token,user,onUpdate})=>{
               React.createElement('span',{className:'mono',style:{fontSize:10,color:C.textSecondary,letterSpacing:'.08em'}},'COMPLETION RATE'),
               React.createElement('span',{className:'mono',style:{fontSize:10,color:C.primary}},(deals.length?Math.round(completedDeals.length/deals.length*100):0)+'%')),
             React.createElement('div',{style:{height:6,background:C.surface2,borderRadius:999,overflow:'hidden'}},
-              React.createElement('div',{style:{height:'100%',background:C.primary,width:(deals.length?Math.round(completedDeals.length/deals.length*100):0)+'%',boxShadow:'0 0 12px rgba(204,0,0,.45)'}}))))) ),
+              React.createElement('div',{style:{height:'100%',background:C.primary,width:(deals.length?Math.round(completedDeals.length/deals.length*100):0)+'%',boxShadow:'0 0 12px rgba(255,255,255,.18)'}}))))) ),
 
     // ── Section 5: Performance Metrics → NIL Deals + Camps ────────────────────
     React.createElement('section',{style:{marginBottom:20}},
@@ -3525,7 +3539,7 @@ const Profile=({token,user,onUpdate})=>{
 // Self-contained CSS-animated walkthroughs replace static GIFs — no external assets.
 const HELP_ANIM_CSS=`
 @keyframes hlp-slide-in{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
-@keyframes hlp-pulse-ring{0%{box-shadow:0 0 0 0 rgba(204,0,0,.55)}70%{box-shadow:0 0 0 14px rgba(204,0,0,0)}100%{box-shadow:0 0 0 0 rgba(204,0,0,0)}}
+@keyframes hlp-pulse-ring{0%{box-shadow:0 0 0 0 rgba(255,255,255,.18)}70%{box-shadow:0 0 0 14px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
 @keyframes hlp-cursor{0%,12%{transform:translate(8%,12%);opacity:0}18%{opacity:1}45%{transform:translate(62%,52%)}55%{transform:translate(62%,52%) scale(.85)}65%{transform:translate(62%,52%) scale(1)}90%,100%{transform:translate(62%,52%);opacity:0}}
 @keyframes hlp-progress{0%{width:0}55%{width:100%}100%{width:100%}}
 @keyframes hlp-coin-pop{0%{transform:translateY(20px) scale(.6);opacity:0}30%{transform:translateY(-8px) scale(1.1);opacity:1}60%{transform:translateY(0) scale(1)}100%{transform:translateY(0) scale(1);opacity:1}}
@@ -3535,26 +3549,26 @@ const HELP_ANIM_CSS=`
 @keyframes hlp-check-draw{0%{stroke-dashoffset:30}60%,100%{stroke-dashoffset:0}}
 @keyframes hlp-msg-in{0%,15%{transform:translateY(10px);opacity:0}25%,100%{transform:translateY(0);opacity:1}}
 @keyframes hlp-typing{0%,20%{opacity:.2}40%{opacity:1}60%,100%{opacity:.2}}
-.hlp-anim{position:relative;height:200px;border-radius:14px;background:linear-gradient(180deg,rgba(20,20,20,.85),rgba(10,10,10,.95));border:1px solid rgba(255,255,255,.08);overflow:hidden}
-.hlp-anim-label{position:absolute;top:10px;left:12px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9px;letter-spacing:.1em;color:#94A3B8;text-transform:uppercase;z-index:3}
-.hlp-anim-dot{position:absolute;top:11px;right:12px;width:7px;height:7px;border-radius:50%;background:#00FF66;box-shadow:0 0 8px #00FF66;animation:hlp-pulse-ring 1.8s infinite;z-index:3}
+.hlp-anim{position:relative;height:200px;border-radius:14px;background:linear-gradient(180deg,rgba(20,20,20,.85),rgba(24,24,24,.95));border:1px solid rgba(255,255,255,.08);overflow:hidden}
+.hlp-anim-label{position:absolute;top:10px;left:12px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9px;letter-spacing:.1em;color:#A0A0A0;text-transform:uppercase;z-index:3}
+.hlp-anim-dot{position:absolute;top:11px;right:12px;width:7px;height:7px;border-radius:50%;background:#4EC9B0;box-shadow:0 0 8px #4EC9B0;animation:hlp-pulse-ring 1.8s infinite;z-index:3}
 .hlp-cursor{position:absolute;width:14px;height:14px;left:0;top:0;animation:hlp-cursor 5s ease-in-out infinite;z-index:5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
 .hlp-cursor::before{content:'';position:absolute;inset:0;background:#fff;clip-path:polygon(0 0,100% 50%,40% 60%,55% 100%,40% 100%,28% 70%,0 70%)}
-.hlp-card-mock{position:absolute;background:rgba(38,38,38,.72);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px}
+.hlp-card-mock{position:absolute;background:rgba(45,45,48,.72);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px}
 .hlp-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;font-size:9px;font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:700;letter-spacing:.05em}
-.hlp-bar{position:absolute;bottom:14px;width:18px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#CC0000,#7F0000);animation:hlp-chart-bar 1.8s cubic-bezier(.4,0,.2,1) forwards}
+.hlp-bar{position:absolute;bottom:14px;width:18px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#4D4D4D,#333333);animation:hlp-chart-bar 1.8s cubic-bezier(.4,0,.2,1) forwards}
 .hlp-roadmap-track{position:relative;padding:8px 0 0}
-.hlp-roadmap-track::before{content:'';position:absolute;left:14px;top:24px;bottom:0;width:2px;background:linear-gradient(180deg,#CC0000 0%,rgba(204,0,0,.20) 100%)}
-.hlp-step-dot{position:absolute;left:7px;top:8px;width:16px;height:16px;border-radius:50%;background:#0E0E0E;border:2px solid #CC0000;box-shadow:0 0 0 4px rgba(204,0,0,.10)}
-.hlp-step-dot.done{background:#CC0000}
+.hlp-roadmap-track::before{content:'';position:absolute;left:14px;top:24px;bottom:0;width:2px;background:linear-gradient(180deg,#4D4D4D 0%,rgba(255,255,255,.14) 100%)}
+.hlp-step-dot{position:absolute;left:7px;top:8px;width:16px;height:16px;border-radius:50%;background:#252526;border:2px solid #4D4D4D;box-shadow:0 0 0 4px rgba(255,255,255,.10)}
+.hlp-step-dot.done{background:#4D4D4D}
 .hlp-step-dot.done::after{content:'';position:absolute;inset:2px;border-radius:50%;background:#fff;clip-path:polygon(20% 50%,40% 70%,80% 30%,75% 25%,40% 60%,25% 45%)}
-.hlp-faq-q{cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(26,26,26,.65);border:1px solid rgba(255,255,255,.08);border-radius:12px;font-weight:600;color:#fff;font-size:14px;transition:border-color .2s}
-.hlp-faq-q:hover{border-color:rgba(204,0,0,.40)}
-.hlp-faq-a{padding:12px 16px 16px;color:#94A3B8;font-size:13px;line-height:1.6;animation:hlp-slide-in .25s ease-out}
-.hlp-role-tab{flex:1;padding:14px 18px;background:transparent;color:#94A3B8;font-weight:600;font-size:14px;border-radius:12px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
-.hlp-role-tab.active{background:#CC0000;color:#fff;box-shadow:0 4px 16px rgba(204,0,0,.30)}
-.hlp-benefit-card{background:rgba(26,26,26,.65);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;transition:all .25s}
-.hlp-benefit-card:hover{transform:translateY(-2px);border-color:rgba(204,0,0,.40);box-shadow:0 8px 24px rgba(204,0,0,.10)}
+.hlp-faq-q{cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(37,37,38,.65);border:1px solid rgba(255,255,255,.08);border-radius:12px;font-weight:600;color:#fff;font-size:14px;transition:border-color .2s}
+.hlp-faq-q:hover{border-color:rgba(255,255,255,.18)}
+.hlp-faq-a{padding:12px 16px 16px;color:#A0A0A0;font-size:13px;line-height:1.6;animation:hlp-slide-in .25s ease-out}
+.hlp-role-tab{flex:1;padding:14px 18px;background:transparent;color:#A0A0A0;font-weight:600;font-size:14px;border-radius:12px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.hlp-role-tab.active{background:#4D4D4D;color:#fff;box-shadow:0 4px 16px rgba(255,255,255,.14)}
+.hlp-benefit-card{background:rgba(37,37,38,.65);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;transition:all .25s}
+.hlp-benefit-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.18);box-shadow:0 8px 24px rgba(255,255,255,.10)}
 .hlp-typing-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#fff;margin:0 1px;animation:hlp-typing 1.4s infinite}
 .hlp-typing-dot:nth-child(2){animation-delay:.2s}
 .hlp-typing-dot:nth-child(3){animation-delay:.4s}
@@ -3567,76 +3581,76 @@ const AnimDiscoverDeal=()=>React.createElement('div',{className:'hlp-anim'},
   React.createElement('div',{className:'hlp-anim-dot'}),
   React.createElement('div',{className:'hlp-card-mock',style:{left:16,top:42,right:16,height:50,animation:'hlp-card-shift 5s infinite'}},
     React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
-      React.createElement('div',{style:{width:28,height:28,borderRadius:8,background:'linear-gradient(135deg,#CC0000,#7F0000)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:11}},'OK'),
+      React.createElement('div',{style:{width:28,height:28,borderRadius:8,background:'linear-gradient(135deg,#4D4D4D,#333333)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:11}},'OK'),
       React.createElement('div',{style:{flex:1}},
         React.createElement('div',{style:{color:'#fff',fontSize:11,fontWeight:600}},'Oakley · Summer Drop'),
-        React.createElement('div',{style:{color:'#94A3B8',fontSize:9}},'1 IG post + 1 reel')),
-      React.createElement('div',{className:'hlp-pill',style:{background:'rgba(0,255,102,.10)',color:'#00FF66'}},'$5,000'))),
+        React.createElement('div',{style:{color:'#A0A0A0',fontSize:9}},'1 IG post + 1 reel')),
+      React.createElement('div',{className:'hlp-pill',style:{background:'rgba(78,201,176,.10)',color:'#4EC9B0'}},'$5,000'))),
   React.createElement('div',{className:'hlp-card-mock',style:{left:16,top:100,right:16,height:50,animation:'hlp-card-shift 5s infinite',animationDelay:'.6s'}},
     React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
-      React.createElement('div',{style:{width:28,height:28,borderRadius:8,background:'linear-gradient(135deg,#FFCC00,#7F6000)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000',fontWeight:800,fontSize:11}},'JD'),
+      React.createElement('div',{style:{width:28,height:28,borderRadius:8,background:'linear-gradient(135deg,#CCA700,#7F6000)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000',fontWeight:800,fontSize:11}},'JD'),
       React.createElement('div',{style:{flex:1}},
         React.createElement('div',{style:{color:'#fff',fontSize:11,fontWeight:600}},'Jordan Brand · NCAA'),
-        React.createElement('div',{style:{color:'#94A3B8',fontSize:9}},'Game-day shoot')),
-      React.createElement('div',{className:'hlp-pill',style:{background:'rgba(0,255,102,.10)',color:'#00FF66'}},'$12,000'))),
+        React.createElement('div',{style:{color:'#A0A0A0',fontSize:9}},'Game-day shoot')),
+      React.createElement('div',{className:'hlp-pill',style:{background:'rgba(78,201,176,.10)',color:'#4EC9B0'}},'$12,000'))),
   React.createElement('div',{className:'hlp-cursor'}));
 
 // ── Animated demo: Sign deal ──
 const AnimSignDeal=()=>React.createElement('div',{className:'hlp-anim'},
   React.createElement('div',{className:'hlp-anim-label'},'02 · Sign'),
   React.createElement('div',{className:'hlp-anim-dot'}),
-  React.createElement('div',{style:{position:'absolute',left:24,top:48,right:24,padding:14,background:'rgba(38,38,38,.72)',border:'1px solid rgba(204,0,0,.40)',borderRadius:10}},
+  React.createElement('div',{style:{position:'absolute',left:24,top:48,right:24,padding:14,background:'rgba(45,45,48,.72)',border:'1px solid rgba(255,255,255,.18)',borderRadius:10}},
     React.createElement('div',{style:{color:'#fff',fontWeight:700,fontSize:12,marginBottom:8}},'Deal Agreement'),
     React.createElement('div',{style:{height:6,background:'rgba(255,255,255,.06)',borderRadius:3,overflow:'hidden',marginBottom:6}},
-      React.createElement('div',{style:{height:'100%',background:'linear-gradient(90deg,#CC0000,#FF5566)',animation:'hlp-progress 2.5s ease-out infinite'}})),
-    React.createElement('div',{style:{color:'#94A3B8',fontSize:10}},'Reviewing terms…')),
-  React.createElement('div',{style:{position:'absolute',right:26,bottom:18,padding:'6px 12px',background:'#00FF66',color:'#000',fontWeight:800,fontSize:11,borderRadius:8,fontFamily:'JetBrains Mono,monospace',letterSpacing:'.05em',animation:'hlp-deal-stamp 3s ease-out infinite'}},'SIGNED ✓'));
+      React.createElement('div',{style:{height:'100%',background:'linear-gradient(90deg,#4D4D4D,#6E6E6E)',animation:'hlp-progress 2.5s ease-out infinite'}})),
+    React.createElement('div',{style:{color:'#A0A0A0',fontSize:10}},'Reviewing terms…')),
+  React.createElement('div',{style:{position:'absolute',right:26,bottom:18,padding:'6px 12px',background:'#4EC9B0',color:'#000',fontWeight:800,fontSize:11,borderRadius:8,fontFamily:'JetBrains Mono,monospace',letterSpacing:'.05em',animation:'hlp-deal-stamp 3s ease-out infinite'}},'SIGNED ✓'));
 
 // ── Animated demo: Post content & get paid ──
 const AnimContentPaid=()=>React.createElement('div',{className:'hlp-anim'},
   React.createElement('div',{className:'hlp-anim-label'},'03 · Earn'),
   React.createElement('div',{className:'hlp-anim-dot'}),
-  React.createElement('div',{style:{position:'absolute',left:20,top:46,width:80,height:108,borderRadius:10,background:'linear-gradient(135deg,#CC0000,#3a0000)',border:'1px solid rgba(255,255,255,.10)',display:'flex',alignItems:'center',justifyContent:'center'}},
+  React.createElement('div',{style:{position:'absolute',left:20,top:46,width:80,height:108,borderRadius:10,background:'linear-gradient(135deg,#4D4D4D,#2A2A2A)',border:'1px solid rgba(255,255,255,.10)',display:'flex',alignItems:'center',justifyContent:'center'}},
     React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:32,color:'#fff'}},'collections')),
   React.createElement('div',{style:{position:'absolute',right:20,top:46,left:116,height:108}},
-    React.createElement('div',{style:{color:'#94A3B8',fontSize:10,marginBottom:6}},'Performance'),
+    React.createElement('div',{style:{color:'#A0A0A0',fontSize:10,marginBottom:6}},'Performance'),
     [60,80,45,95,70,88].map((h,i)=>React.createElement('div',{key:i,className:'hlp-bar',style:{left:i*22,'--h':h+'%',animationDelay:(i*.15)+'s'}}))),
-  React.createElement('div',{style:{position:'absolute',right:14,bottom:10,padding:'6px 10px',background:'rgba(0,255,102,.15)',border:'1px solid #00FF66',borderRadius:8,color:'#00FF66',fontWeight:800,fontSize:11,fontFamily:'JetBrains Mono,monospace',animation:'hlp-coin-pop 2s ease-out infinite'}},'+ $5,000'));
+  React.createElement('div',{style:{position:'absolute',right:14,bottom:10,padding:'6px 10px',background:'rgba(78,201,176,.15)',border:'1px solid #4EC9B0',borderRadius:8,color:'#4EC9B0',fontWeight:800,fontSize:11,fontFamily:'JetBrains Mono,monospace',animation:'hlp-coin-pop 2s ease-out infinite'}},'+ $5,000'));
 
 // ── Animated demo: Brand → launch campaign ──
 const AnimLaunchCampaign=()=>React.createElement('div',{className:'hlp-anim'},
   React.createElement('div',{className:'hlp-anim-label'},'01 · Brief'),
   React.createElement('div',{className:'hlp-anim-dot'}),
-  React.createElement('div',{style:{position:'absolute',left:20,top:42,right:20,padding:12,background:'rgba(38,38,38,.72)',border:'1px solid rgba(255,255,255,.10)',borderRadius:10}},
+  React.createElement('div',{style:{position:'absolute',left:20,top:42,right:20,padding:12,background:'rgba(45,45,48,.72)',border:'1px solid rgba(255,255,255,.10)',borderRadius:10}},
     React.createElement('div',{style:{color:'#fff',fontWeight:700,fontSize:12,marginBottom:6}},'Campaign: Summer Drop'),
     React.createElement('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}},
-      ['Football','D1','100k+','SEC'].map(t=>React.createElement('span',{key:t,className:'hlp-pill',style:{background:'rgba(204,0,0,.10)',color:'#FFB4A8',border:'1px solid rgba(204,0,0,.40)'}},t))),
-    React.createElement('div',{style:{color:'#94A3B8',fontSize:10,marginBottom:6}},'Matching athletes…'),
+      ['Football','D1','100k+','SEC'].map(t=>React.createElement('span',{key:t,className:'hlp-pill',style:{background:'rgba(255,255,255,.10)',color:'#FFFFFF',border:'1px solid rgba(255,255,255,.18)'}},t))),
+    React.createElement('div',{style:{color:'#A0A0A0',fontSize:10,marginBottom:6}},'Matching athletes…'),
     React.createElement('div',{style:{height:5,background:'rgba(255,255,255,.06)',borderRadius:3,overflow:'hidden'}},
-      React.createElement('div',{style:{height:'100%',background:'#CC0000',animation:'hlp-progress 2.2s ease-out infinite'}}))),
+      React.createElement('div',{style:{height:'100%',background:'#4D4D4D',animation:'hlp-progress 2.2s ease-out infinite'}}))),
   React.createElement('div',{style:{position:'absolute',left:20,bottom:14,right:20,display:'flex',gap:6}},
-    [1,2,3,4,5].map(i=>React.createElement('div',{key:i,style:{flex:1,height:32,borderRadius:8,background:'linear-gradient(135deg,rgba(204,0,0,.20),rgba(127,0,0,.10))',border:'1px solid rgba(204,0,0,.30)',animation:'hlp-coin-pop 2.5s ease-out infinite',animationDelay:(i*.12)+'s'}}))));
+    [1,2,3,4,5].map(i=>React.createElement('div',{key:i,style:{flex:1,height:32,borderRadius:8,background:'linear-gradient(135deg,rgba(255,255,255,.14),rgba(127,0,0,.10))',border:'1px solid rgba(255,255,255,.14)',animation:'hlp-coin-pop 2.5s ease-out infinite',animationDelay:(i*.12)+'s'}}))));
 
 // ── Animated demo: Agent → roster & commission ──
 const AnimRosterCommission=()=>React.createElement('div',{className:'hlp-anim'},
   React.createElement('div',{className:'hlp-anim-label'},'01 · Manage'),
   React.createElement('div',{className:'hlp-anim-dot'}),
   React.createElement('div',{style:{position:'absolute',left:16,top:44,right:16}},
-    [['JD','Jayden Daniels','$840k','QB'],['MH','Marcus Harris','$420k','WR'],['TL','Tre Lawson','$310k','RB']].map((r,i)=>React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',background:'rgba(38,38,38,.72)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,marginBottom:6,animation:'hlp-msg-in 3s ease-out infinite',animationDelay:(i*.3)+'s'}},
-      React.createElement('div',{style:{width:24,height:24,borderRadius:6,background:'linear-gradient(135deg,#CC0000,#7F0000)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:9}},r[0]),
+    [['AR','Alex Rivera','$120k','QB'],['MH','Maya Hill','$84k','WR'],['TL','Tyler Lane','$60k','RB']].map((r,i)=>React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',background:'rgba(45,45,48,.72)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,marginBottom:6,animation:'hlp-msg-in 3s ease-out infinite',animationDelay:(i*.3)+'s'}},
+      React.createElement('div',{style:{width:24,height:24,borderRadius:6,background:'linear-gradient(135deg,#4D4D4D,#333333)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:9}},r[0]),
       React.createElement('div',{style:{flex:1,color:'#fff',fontSize:11,fontWeight:600}},r[1]),
-      React.createElement('div',{className:'mono',style:{color:'#00FF66',fontSize:10,fontWeight:700}},r[2]),
-      React.createElement('div',{className:'hlp-pill',style:{background:'rgba(204,0,0,.10)',color:'#FFB4A8'}},r[3])))));
+      React.createElement('div',{className:'mono',style:{color:'#4EC9B0',fontSize:10,fontWeight:700}},r[2]),
+      React.createElement('div',{className:'hlp-pill',style:{background:'rgba(255,255,255,.10)',color:'#FFFFFF'}},r[3])))));
 
 // ── Animated demo: Inbox conversations ──
 const AnimInbox=()=>React.createElement('div',{className:'hlp-anim'},
   React.createElement('div',{className:'hlp-anim-label'},'04 · Communicate'),
   React.createElement('div',{className:'hlp-anim-dot'}),
-  React.createElement('div',{style:{position:'absolute',left:18,top:44,maxWidth:'68%',padding:'8px 12px',background:'rgba(38,38,38,.72)',border:'1px solid rgba(255,255,255,.10)',borderRadius:'12px 12px 12px 4px',color:'#E5E2E1',fontSize:11,animation:'hlp-msg-in 4s ease-out infinite'}},
+  React.createElement('div',{style:{position:'absolute',left:18,top:44,maxWidth:'68%',padding:'8px 12px',background:'rgba(45,45,48,.72)',border:'1px solid rgba(255,255,255,.10)',borderRadius:'12px 12px 12px 4px',color:'#D4D4D4',fontSize:11,animation:'hlp-msg-in 4s ease-out infinite'}},
     'Hey — loved your last reel. Want to be the face of our fall drop?'),
-  React.createElement('div',{style:{position:'absolute',right:18,top:96,maxWidth:'62%',padding:'8px 12px',background:'#CC0000',border:'1px solid rgba(204,0,0,.40)',borderRadius:'12px 12px 4px 12px',color:'#fff',fontSize:11,animation:'hlp-msg-in 4s ease-out infinite',animationDelay:'1.2s'}},
+  React.createElement('div',{style:{position:'absolute',right:18,top:96,maxWidth:'62%',padding:'8px 12px',background:'#4D4D4D',border:'1px solid rgba(255,255,255,.18)',borderRadius:'12px 12px 4px 12px',color:'#fff',fontSize:11,animation:'hlp-msg-in 4s ease-out infinite',animationDelay:'1.2s'}},
     'Let\'s do it — send the brief 🔥'),
-  React.createElement('div',{style:{position:'absolute',left:18,bottom:14,padding:'6px 10px',background:'rgba(38,38,38,.72)',border:'1px solid rgba(255,255,255,.10)',borderRadius:12,color:'#94A3B8',fontSize:10}},
+  React.createElement('div',{style:{position:'absolute',left:18,bottom:14,padding:'6px 10px',background:'rgba(45,45,48,.72)',border:'1px solid rgba(255,255,255,.10)',borderRadius:12,color:'#A0A0A0',fontSize:10}},
     'Oakley is typing',
     React.createElement('span',{className:'hlp-typing-dot'}),
     React.createElement('span',{className:'hlp-typing-dot'}),
@@ -3651,9 +3665,9 @@ const HELP_STEPS={
     {title:'Track your growth',desc:'Real-time analytics on every deal, every post, every dollar. Know your worth before the next negotiation.',anim:AnimContentPaid,nav:'analytics',navLabel:'Analytics'},
   ],
   brand:[
-    {title:'Launch a campaign',desc:'Define your brief, budget, and target athlete profile. AiC matches you with athletes that fit — instantly.',anim:AnimLaunchCampaign,nav:'campaigns',navLabel:'New Campaign'},
+    {title:'Launch a campaign',desc:'Define your brief, budget, and target athlete profile. Digital NIL matches you with athletes that fit — instantly.',anim:AnimLaunchCampaign,nav:'campaigns',navLabel:'New Campaign'},
     {title:'Match the right athletes',desc:'Filter by sport, school, conference, and reach. Browse media kits and shortlist your roster in minutes.',anim:AnimLaunchCampaign,nav:'sponsor-portal',navLabel:'Find Athletes'},
-    {title:'Negotiate & sign',desc:'Send offers, counter, and lock terms — all inside AiC. No PDFs flying through email.',anim:AnimSignDeal,nav:'my-deals',navLabel:'Active Deals'},
+    {title:'Negotiate & sign',desc:'Send offers, counter, and lock terms — all inside Digital NIL. No PDFs flying through email.',anim:AnimSignDeal,nav:'my-deals',navLabel:'Active Deals'},
     {title:'Review content',desc:'Approve every post before it ships. Comment, request edits, and protect your brand voice.',anim:AnimContentPaid,nav:'content',navLabel:'Content Review'},
     {title:'Measure ROI',desc:'Every deal links impressions, engagement, and conversions back to spend. Know what worked before renewal.',anim:AnimContentPaid,nav:'analytics',navLabel:'Analytics'},
   ],
@@ -3673,7 +3687,7 @@ const HELP_BENEFITS={
     {icon:'payments',title:'Get paid faster',desc:'Auto-release on content approval. Most athletes are paid within 24-72 hours.'},
     {icon:'shield',title:'Plain-English contracts',desc:'Every deal summarized in 5 bullets before you sign. No surprise exclusivity clauses.'},
     {icon:'rocket_launch',title:'Grow your brand',desc:'Track which posts move followers, which sports earn most, where your audience converts.'},
-    {icon:'workspace_premium',title:'Backed by the AiC team',desc:'Heisman winners, NFLPA agents, Super Bowl coaches in your corner — even if you\'re a freshman.'},
+    {icon:'workspace_premium',title:'Built for every side of the deal',desc:'Athletes, brands, and agents work in one place — from first offer to final payout.'},
   ],
   brand:[
     {icon:'target',title:'Targeted reach',desc:'Filter athletes by sport, school, conference, reach, demographics, and engagement quality.'},
@@ -3694,22 +3708,22 @@ const HELP_BENEFITS={
 };
 
 const HELP_ROADMAP=[
-  {month:'Month 1 · Jun 2026',title:'Onboard & stabilize',points:['Full AiC roster live (100+ athletes)','Brand partner onboarding (Oakley, Jordan, Adidas pilots)','iOS / Android wrappers in TestFlight & internal Play track','Live support hours 9a–9p CT']},
+  {month:'Month 1 · Jun 2026',title:'Onboard & stabilize',points:['Full roster onboarding & verification','Brand partner onboarding (pilot campaigns)','iOS / Android wrappers in TestFlight & internal Play track','Live support hours 9a–9p CT']},
   {month:'Month 2 · Jul 2026',title:'Deal velocity',points:['Auto-match v2 (sport × school × reach scoring)','Template library: 30+ pre-built deal types','In-app e-sign (no third-party redirect)','Stripe Connect payouts for athletes & agents']},
   {month:'Month 3 · Aug 2026',title:'Content & compliance',points:['Content approval flow w/ versioned edits','NCAA disclosure auto-attach on every post','School-side reporting exports (CSV / API)','First wave of public media-kit links']},
   {month:'Month 4 · Sep 2026',title:'Analytics & growth',points:['Cross-platform impression tracking (IG / TikTok / X / YT)','Athlete benchmark report (rate cards by sport+reach)','Brand ROI dashboard with attribution windows','Agent commission ledger w/ 1099 prep']},
-  {month:'Month 5 · Oct 2026',title:'Scale the marketplace',points:['Opens to non-AiC athletes (verified-only invite)','Brand self-serve campaigns (no AM required)','Agent multi-roster (multiple agencies per agent)','Public API beta for brand-side integrations']},
+  {month:'Month 5 · Oct 2026',title:'Scale the marketplace',points:['Opens to non-Digital NIL athletes (verified-only invite)','Brand self-serve campaigns (no AM required)','Agent multi-roster (multiple agencies per agent)','Public API beta for brand-side integrations']},
   {month:'Month 6 · Nov 2026',title:'Steady-state & expansion',points:['10,000+ athletes on platform','First international pilot (Canadian U Sports)','Equity & long-form deal support','Annual rate-card report — industry benchmark']},
 ];
 
 const HELP_FAQ=[
   {q:'How do I get my first deal?',a:'Complete your profile (sport, school, socials), then open Discover. Tap any matching opportunity to apply — your media kit goes with it automatically. Most first deals land within 7–14 days of a complete profile.'},
   {q:'When do I get paid?',a:'Payment auto-releases once the brand approves your final content. Typical timing is 24–72 hours after approval, deposited via Stripe Connect to your linked bank.'},
-  {q:'What does AiC take?',a:'Athletes pay $0 to use the platform. Brand-side campaign fees and standard agent commission structures fund the platform — your offer is your offer.'},
+  {q:'What does Digital NIL take?',a:'Athletes pay $0 to use the platform. Brand-side campaign fees and standard agent commission structures fund the platform — your offer is your offer.'},
   {q:'Is this NCAA-compliant?',a:'Every deal generates the disclosures required by your school and conference. School-side reports are pushed automatically where the school has opted in.'},
   {q:'Can my agent post on my behalf?',a:'Yes — agents you authorize have admin rights to sign deals, approve content, and submit posts. Every action is logged so you can audit anything later.'},
   {q:'How do brands find me?',a:'Your media kit is searchable by sport, school, conference, reach, and engagement. The better your profile (stats, posted content, growth), the higher you rank in matches.'},
-  {q:'Who do I contact for help?',a:'Live support runs 9a–9p CT in-app via the Inbox (channel: AiC Support). For urgent deal issues, email help@aicsports.com.'},
+  {q:'Who do I contact for help?',a:'Live support runs 9a–9p CT in-app via the Inbox (channel: Digital NIL Support). For urgent deal issues, email hello@digitalnil.com.'},
 ];
 
 const Help=({user,onNavigate,onReplayOnboarding})=>{
@@ -3724,13 +3738,13 @@ const Help=({user,onNavigate,onReplayOnboarding})=>{
     // Hero
     React.createElement('div',{style:{marginBottom:28}},
       React.createElement('div',{className:'kicker',style:{marginBottom:8}},'User manual · v1.0.4'),
-      React.createElement('h1',{className:'page-title'},'How AiC NIL works.'),
-      React.createElement('p',{className:'page-subtitle'},'A short, visual guide to running deals, content, and commission on AiC.')),
+      React.createElement('h1',{className:'page-title'},'How Digital NIL works.'),
+      React.createElement('p',{className:'page-subtitle'},'A short, visual guide to running deals, content, and commission on Digital NIL.')),
 
     // Hero card
-    React.createElement('div',{className:'card',style:{marginBottom:24,padding:24,background:'linear-gradient(135deg,rgba(204,0,0,.18) 0%,rgba(26,26,26,.65) 60%)',border:`1px solid ${C.borderRed}`}},
+    React.createElement('div',{className:'card',style:{marginBottom:24,padding:24,background:'linear-gradient(135deg,rgba(255,255,255,.18) 0%,rgba(37,37,38,.65) 60%)',border:`1px solid ${C.borderRed}`}},
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}},
-        React.createElement('div',{style:{width:56,height:56,background:C.primary,borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 8px 24px rgba(204,0,0,.40)'}},
+        React.createElement('div',{style:{width:56,height:56,background:C.primary,borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 8px 24px rgba(255,255,255,.18)'}},
           React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:28}},'menu_book')),
         React.createElement('div',{style:{flex:1,minWidth:260}},
           React.createElement('h3',{style:{fontSize:18,fontWeight:700,color:'#fff',marginBottom:4}},'Pick your role to see the playbook.'),
@@ -3765,18 +3779,18 @@ const Help=({user,onNavigate,onReplayOnboarding})=>{
     // Benefits section
     React.createElement('div',{style:{marginBottom:14}},
       React.createElement('div',{className:'kicker'},'Why it matters'),
-      React.createElement('h3',{style:{fontWeight:700,fontSize:20,color:'#fff',marginTop:2}},`What ${roleLabels[role][0].toLowerCase()}s get out of AiC.`)),
+      React.createElement('h3',{style:{fontWeight:700,fontSize:20,color:'#fff',marginTop:2}},`What ${roleLabels[role][0].toLowerCase()}s get out of Digital NIL.`)),
     React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:14,marginBottom:36}},
       benefits.map((b,i)=>React.createElement('div',{key:i,className:'hlp-benefit-card'},
-        React.createElement('div',{style:{width:38,height:38,borderRadius:10,background:'rgba(204,0,0,.10)',border:'1px solid rgba(204,0,0,.30)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:12}},
+        React.createElement('div',{style:{width:38,height:38,borderRadius:10,background:'rgba(255,255,255,.10)',border:'1px solid rgba(255,255,255,.14)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:12}},
           React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:20,color:C.primary}},b.icon)),
         React.createElement('h4',{style:{fontSize:14,fontWeight:700,color:'#fff',marginBottom:6}},b.title),
         React.createElement('p',{style:{fontSize:12,color:C.textSecondary,lineHeight:1.55}},b.desc)))),
 
     // Cross-role value (single shared block)
-    React.createElement('div',{className:'card',style:{marginBottom:36,padding:24,background:'linear-gradient(135deg,rgba(0,255,102,.06) 0%,rgba(26,26,26,.65) 60%)',border:'1px solid rgba(0,255,102,.20)'}},
-      React.createElement('div',{className:'kicker',style:{color:'#00FF66',marginBottom:8}},'Three sides · One platform'),
-      React.createElement('h3',{style:{fontWeight:700,fontSize:18,color:'#fff',marginBottom:12}},'Why all three sides win on AiC.'),
+    React.createElement('div',{className:'card',style:{marginBottom:36,padding:24,background:'linear-gradient(135deg,rgba(78,201,176,.06) 0%,rgba(37,37,38,.65) 60%)',border:'1px solid rgba(78,201,176,.20)'}},
+      React.createElement('div',{className:'kicker',style:{color:'#4EC9B0',marginBottom:8}},'Three sides · One platform'),
+      React.createElement('h3',{style:{fontWeight:700,fontSize:18,color:'#fff',marginBottom:12}},'Why all three sides win on Digital NIL.'),
       React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}},
         [['sports_football','Athletes','Set your rate, own your audience, get paid in hours not weeks.'],
          ['campaign','Brands','Lower CPMs, prove ROI, ship campaigns in days instead of months.'],
@@ -3815,17 +3829,17 @@ const Help=({user,onNavigate,onReplayOnboarding})=>{
         openFaq===i&&React.createElement('div',{className:'hlp-faq-a'},f.a)))),
 
     // Contact
-    React.createElement('div',{className:'card',style:{padding:24,textAlign:'center',background:'linear-gradient(135deg,rgba(204,0,0,.10),rgba(26,26,26,.65))'}},
+    React.createElement('div',{className:'card',style:{padding:24,textAlign:'center',background:'linear-gradient(135deg,rgba(255,255,255,.10),rgba(37,37,38,.65))'}},
       React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:36,color:C.primary,marginBottom:10,display:'inline-block'}},'support_agent'),
       React.createElement('h3',{style:{fontSize:18,fontWeight:700,color:'#fff',marginBottom:6}},'Still stuck?'),
-      React.createElement('p',{style:{fontSize:13,color:C.textSecondary,marginBottom:16,maxWidth:480,margin:'0 auto 16px'}},'Live AiC support runs 9a–9p CT. Hit us in the Inbox for the fastest response.'),
+      React.createElement('p',{style:{fontSize:13,color:C.textSecondary,marginBottom:16,maxWidth:480,margin:'0 auto 16px'}},'Live Digital NIL support runs 9a–9p CT. Hit us in the Inbox for the fastest response.'),
       React.createElement('div',{style:{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}},
         onNavigate&&React.createElement('button',{className:'btn btn-primary',onClick:()=>onNavigate('inbox')},
           React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18,marginRight:6}},'forum'),
           'Open Inbox'),
-        React.createElement('a',{href:'mailto:help@aicsports.com',className:'btn btn-ghost',style:{textDecoration:'none'}},
+        React.createElement('a',{href:'mailto:hello@digitalnil.com',className:'btn btn-ghost',style:{textDecoration:'none'}},
           React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18,marginRight:6}},'mail'),
-          'help@aicsports.com'))));
+          'hello@digitalnil.com'))));
 };
 
 // ── Onboarding Welcome Slider ─────────────────────────────────────────────────
@@ -3897,7 +3911,7 @@ const OnboardingScreen=({onDone})=>{
       React.createElement('button',{className:'ob-skip',onClick:finish,'aria-label':'Skip onboarding'},'Skip'),
       React.createElement('div',{className:'ob-brand'},
         React.createElement('div',{className:'ob-brand-mark'},'🏈'),
-        React.createElement('div',{className:'ob-brand-name'},'AiC NIL')),
+        React.createElement('div',{className:'ob-brand-name'},'Digital NIL')),
       React.createElement('div',{className:'ob-stage'},
         OB_SLIDES.map((s,i)=>React.createElement('div',{key:s.key,className:'ob-slide'+(i===idx?' active':'')},
           React.createElement('div',{className:'ob-mockup'},React.createElement(OnboardingMockup,{kind:s.key})),
@@ -4223,7 +4237,7 @@ const CrmRecord=({token,oppId,companies,contacts,roster,onClose,onReload,onNavig
       React.createElement('div',{className:'crm-drawer-body'},
         tab==='overview'?React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:16}},
           // Convert / deal status
-          rec.linkedDeal?React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'12px 14px',background:C.successLight,border:`1px solid rgba(0,255,102,.20)`,borderRadius:12}},
+          rec.linkedDeal?React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'12px 14px',background:C.successLight,border:`1px solid rgba(78,201,176,.20)`,borderRadius:12}},
             React.createElement('div',{style:{fontSize:13,color:C.text}},'Converted to a platform deal'),
             React.createElement('button',{className:'btn btn-secondary',onClick:()=>{onNavigate&&onNavigate('my-deals');}},'View Deal')):
             React.createElement('button',{className:'btn btn-primary',onClick:convert,disabled:!canConvert||busy,
@@ -4308,10 +4322,10 @@ const CrmPipeline=({token,opps,companies,contacts,roster,onOpen,onMoveStage,onRe
   const winRate=(won+lost)?Math.round(won/(won+lost)*100):0;
 
   const stats=[
-    {label:'Pipeline Value',value:formatMoney(pipelineValue),icon:'monetization_on',accent:C.primary,bg:'rgba(204,0,0,.10)'},
+    {label:'Pipeline Value',value:formatMoney(pipelineValue),icon:'monetization_on',accent:C.primary,bg:'rgba(255,255,255,.10)'},
     {label:'Weighted Forecast',value:formatMoney(Math.round(weighted)),icon:'trending_up',accent:C.warning,bg:'rgba(255,204,0,.10)'},
-    {label:'Win Rate',value:winRate+'%',icon:'workspace_premium',accent:C.success,bg:'rgba(0,255,102,.10)'},
-    {label:'Open Opps',value:String(opps.filter(o=>!['active','lost'].includes(o.stage)).length),icon:'inbox',accent:C.primary,bg:'rgba(204,0,0,.10)'}
+    {label:'Win Rate',value:winRate+'%',icon:'workspace_premium',accent:C.success,bg:'rgba(78,201,176,.10)'},
+    {label:'Open Opps',value:String(opps.filter(o=>!['active','lost'].includes(o.stage)).length),icon:'inbox',accent:C.primary,bg:'rgba(255,255,255,.10)'}
   ];
 
   const columns=showLost?ALL_STAGES:CRM_STAGES;
@@ -4539,8 +4553,8 @@ const LeadList=({token,leads,onReload,onConverted})=>{
   const hot=leads.filter(l=>l.rating==='hot').length;
   const avg=total?Math.round(leads.reduce((s,l)=>s+(l.score||0),0)/total):0;
   const stats=[
-    {label:'Total Leads',value:String(total),icon:'person_add',accent:C.primary,bg:'rgba(204,0,0,.10)'},
-    {label:'Qualified',value:String(qualified),icon:'verified',accent:C.success,bg:'rgba(0,255,102,.10)'},
+    {label:'Total Leads',value:String(total),icon:'person_add',accent:C.primary,bg:'rgba(255,255,255,.10)'},
+    {label:'Qualified',value:String(qualified),icon:'verified',accent:C.success,bg:'rgba(78,201,176,.10)'},
     {label:'Hot',value:String(hot),icon:'local_fire_department',accent:C.danger,bg:'rgba(255,85,102,.10)'},
     {label:'Avg Score',value:String(avg),icon:'speed',accent:C.warning,bg:'rgba(255,204,0,.10)'}
   ];
@@ -4783,16 +4797,16 @@ const PublicAthlete=({id})=>{
     React.createElement('div',{style:{maxWidth:760,margin:'0 auto'}},
       // Brand bar
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:24}},
-        React.createElement('div',{style:{width:30,height:30,background:C.primary,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(204,0,0,.4)'}},
+        React.createElement('div',{style:{width:30,height:30,background:C.primary,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(255,255,255,.18)'}},
           React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:18}},'bolt')),
-        React.createElement('span',{style:{fontWeight:800,color:'#fff',letterSpacing:'-.01em'}},'AiC NIL'),
+        React.createElement('span',{style:{fontWeight:800,color:'#fff',letterSpacing:'-.01em'}},'Digital NIL'),
         React.createElement('a',{href:window.location.origin,className:'mono',style:{marginLeft:'auto',fontSize:11,color:C.textMuted,letterSpacing:'.08em'}},'SIGN IN ↗')),
       // Header card (share-card target)
       React.createElement('div',{className:'card',style:{marginBottom:16}},
         React.createElement('div',{style:{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap'}},
           React.createElement('div',{style:{position:'relative',flexShrink:0}},
             React.createElement(Avatar,{name:a.name,src:a.avatar,size:84}),
-            React.createElement('div',{style:{position:'absolute',inset:-3,borderRadius:'50%',border:`2px solid ${C.primary}`,boxShadow:'0 0 18px rgba(204,0,0,.5)',pointerEvents:'none'}})),
+            React.createElement('div',{style:{position:'absolute',inset:-3,borderRadius:'50%',border:`2px solid ${C.primary}`,boxShadow:'0 0 18px rgba(255,255,255,.18)',pointerEvents:'none'}})),
           React.createElement('div',{style:{flex:1,minWidth:200}},
             React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
               React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff'}},a.name),
@@ -4879,13 +4893,13 @@ const PublicAthlete=({id})=>{
 // Full-screen lock shown when the vendor has suspended the deployment (non-payment,
 // expired subscription, or hard env kill). Replaces the entire app for every role.
 const LockScreen=({reason})=>React.createElement('div',{style:{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:24,background:C.bg,position:'relative',overflow:'hidden'}},
-  React.createElement('div',{style:{position:'absolute',inset:0,background:'radial-gradient(circle at 50% 28%, rgba(204,0,0,.18), transparent 60%)'}}),
+  React.createElement('div',{style:{position:'absolute',inset:0,background:'radial-gradient(circle at 50% 28%, rgba(255,255,255,.18), transparent 60%)'}}),
   React.createElement('div',{style:{position:'relative',maxWidth:440,width:'100%',textAlign:'center',background:'rgba(20,20,24,.72)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,.08)',borderRadius:20,padding:'40px 32px',boxShadow:'0 24px 80px rgba(0,0,0,.5)'}},
-    React.createElement('div',{style:{width:64,height:64,margin:'0 auto 20px',borderRadius:18,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(204,0,0,.14)',border:'1px solid rgba(204,0,0,.35)'}},
+    React.createElement('div',{style:{width:64,height:64,margin:'0 auto 20px',borderRadius:18,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.14)',border:'1px solid rgba(255,255,255,.18)'}},
       React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.primary,fontSize:34}},'lock')),
     React.createElement('h1',{style:{color:'#fff',fontSize:22,fontWeight:700,margin:'0 0 10px'}},'Service Unavailable'),
     React.createElement('p',{style:{color:'rgba(255,255,255,.65)',fontSize:15,lineHeight:1.5,margin:'0 0 24px'}},reason||'This service has been suspended. Please contact your account manager.'),
-    React.createElement('div',{style:{fontSize:12,color:'rgba(255,255,255,.4)',letterSpacing:'.06em',borderTop:'1px solid rgba(255,255,255,.07)',paddingTop:16}},'AiC NIL')));
+    React.createElement('div',{style:{fontSize:12,color:'rgba(255,255,255,.4)',letterSpacing:'.06em',borderTop:'1px solid rgba(255,255,255,.07)',paddingTop:16}},'Digital NIL')));
 
 const App=()=>{
   const[user,setUser]=useState(null);
@@ -4970,7 +4984,7 @@ const App=()=>{
   if(publicMatch)return React.createElement(PublicAthlete,{id:publicMatch[1]});
 
   if(booting||!licChecked)return React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',flexDirection:'column',gap:16,background:C.bg}},
-    React.createElement('div',{style:{width:48,height:48,background:C.primary,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 32px rgba(204,0,0,.40)'}},
+    React.createElement('div',{style:{width:48,height:48,background:C.primary,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 32px rgba(255,255,255,.18)'}},
       React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:26}},'bolt')),
     React.createElement(Spinner));
 

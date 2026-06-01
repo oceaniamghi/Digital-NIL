@@ -16,6 +16,45 @@ async function cfbdFetch(path) {
   return res.json();
 }
 
+// CFBD's /player/search returns one row PER school a player has been rostered at,
+// all sharing the same `id` (e.g. a transfer shows up once for each team). That
+// makes a single person look like "a bunch" of results. Collapse rows by id into
+// the single richest record: keep the most-complete field values, remember every
+// team as transfer history, and surface the primary (richest) school first.
+function isBlank(v) {
+  return v == null || v === '' || (typeof v === 'string' && v.toLowerCase().includes('null'));
+}
+function mergePlayerSearch(players) {
+  if (!Array.isArray(players)) return [];
+  const RICHNESS = ['team', 'position', 'weight', 'height', 'jersey', 'hometown', 'teamColor'];
+  const byId = new Map();
+  for (const p of players) {
+    const id = String(p.id);
+    const score = RICHNESS.reduce((n, k) => n + (isBlank(p[k]) ? 0 : 1), 0);
+    const existing = byId.get(id);
+    if (!existing) {
+      byId.set(id, { player: { ...p }, score, teams: p.team ? [p.team] : [] });
+      continue;
+    }
+    if (p.team && !existing.teams.includes(p.team)) existing.teams.push(p.team);
+    // Backfill any field this row has that the merged record is missing.
+    for (const k of Object.keys(p)) {
+      if (isBlank(existing.player[k]) && !isBlank(p[k])) existing.player[k] = p[k];
+    }
+    // A richer row wins the player's primary identity (team + colors).
+    if (score > existing.score) {
+      existing.player.team = p.team;
+      existing.player.teamColor = p.teamColor;
+      existing.player.teamColorSecondary = p.teamColorSecondary;
+      existing.score = score;
+    }
+  }
+  // Most-complete players first so the best match is at the top of the dropdown.
+  return [...byId.values()]
+    .sort((a, b) => b.score - a.score)
+    .map(e => ({ ...e.player, teams: e.teams, teamCount: e.teams.length }));
+}
+
 // GET /api/cfbd/search?name=&team=
 // Search for a player by name (and optionally school)
 router.get('/search', requireAuth, async (req, res) => {
@@ -25,7 +64,7 @@ router.get('/search', requireAuth, async (req, res) => {
     const qs = new URLSearchParams({ searchTerm: name });
     if (team) qs.set('team', team);
     const data = await cfbdFetch(`/player/search?${qs}`);
-    res.json({ players: data });
+    res.json({ players: mergePlayerSearch(data) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -111,13 +150,27 @@ router.get('/recruiting', requireAuth, async (req, res) => {
 });
 
 // GET /api/cfbd/roster?team=&year=
-// Full team roster — useful for browsing athletes by school
+// Full team roster — useful for browsing athletes by school. Walks back up to
+// 2 prior years if the requested year has no data yet (CFBD lags in offseason).
 router.get('/roster', requireAuth, async (req, res) => {
   try {
-    const { team, year = new Date().getFullYear() } = req.query;
+    const { team } = req.query;
     if (!team) return res.status(400).json({ error: 'team required' });
-    const data = await cfbdFetch(`/roster?team=${encodeURIComponent(team)}&year=${year}`);
-    res.json({ roster: data });
+    const requested = Number(req.query.year) || new Date().getFullYear();
+    let roster = [];
+    let usedYear = requested;
+    for (let i = 0; i < 3; i++) {
+      const yr = requested - i;
+      const data = await cfbdFetch(`/roster?team=${encodeURIComponent(team)}&year=${yr}`).catch(() => []);
+      if (Array.isArray(data) && data.length) { roster = data; usedYear = yr; break; }
+    }
+    // Normalize: CFBD roster returns firstName/lastName; player-search returns name.
+    // Add `name` so the same UI row renderer works for both.
+    const normalized = roster.map(p => ({
+      ...p,
+      name: p.name || [p.firstName || p.first_name, p.lastName || p.last_name].filter(Boolean).join(' ').trim()
+    }));
+    res.json({ roster: normalized, year: usedYear });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
