@@ -123,6 +123,23 @@ router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
   }
 });
 
+// POST /api/content/asset — lightweight upload for media-kit assets. Stores the
+// file and returns its URL only (no Content record), so athletes can attach
+// photos/PDFs/clips to their media-kit template.
+router.post('/asset', requireAuth, upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    res.status(201).json({
+      url: `${baseUrl}/uploads/${req.file.filename}`,
+      mime: req.file.mimetype || '',
+      name: req.file.originalname || ''
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/content/:id/approve
 router.put('/:id/approve', requireAuth, requireRole('brand'), async (req, res) => {
   try {

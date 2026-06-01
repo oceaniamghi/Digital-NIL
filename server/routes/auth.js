@@ -95,7 +95,7 @@ router.put('/profile', requireAuth, async (req, res) => {
       'proStatus', 'nflTeam', 'statsUrl', 'cfbPlayerId',
       'jerseyNumber', 'heightDisplay', 'weightLbs', 'fortyTime', 'classYear',
       'highlightUrl', 'draftRound', 'draftTrend', 'interestedTeams',
-      'socialHandles', 'company', 'industry', 'website', 'logo', 'agency'];
+      'socialHandles', 'mediaKitItems', 'company', 'industry', 'website', 'logo', 'agency'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

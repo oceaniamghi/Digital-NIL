@@ -2384,7 +2384,7 @@ const Roster=({token,user,onNavigate})=>{
           React.createElement('button',{title:'Remove from roster',onClick:e=>removeAthlete(a,e),
             style:{position:'absolute',top:10,right:10,width:28,height:28,borderRadius:8,background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.border}`,fontSize:18,lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2,cursor:'pointer'}},'−'),
           React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:14}},
-            React.createElement(Avatar,{name:a.name,src:a.avatar,size:52}),
+            React.createElement(Avatar,{name:a.name,src:headshot(a),size:52}),
             React.createElement('div',{style:{flex:1}},
               React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
                 React.createElement('span',{style:{fontSize:15,fontWeight:700}},a.name),
@@ -2786,6 +2786,9 @@ const trendMeta={
   steady:{icon:'trending_flat',color:C.textSecondary,label:'Holding steady'}
 };
 const espnHeadshot=id=>id?'https://a.espncdn.com/i/headshots/college-football/players/full/'+id+'.png':'';
+// Prefer a stored avatar; otherwise derive the ESPN headshot from the CFBD/ESPN id
+// (same source the admin/roster side uses) so roster athletes always have a face.
+const headshot=a=>(a&&a.avatar)||espnHeadshot(a&&a.cfbPlayerId)||'';
 // Resolve a highlight link into an embeddable iframe (YouTube/Hudl) or a link-out (247Sports etc.)
 const highlightEmbed=u=>{
   if(!u)return{type:'none'};
@@ -2835,6 +2838,8 @@ const ReelEmbed=({primaryUrl,name,school,position,sport,token})=>{
     fetchedRef.current=false;
     setExhausted(false);
     setCurrentId(pid);
+    // No explicit YouTube link → auto-find a highlight reel so one always plays.
+    if(!pid)advanceRef.current();
   },[pid]);
 
   useEffect(()=>{
@@ -2858,11 +2863,35 @@ const ReelEmbed=({primaryUrl,name,school,position,sport,token})=>{
     return()=>{dead=true;try{player&&player.destroy&&player.destroy();}catch(e){}try{if(host.current)host.current.innerHTML='';}catch(e){}};
   },[currentId]);
 
-  if(exhausted||!currentId)return React.createElement('a',{href:primaryUrl,target:'_blank',rel:'noopener noreferrer',style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,background:'linear-gradient(160deg,#252526,#1C1B1B)',color:C.text,textDecoration:'none'}},
-    React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:42,color:C.primary}},'play_circle'),
-    React.createElement('div',{style:{fontSize:14,fontWeight:700}},'Watch on YouTube'),
-    React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Opens in a new tab ↗'));
+  if(exhausted){
+    const fallbackHref=primaryUrl||('https://www.youtube.com/results?search_query='+encodeURIComponent([name,school,position,'highlights'].filter(Boolean).join(' ')));
+    return React.createElement('a',{href:fallbackHref,target:'_blank',rel:'noopener noreferrer',style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,background:'linear-gradient(160deg,#252526,#1C1B1B)',color:C.text,textDecoration:'none'}},
+      React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:42,color:C.primary}},'play_circle'),
+      React.createElement('div',{style:{fontSize:14,fontWeight:700}},primaryUrl?'Watch on YouTube':'Search highlights'),
+      React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Opens in a new tab ↗'));
+  }
+  if(!currentId)return React.createElement('div',{style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,background:'linear-gradient(160deg,#252526,#1C1B1B)',color:C.textMuted}},
+    React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:36,color:C.primary}},'smart_display'),
+    React.createElement('div',{style:{fontSize:12}},'Finding highlights…'));
   return React.createElement('div',{ref:host,style:{position:'absolute',inset:0,width:'100%',height:'100%'}});
+};
+// Read-only display of an athlete's media-kit template (uploaded files + links).
+const MediaKitGallery=({items})=>{
+  const list=(items||[]).filter(x=>x&&x.url);
+  if(!list.length)return null;
+  const isImg=x=>x.kind==='file'&&/^image\//i.test(x.mime||'');
+  return React.createElement('div',{style:{marginBottom:18}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
+      React.createElement('span',{className:'material-symbols-outlined',style:{color:C.primary,fontSize:18}},'folder_open'),
+      React.createElement('span',{style:{fontWeight:700,fontSize:13}},'Media Kit')),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))',gap:10}},
+      list.map((x,i)=>isImg(x)
+        ?React.createElement('a',{key:i,href:x.url,target:'_blank',rel:'noopener noreferrer',title:x.label||'',style:{display:'block',borderRadius:10,overflow:'hidden',border:`1px solid ${C.border}`,aspectRatio:'1/1'}},
+            React.createElement('img',{src:x.url,alt:x.label||'',style:{width:'100%',height:'100%',objectFit:'cover',display:'block'}}))
+        :React.createElement('a',{key:i,href:x.url,target:'_blank',rel:'noopener noreferrer',style:{display:'flex',flexDirection:'column',gap:6,padding:12,borderRadius:10,border:`1px solid ${C.border}`,background:C.surfaceDim,color:C.text,textDecoration:'none',aspectRatio:'1/1',justifyContent:'center',alignItems:'center',textAlign:'center'}},
+            React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:30,color:C.primary}},x.kind==='file'?'description':'link'),
+            React.createElement('span',{style:{fontSize:12,fontWeight:600,wordBreak:'break-word',lineHeight:1.3}},x.label||x.url))
+      )));
 };
 // Social cards: Instagram / X / TikTok only, must have a handle, link to the
 // real profile, and show LIVE follower counts (falls back to stored count).
@@ -2962,7 +2991,7 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
     // Header card
     React.createElement('div',{style:{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap',background:C.glass,border:`1px solid ${C.border}`,borderRadius:16,padding:20,marginBottom:16}},
       React.createElement('div',{style:{position:'relative',flexShrink:0}},
-        React.createElement(Avatar,{name:a.name,src:a.avatar,size:84}),
+        React.createElement(Avatar,{name:a.name,src:headshot(a),size:84}),
         React.createElement('div',{style:{position:'absolute',inset:-3,borderRadius:'50%',border:`2px solid ${C.primary}`,boxShadow:'0 0 18px rgba(255,255,255,.18)',pointerEvents:'none'}})),
       React.createElement('div',{style:{flex:1,minWidth:200}},
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
@@ -2998,16 +3027,14 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
           React.createElement('span',{className:'material-symbols-outlined',style:{color:C.primary,fontSize:18}},'play_circle'),
           React.createElement('span',{style:{fontWeight:700,fontSize:13}},'Watch Highlights'),
           hl.type!=='none'?React.createElement('a',{className:'mono',href:a.highlightUrl,target:'_blank',rel:'noopener noreferrer',style:{marginLeft:'auto',color:C.primary,fontSize:11,letterSpacing:'.08em'}},'OPEN '+(hl.source||'LINK').toUpperCase()+' ↗'):null),
-        hl.type==='embed'?React.createElement('div',{style:{position:'relative',paddingTop:'56.25%',borderRadius:12,overflow:'hidden',border:`1px solid ${C.border}`}},
-            hl.source==='YouTube'?React.createElement(ReelEmbed,{primaryUrl:a.highlightUrl,name:a.name,school:a.school,position:a.position,sport:a.sport,token}):
+        ((hl.type==='embed'&&hl.source==='YouTube')||hl.type==='none')?React.createElement('div',{style:{position:'relative',paddingTop:'56.25%',borderRadius:12,overflow:'hidden',border:`1px solid ${C.border}`}},
+            React.createElement(ReelEmbed,{primaryUrl:a.highlightUrl,name:a.name,school:a.school,position:a.position,sport:a.sport,token})):
+          hl.type==='embed'?React.createElement('div',{style:{position:'relative',paddingTop:'56.25%',borderRadius:12,overflow:'hidden',border:`1px solid ${C.border}`}},
             React.createElement('iframe',{src:hl.src,title:'Highlights',allow:'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',allowFullScreen:true,style:{position:'absolute',inset:0,width:'100%',height:'100%',border:0}})):
-          hl.type==='link'?React.createElement('a',{href:hl.src,target:'_blank',rel:'noopener noreferrer',style:{height:200,borderRadius:12,border:`1px solid ${C.borderRed}`,background:'linear-gradient(160deg,#252526,#1C1B1B)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,color:C.text,textDecoration:'none',cursor:'pointer'}},
+          React.createElement('a',{href:hl.src,target:'_blank',rel:'noopener noreferrer',style:{height:200,borderRadius:12,border:`1px solid ${C.borderRed}`,background:'linear-gradient(160deg,#252526,#1C1B1B)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,color:C.text,textDecoration:'none',cursor:'pointer'}},
             React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:42,color:C.primary}},'play_circle'),
             React.createElement('div',{style:{fontSize:14,fontWeight:700}},'Watch on '+hl.source),
-            React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Opens in a new tab ↗')):
-          React.createElement('div',{style:{height:200,borderRadius:12,border:`1px solid ${C.border}`,background:'linear-gradient(160deg,#252526,#1C1B1B)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.textMuted}},
-            React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:42,color:C.primary}},'smart_display'),
-            React.createElement('div',{style:{fontSize:13}},'No highlight reel linked yet'))),
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted}},'Opens in a new tab ↗'))),
       React.createElement('div',{style:{background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:16}},
         React.createElement('div',{className:'mono',style:{fontSize:10,color:C.textMuted,textTransform:'uppercase',letterSpacing:.8,marginBottom:6}},'Draft Insights'),
         React.createElement('div',{style:{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap'}},
@@ -3020,6 +3047,8 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
           React.createElement('div',{style:{fontSize:12,color:C.textMuted}},'No reported interest yet'))),
     // Social reach (Instagram / X / TikTok only, must have a handle, links to profile)
     React.createElement(SocialLinks,{token,handles:a.socialHandles}),
+    // Athlete-curated media kit (files + links)
+    React.createElement(MediaKitGallery,{items:a.mediaKitItems}),
     // Performance metrics (live CFB data)
     React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
       React.createElement('span',{className:'material-symbols-outlined',style:{color:C.primary,fontSize:18}},'leaderboard'),
@@ -3193,9 +3222,12 @@ const Profile=({token,user,onUpdate})=>{
     avatar:user.avatar||'',highlightUrl:user.highlightUrl||'',
     jerseyNumber:user.jerseyNumber||'',heightDisplay:user.heightDisplay||'',weightLbs:user.weightLbs||'',
     fortyTime:user.fortyTime||'',classYear:user.classYear||'',draftRound:user.draftRound||'',draftTrend:user.draftTrend||'steady',
-    company:user.company||'',industry:user.industry||'',website:user.website||'',agency:user.agency||''
+    company:user.company||'',industry:user.industry||'',website:user.website||'',agency:user.agency||'',
+    mediaKitItems:(user.mediaKitItems||[]).map(x=>({kind:x.kind||'link',url:x.url||'',label:x.label||'',mime:x.mime||''}))
   });
   const[social,setSocial]=useState({platform:'instagram',handle:'',followers:''});
+  const[mkLink,setMkLink]=useState({url:'',label:''});
+  const[mkBusy,setMkBusy]=useState(false);
   const[saving,setSaving]=useState(false);
   const[success,setSuccess]=useState('');
   const[error,setError]=useState('');
@@ -3207,6 +3239,10 @@ const Profile=({token,user,onUpdate})=>{
   const[cfbResults,setCfbResults]=useState(null);
   const[cfbBusy,setCfbBusy]=useState(false);
   const set=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
+  // ── Media-kit template editing ──────────────────────────────────────────────
+  const addMkLink=()=>{const url=(mkLink.url||'').trim();if(!url)return;setForm(f=>({...f,mediaKitItems:[...(f.mediaKitItems||[]),{kind:'link',url,label:(mkLink.label||'').trim()||url,mime:''}]}));setMkLink({url:'',label:''});};
+  const addMkFile=async file=>{if(!file)return;setMkBusy(true);setError('');try{const fd=new FormData();fd.append('file',file);const d=await apiUpload('/content/asset',fd,token);if(d&&d.url)setForm(f=>({...f,mediaKitItems:[...(f.mediaKitItems||[]),{kind:'file',url:d.url,label:file.name,mime:d.mime||file.type||''}]}));}catch(err){setError(err.message);}setMkBusy(false);};
+  const removeMk=i=>setForm(f=>({...f,mediaKitItems:(f.mediaKitItems||[]).filter((_,j)=>j!==i)}));
   const inToFt=inch=>{if(!inch)return'';return Math.floor(inch/12)+"'"+(inch%12)+'"';};
   const cfbFind=async()=>{const q=(cfbq.trim()||form.name||'').trim();if(!q)return;setCfbBusy(true);setError('');try{const d=await api('GET','/cfbd/search?name='+encodeURIComponent(q),null,token);setCfbResults(d.players||[]);}catch(e){setError(e.message);}setCfbBusy(false);};
   const cfbPick=p=>{setForm(f=>({...f,school:p.team||f.school,position:p.position||f.position,jerseyNumber:p.jersey!=null?String(p.jersey):f.jerseyNumber,heightDisplay:p.height?inToFt(p.height):f.heightDisplay,weightLbs:p.weight!=null?String(p.weight):f.weightLbs,cfbPlayerId:String(p.id||''),avatar:p.id?espnHeadshot(p.id):f.avatar}));setCfbResults(null);setCfbq('');setSuccess('Pulled from CFBD — review and Save Changes.');};
@@ -3286,7 +3322,7 @@ const Profile=({token,user,onUpdate})=>{
           React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:2}},dealsLoading?'loading…':s.sub)))),
       React.createElement('div',{className:'card',style:{marginBottom:20}},
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:16,marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${C.border}`}},
-          React.createElement(Avatar,{name:user.name,src:user.avatar,size:64}),
+          React.createElement(Avatar,{name:user.name,src:headshot(user),size:64}),
           React.createElement('div',null,
             React.createElement('h2',{style:{fontSize:18,fontWeight:700,color:'#fff'}},user.name),
             React.createElement('p',{style:{color:C.textSecondary,fontSize:14,textTransform:'capitalize'}},user.role,user.company?' · '+user.company:''))),
@@ -3372,15 +3408,16 @@ const Profile=({token,user,onUpdate})=>{
           React.createElement('h3',{style:{fontSize:14,fontWeight:800,color:'#fff',letterSpacing:'.05em',display:'flex',alignItems:'center',gap:10}},
             React.createElement('span',{className:'material-symbols-outlined',style:{color:C.primary,fontSize:18}},'play_circle'),'WATCH HIGHLIGHTS'),
           hlEmbed.type!=='none'?React.createElement('a',{className:'mono',href:user.highlightUrl,target:'_blank',rel:'noreferrer',style:{color:C.primary,fontSize:11,letterSpacing:'.08em'}},'OPEN '+(hlEmbed.source||'LINK').toUpperCase()+' →'):null),
+        ((hlEmbed.type==='embed'&&hlEmbed.source==='YouTube')||hlEmbed.type==='none')?React.createElement('div',{className:'card',style:{aspectRatio:'16/9',position:'relative',overflow:'hidden',padding:0}},
+          React.createElement(ReelEmbed,{primaryUrl:user.highlightUrl,name:user.name,school:user.school,position:user.position,sport:user.sport,token})):
         hlEmbed.type==='embed'?React.createElement('div',{className:'card',style:{aspectRatio:'16/9',position:'relative',overflow:'hidden',padding:0}},
-          hlEmbed.source==='YouTube'?React.createElement(ReelEmbed,{primaryUrl:user.highlightUrl,name:user.name,school:user.school,position:user.position,sport:user.sport,token}):
           React.createElement('iframe',{src:hlEmbed.src,title:'Highlights',allow:'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',allowFullScreen:true,style:{position:'absolute',inset:0,width:'100%',height:'100%',border:0}})):
-        React.createElement(hlEmbed.type==='link'?'a':'div',Object.assign({className:'card',style:{aspectRatio:'16/9',position:'relative',overflow:'hidden',padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:`radial-gradient(circle at 50% 40%,rgba(255,255,255,.14) 0%,${C.bgDeep} 70%)`,textDecoration:'none',cursor:hlEmbed.type==='link'?'pointer':'default'}},hlEmbed.type==='link'?{href:user.highlightUrl,target:'_blank',rel:'noreferrer'}:{}),
+        React.createElement('a',Object.assign({className:'card',style:{aspectRatio:'16/9',position:'relative',overflow:'hidden',padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:`radial-gradient(circle at 50% 40%,rgba(255,255,255,.14) 0%,${C.bgDeep} 70%)`,textDecoration:'none',cursor:'pointer'}},{href:user.highlightUrl,target:'_blank',rel:'noreferrer'}),
           React.createElement('div',{style:{width:72,height:72,borderRadius:'50%',background:C.primary,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 28px rgba(255,255,255,.18)'}},
             React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:36}},'play_arrow')),
           React.createElement('div',{style:{position:'absolute',left:0,right:0,bottom:0,padding:16,background:'linear-gradient(180deg,transparent 0%,rgba(0,0,0,.85) 100%)'}},
-            React.createElement('div',{style:{fontWeight:700,color:'#fff',fontSize:14}},hlEmbed.type==='link'?('Watch on '+hlEmbed.source):'No highlight reel yet'),
-            React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginTop:2}},hlEmbed.type==='link'?'Opens in a new tab ↗':'Add a Hudl, YouTube, or 247Sports link in Edit Profile')))),
+            React.createElement('div',{style:{fontWeight:700,color:'#fff',fontSize:14}},'Watch on '+hlEmbed.source),
+            React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginTop:2}},'Opens in a new tab ↗')))),
       // Recruitment / Status
       React.createElement('section',null,
         React.createElement('h3',{style:{fontSize:14,fontWeight:800,color:'#fff',letterSpacing:'.05em',marginBottom:14,display:'flex',alignItems:'center',gap:10}},
@@ -3441,6 +3478,9 @@ const Profile=({token,user,onUpdate})=>{
                     React.createElement('span',{className:'mono',style:{fontSize:10,fontWeight:700,color:statusColor,textTransform:'uppercase',letterSpacing:'.06em'}},status)),
                   React.createElement('td',{className:'mono',style:{padding:'14px 18px',fontSize:13,color:C.success,fontWeight:700}},formatMoney(d.compensation?.amount||0)));
               })))))),
+
+    // Athlete's own media kit (files + links) — visible on their profile
+    isAthlete?React.createElement(MediaKitGallery,{items:user.mediaKitItems}):null,
 
     // ── Edit Profile (collapsed by default) ──────────────────────────────────
     editing&&React.createElement('section',{className:'card',style:{marginBottom:20}},
@@ -3504,6 +3544,21 @@ const Profile=({token,user,onUpdate})=>{
           React.createElement('div',null,React.createElement('label',{className:'label'},'Draft Trend'),
             React.createElement('select',{className:'input',value:form.draftTrend,onChange:set('draftTrend')},
               [['up','Trending up'],['steady','Holding steady'],['down','Cooling off']].map(([v,l])=>React.createElement('option',{key:v,value:v},l))))),
+        React.createElement('div',{style:{marginBottom:14}},
+          React.createElement('label',{className:'label'},'Media Kit — files & links'),
+          React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginBottom:8}},'Add photos, PDFs, clips, or links (Hudl, Drive, articles). These appear on your media kit.'),
+          (form.mediaKitItems||[]).length?React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:6,marginBottom:10}},
+            (form.mediaKitItems||[]).map((x,i)=>React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',background:C.surfaceDim,border:`1px solid ${C.border}`,borderRadius:8}},
+              React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18,color:C.primary}},x.kind==='file'?'description':'link'),
+              React.createElement('span',{style:{flex:1,fontSize:13,wordBreak:'break-all'}},x.label||x.url),
+              React.createElement('button',{type:'button',onClick:()=>removeMk(i),style:{background:'transparent',color:C.danger,fontSize:12,fontWeight:700,padding:'2px 6px'}},'Remove')))):null,
+          React.createElement('div',{style:{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}},
+            React.createElement('input',{className:'input',placeholder:'Label (optional)',value:mkLink.label,onChange:e=>setMkLink(s=>({...s,label:e.target.value})),style:{flex:'1 1 120px'}}),
+            React.createElement('input',{className:'input',placeholder:'https://… media link',value:mkLink.url,onChange:e=>setMkLink(s=>({...s,url:e.target.value})),onKeyDown:e=>{if(e.key==='Enter'){e.preventDefault();addMkLink();}},style:{flex:'2 1 200px'}}),
+            React.createElement('button',{type:'button',className:'btn btn-secondary',onClick:addMkLink},'Add link')),
+          React.createElement('label',{className:'btn btn-secondary',style:{cursor:mkBusy?'default':'pointer',display:'inline-flex',gap:6}},
+            React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'upload'),mkBusy?'Uploading…':'Upload file',
+            React.createElement('input',{type:'file',accept:'image/*,application/pdf,video/*',disabled:mkBusy,onChange:e=>{const f=e.target.files&&e.target.files[0];addMkFile(f);e.target.value='';},style:{display:'none'}}))),
         React.createElement('div',{style:{display:'flex',justifyContent:'flex-end'}},
           React.createElement('button',{type:'submit',className:'btn btn-primary',disabled:saving},saving?'Saving…':'Save Changes')))),
     // Social handles (visible only in edit mode)
@@ -4805,7 +4860,7 @@ const PublicAthlete=({id})=>{
       React.createElement('div',{className:'card',style:{marginBottom:16}},
         React.createElement('div',{style:{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap'}},
           React.createElement('div',{style:{position:'relative',flexShrink:0}},
-            React.createElement(Avatar,{name:a.name,src:a.avatar,size:84}),
+            React.createElement(Avatar,{name:a.name,src:headshot(a),size:84}),
             React.createElement('div',{style:{position:'absolute',inset:-3,borderRadius:'50%',border:`2px solid ${C.primary}`,boxShadow:'0 0 18px rgba(255,255,255,.18)',pointerEvents:'none'}})),
           React.createElement('div',{style:{flex:1,minWidth:200}},
             React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},

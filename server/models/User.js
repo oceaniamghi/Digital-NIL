@@ -8,6 +8,14 @@ const socialHandleSchema = new mongoose.Schema({
   connected: { type: Boolean, default: false }
 }, { _id: false });
 
+// Athlete-built media-kit template items: uploaded files or external media links.
+const mediaKitItemSchema = new mongoose.Schema({
+  kind: { type: String, enum: ['file', 'link'], default: 'link' },
+  url: { type: String, default: '' },
+  label: { type: String, default: '' },
+  mime: { type: String, default: '' }
+}, { _id: false });
+
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
@@ -38,6 +46,7 @@ const userSchema = new mongoose.Schema({
   draftTrend: { type: String, enum: ['up','down','steady',''], default: 'steady' },
   interestedTeams: [{ type: String }],              // e.g. ["NY Giants","Dallas Cowboys"]
   socialHandles: [socialHandleSchema],
+  mediaKitItems: [mediaKitItemSchema],              // athlete-curated media-kit files + links
   agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // agent who created/represents this athlete; null = not on any agent's list
   nilValue: { type: Number, default: 0 },
   totalEarnings: { type: Number, default: 0 },
