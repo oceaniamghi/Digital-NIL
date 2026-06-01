@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema({
   interestedTeams: [{ type: String }],              // e.g. ["NY Giants","Dallas Cowboys"]
   socialHandles: [socialHandleSchema],
   mediaKitItems: [mediaKitItemSchema],              // athlete-curated media-kit files + links
+  // Media-kit export entitlement. Free accounts get the share-card PNG; the high-end
+  // PDF media kit is the paid upgrade. 'kit' = $99 (PDF), 'pack' = $299 (PDF + program
+  // outreach). Granted manually via /api/owner/export-tier until Stripe webhooks land.
+  exportTier: { type: String, enum: ['free', 'kit', 'pack'], default: 'free' },
   agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // agent who created/represents this athlete; null = not on any agent's list
   nilValue: { type: Number, default: 0 },
   totalEarnings: { type: Number, default: 0 },

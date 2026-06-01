@@ -118,4 +118,27 @@ router.post('/seat-limit', async (req, res) => {
   }
 });
 
+// Grant (or revoke) an athlete's media-kit export entitlement after a manual
+// Stripe payment. Bridge until a Stripe webhook flips this automatically.
+//   curl -X POST $URL/api/owner/export-tier -H "x-owner-key: $OWNER_KEY" \
+//        -H "Content-Type: application/json" -d '{"email":"athlete@x.com","tier":"kit"}'
+router.post('/export-tier', async (req, res) => {
+  try {
+    const { email, tier } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'email is required' });
+    if (!['free', 'kit', 'pack'].includes(tier)) {
+      return res.status(400).json({ error: "tier must be 'free', 'kit', or 'pack'" });
+    }
+    const user = await User.findOneAndUpdate(
+      { email: String(email).toLowerCase().trim(), role: 'athlete' },
+      { exportTier: tier },
+      { new: true }
+    ).select('name email exportTier');
+    if (!user) return res.status(404).json({ error: 'Athlete not found' });
+    res.json({ ok: true, name: user.name, email: user.email, exportTier: user.exportTier });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

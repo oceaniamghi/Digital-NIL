@@ -2414,7 +2414,7 @@ const MediaKits=({token,user})=>{
     setExportingId(id+':'+kind);
     try{
       const r=await fetch(`/api/export/athlete/${id}/${kind}`,{headers:{Authorization:`Bearer ${token}`}});
-      if(!r.ok){let m='Export failed';try{m=(await r.json()).error||m;}catch(e){}throw new Error(m);}
+      if(!r.ok){let m='Export failed';try{const j=await r.json();m=r.status===402?(j.message||j.error||m):(j.error||m);}catch(e){}throw new Error(m);}
       const ct=r.headers.get('content-type')||'';
       if(!/pdf|image/.test(ct))throw new Error('Export unavailable — restart the server to load the export route.');
       const blob=await r.blob();const url=URL.createObjectURL(blob);
@@ -2972,7 +2972,7 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
     setExporting(kind);
     try{
       const r=await fetch(`/api/export/athlete/${a._id}/${kind}`,{headers:{Authorization:`Bearer ${token}`}});
-      if(!r.ok){let m='Export failed';try{m=(await r.json()).error||m;}catch(e){}throw new Error(m);}
+      if(!r.ok){let m='Export failed';try{const j=await r.json();m=r.status===402?(j.message||j.error||m):(j.error||m);}catch(e){}throw new Error(m);}
       const ct=r.headers.get('content-type')||'';
       if(!/pdf|image/.test(ct))throw new Error('Export unavailable — restart the server to load the export route.');
       const blob=await r.blob();
