@@ -4,6 +4,7 @@ import Activity from '../models/Activity.js';
 import User from '../models/User.js';
 import { requireAuth, requireRole, requireCap, upgradeRequired } from '../middleware/auth.js';
 import { planLimit, planCan, minPlanForLimit, minPlanForCap, planFeeRate, DEFAULT_FEE_RATE } from '../lib/plans.js';
+import { fundDeal, releaseDeal, refundDeal } from '../lib/payments.js';
 
 const router = express.Router();
 
@@ -314,6 +315,14 @@ router.put('/:id/decline', requireAuth, async (req, res) => {
     const isAthlete = deal.athlete?.toString() === req.user._id.toString();
     if (!isBrand && !isAthlete) return res.status(403).json({ error: 'Forbidden' });
 
+    // Return escrowed funds to the brand when a funded deal is cancelled.
+    if (deal.payment?.status === 'escrowed') {
+      try {
+        await refundDeal({ deal });
+        deal.payment.status = 'refunded';
+      } catch { /* leave escrowed; a human can refund from Stripe */ }
+    }
+
     deal.status = 'declined';
     await deal.save();
 
@@ -326,6 +335,44 @@ router.put('/:id/decline', requireAuth, async (req, res) => {
     });
 
     res.json({ deal });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/deals/:id/fund — brand funds the deal into escrow (Stripe Connect). The
+// deal must be the brand's and accepted (offered/active). With real Stripe this
+// returns a Checkout URL; in dev it escrows instantly so the flow is testable.
+router.post('/:id/fund', requireAuth, requireRole('brand'), async (req, res) => {
+  try {
+    const deal = await Deal.findById(req.params.id);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    if (deal.brand.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Not your deal' });
+    if (!['offered', 'active'].includes(deal.status)) {
+      return res.status(400).json({ error: 'Only an accepted (active) deal can be funded.' });
+    }
+    if (['escrowed', 'released'].includes(deal.payment?.status)) {
+      return res.status(409).json({ error: 'This deal is already funded.' });
+    }
+    const result = await fundDeal({ deal, brand: req.user, req });
+    if (result.url) {
+      deal.payment.status = 'funding';
+      await deal.save();
+      return res.json({ url: result.url });
+    }
+    // Simulated (dev): escrow immediately.
+    deal.payment = {
+      ...deal.payment.toObject?.() || deal.payment,
+      status: 'escrowed', intentId: result.intentId, amount: result.amount,
+      simulated: true, fundedAt: new Date()
+    };
+    await deal.save();
+    await Activity.create({
+      user: deal.brand, type: 'campaign_launched',
+      title: 'Deal funded (escrow)', message: `$${result.amount} held in escrow for: ${deal.title}`,
+      relatedDeal: deal._id
+    }).catch(() => {});
+    res.json({ deal, escrowed: true, simulated: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -344,13 +391,33 @@ router.put('/:id/complete', requireAuth, async (req, res) => {
     // were created before an athlete/agent was bound).
     deal.platformFeeRate = await feeRateForAthlete(deal.athlete);
     deal.status = 'completed';
-    await deal.save();
 
     // Update athlete earnings — net of the platform service fee (the athlete is paid
     // the gross minus Digital NIL's commission).
     if (deal.athlete) {
       const net = deal.athleteNet;        // virtual: gross − platform fee
       const fee = deal.platformFee;
+
+      // Release escrowed funds to the athlete's connected account (real payout, or a
+      // dev simulation). Only attempts when the brand actually funded the escrow;
+      // unfunded deals still record earnings so legacy/manual deals keep working.
+      if (deal.payment?.status === 'escrowed') {
+        const athlete = await User.findById(deal.athlete).select('name email stripeAccountId payoutsEnabled');
+        try {
+          const r = await releaseDeal({ deal, athlete });
+          deal.payment.status = 'released';
+          deal.payment.transferId = r.transferId;
+          deal.payment.fee = r.fee;
+          deal.payment.net = r.net;
+          deal.payment.releasedAt = new Date();
+        } catch (e) {
+          // Athlete hasn't onboarded payouts — keep funds in escrow, surface the reason.
+          await deal.save();
+          return res.status(409).json({ error: `Payout blocked: ${e.message}`, needsPayoutOnboarding: true });
+        }
+      }
+
+      await deal.save();
       await User.findByIdAndUpdate(deal.athlete, {
         $inc: {
           totalEarnings: net,
@@ -365,6 +432,8 @@ router.put('/:id/complete', requireAuth, async (req, res) => {
         message: `$${net} earned for: ${deal.title} (after $${fee} platform fee)`,
         relatedDeal: deal._id
       });
+    } else {
+      await deal.save();
     }
 
     await Activity.create({

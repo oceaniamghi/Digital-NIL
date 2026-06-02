@@ -13,6 +13,7 @@ import { findYouTubeReel } from '../lib/youtube.js';
 import { findEspnHeadshotId } from './cfbd.js';
 import { getLicenseState } from '../lib/license.js';
 import { sendEmail } from '../lib/resend.js';
+import { recordReferral } from '../lib/affiliate.js';
 
 const router = express.Router();
 
@@ -61,11 +62,14 @@ const signToken = (userId) =>
 // Invite tokens it's reusable by design — rotate it via the env var if it leaks.
 // Agents who join this way are NOT pre-verified and land on the Free plan.
 const AGENT_INVITE_CODE = (process.env.AGENT_INVITE_CODE || 'DNIL-AGENTS-2026').trim();
-const agentCodeMatches = (code) => {
+const COACH_INVITE_CODE = (process.env.COACH_INVITE_CODE || 'DNIL-COACHES-2026').trim();
+const codeMatches = (code, expected) => {
   const a = Buffer.from(String(code || '').trim());
-  const b = Buffer.from(AGENT_INVITE_CODE);
+  const b = Buffer.from(expected);
   return b.length > 0 && a.length === b.length && crypto.timingSafeEqual(a, b);
 };
+const agentCodeMatches = (code) => codeMatches(code, AGENT_INVITE_CODE);
+const coachCodeMatches = (code) => codeMatches(code, COACH_INVITE_CODE);
 
 // GET /api/auth/invite/:token — PUBLIC. Validate an invite so the register screen
 // can pre-fill role/agency/email and show who it's for before the user signs up.
@@ -84,7 +88,8 @@ router.get('/invite/:token', async (req, res) => {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name, role, sport, school, company, industry, agency, inviteToken, inviteCode } = req.body;
+    const { email, password, name, role, sport, school, company, industry, agency,
+      program, division, sportCoached, coachTitle, inviteToken, inviteCode, ref } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'Email, password, and name are required' });
     }
@@ -113,13 +118,17 @@ router.post('/register', async (req, res) => {
       finalAgency = invite.agency || agency;
       presetPlan = invite.plan || null;
     } else if (inviteCode) {
-      // Universal agent code: reusable, agent-only. Reject a wrong code outright so
-      // the user gets a clear error instead of silently becoming an athlete.
-      if (!agentCodeMatches(inviteCode)) {
+      // Universal reusable codes for privileged roles. Agent code → agent; coach code
+      // → coach. Reject a wrong code outright so the user gets a clear error instead
+      // of silently becoming an athlete.
+      if (agentCodeMatches(inviteCode)) {
+        finalRole = 'agent';
+        finalAgency = agency || '';
+      } else if (coachCodeMatches(inviteCode)) {
+        finalRole = 'coach';
+      } else {
         return res.status(400).json({ error: 'That invite code is not valid.' });
       }
-      finalRole = 'agent';
-      finalAgency = agency || '';
     } else {
       // No invite: only the two self-service roles are allowed. Anything else
       // (agent/admin attempts) silently falls back to athlete.
@@ -143,6 +152,7 @@ router.post('/register', async (req, res) => {
     const user = await User.create({
       email: normEmail, password, name, role: finalRole,
       sport, school, company, industry, agency: finalAgency,
+      ...(finalRole === 'coach' ? { program, division, sportCoached, coachTitle } : {}),
       ...(presetPlan ? { plan: presetPlan, planSince: new Date() } : {}),
       verified: preVerified, onboarded: false,
       verifyToken,
@@ -155,6 +165,10 @@ router.post('/register', async (req, res) => {
       invite.usedBy = user._id;
       await invite.save();
     }
+
+    // Attribute an athlete referral (?ref=CODE). No-ops on bad/self/duplicate codes
+    // and only counts athlete/coach signups; pays out later on paid conversion.
+    if (ref) await recordReferral(user, ref).catch(() => {});
 
     // Fire the verification email (skipped when pre-verified; no-op/logged when
     // Resend isn't configured).
@@ -305,7 +319,12 @@ router.put('/profile', requireAuth, async (req, res) => {
       'proStatus', 'nflTeam', 'statsUrl', 'cfbPlayerId',
       'jerseyNumber', 'heightDisplay', 'weightLbs', 'fortyTime', 'classYear',
       'highlightUrl', 'draftRound', 'draftTrend', 'interestedTeams',
-      'socialHandles', 'mediaKitItems', 'company', 'industry', 'website', 'logo', 'agency'];
+      'socialHandles', 'mediaKitItems', 'company', 'industry', 'website', 'logo', 'agency',
+      'dateOfBirth', 'isHighSchool',
+      // Coach profile fields (coach-entered = authoritative over scraped sources)
+      'program', 'division', 'sportCoached', 'coachTitle', 'recruitingPhilosophy',
+      'positionNeeds', 'scholarshipStatus', 'contactPrefs', 'introVideoUrl', 'coachRecord',
+      'complianceOfficerEmail', 'profileSources'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

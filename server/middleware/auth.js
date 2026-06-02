@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { planCan, minPlanForCap } from '../lib/plans.js';
+import { applyCompExpiry } from '../lib/affiliate.js';
 
 export const requireAuth = async (req, res, next) => {
   try {
@@ -12,6 +13,8 @@ export const requireAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select('-password');
     if (!user) return res.status(401).json({ error: 'User not found' });
+    // Auto-revert an expired free-months comp (cheap: only touches comped users).
+    if (user.planComped) await applyCompExpiry(user).catch(() => {});
     req.user = user;
     next();
   } catch (err) {

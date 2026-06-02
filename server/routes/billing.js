@@ -1,9 +1,12 @@
 import express from 'express';
 import Stripe from 'stripe';
 import User from '../models/User.js';
+import Deal from '../models/Deal.js';
 import Activity from '../models/Activity.js';
 import { requireAuth } from '../middleware/auth.js';
 import { planFor, isValidPlan, isPaidPlan, serializePlans, plansForRole } from '../lib/plans.js';
+import { qualifyReferral } from '../lib/affiliate.js';
+import { createPayoutOnboarding, payoutStatus } from '../lib/payments.js';
 
 const router = express.Router();
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -45,6 +48,8 @@ async function grantPlan(userId, plan, extra = {}) {
   if (extra.stripeCustomerId) user.stripeCustomerId = extra.stripeCustomerId;
   if (extra.stripeSubscriptionId) user.stripeSubscriptionId = extra.stripeSubscriptionId;
   await user.save();
+  // Pay out a referral when a referred user converts to a paid plan (idempotent).
+  if (isPaidPlan(user.role, plan)) qualifyReferral(user).catch(() => {});
   return user;
 }
 
@@ -142,6 +147,7 @@ router.post('/signup-fee', requireAuth, async (req, res) => {
       const user = await User.findByIdAndUpdate(
         req.user._id, { signupFeePaid: true }, { new: true }
       ).select('-password');
+      qualifyReferral(user).catch(() => {});
       return res.json({ granted: true, dev: true, user });
     }
 
@@ -169,6 +175,67 @@ router.post('/signup-fee', requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/billing/connect — start/resume Stripe Connect payout onboarding for the
+// logged-in user (athletes & agents receive deal payouts). Returns { url } to redirect
+// to, or { simulated } in dev where payouts are auto-enabled.
+router.post('/connect', requireAuth, async (req, res) => {
+  try {
+    if (!['athlete', 'agent'].includes(req.user.role)) {
+      return res.status(400).json({ error: 'Only athletes and agents receive payouts.' });
+    }
+    const result = await createPayoutOnboarding(req.user, req);
+    const updates = { stripeAccountId: result.accountId };
+    if (result.payoutsEnabled) updates.payoutsEnabled = true;
+    await User.findByIdAndUpdate(req.user._id, updates);
+    res.json({ url: result.url, simulated: !!result.simulated, payoutsEnabled: !!result.payoutsEnabled });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/billing/connect/status — refresh + report whether payouts are live.
+router.get('/connect/status', requireAuth, async (req, res) => {
+  try {
+    const { payoutsEnabled, simulated } = await payoutStatus(req.user);
+    if (payoutsEnabled && !req.user.payoutsEnabled) {
+      await User.findByIdAndUpdate(req.user._id, { payoutsEnabled: true });
+    }
+    res.json({ payoutsEnabled, simulated, onboarded: !!req.user.stripeAccountId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/billing/tax/1099?year=YYYY — a 1099-style payout summary. Athletes get
+// their own; admins can pass ?athleteId= for any athlete. Sums released escrow payouts.
+router.get('/tax/1099', requireAuth, async (req, res) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const start = new Date(year, 0, 1), end = new Date(year + 1, 0, 1);
+    let athleteId = req.user._id;
+    if (req.user.role === 'admin' && req.query.athleteId) athleteId = req.query.athleteId;
+    else if (!['athlete'].includes(req.user.role)) return res.status(403).json({ error: 'No payout records for this role.' });
+
+    const deals = await Deal.find({
+      athlete: athleteId, 'payment.status': 'released',
+      'payment.releasedAt': { $gte: start, $lt: end }
+    }).populate('brand', 'name company').select('title brand payment compensation').lean();
+
+    const gross = deals.reduce((s, d) => s + (d.payment?.amount || d.compensation?.amount || 0), 0);
+    const fees = deals.reduce((s, d) => s + (d.payment?.fee || 0), 0);
+    const net = deals.reduce((s, d) => s + (d.payment?.net || 0), 0);
+    res.json({
+      year, count: deals.length, gross, fees, net,
+      lines: deals.map(d => ({
+        deal: d.title, payer: d.brand?.company || d.brand?.name || '—',
+        gross: d.payment?.amount || d.compensation?.amount || 0, fee: d.payment?.fee || 0, net: d.payment?.net || 0
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/billing/webhook — Stripe calls this on payment events. Mounted with a
 // raw body (see index.js) so the signature can be verified. Subscriptions are kept
 // in sync: checkout completion grants the plan; cancellation reverts to free.
@@ -186,8 +253,24 @@ router.post('/webhook', async (req, res) => {
     if (event.type === 'checkout.session.completed') {
       const sess = event.data.object;
       const m = sess.metadata || {};
-      if (m.kind === 'signup_fee' && m.userId) {
+      if (m.kind === 'deal_escrow' && m.dealId) {
+        // Brand finished funding a deal into escrow.
+        const deal = await Deal.findById(m.dealId);
+        if (deal && deal.payment?.status !== 'released') {
+          deal.payment.status = 'escrowed';
+          deal.payment.intentId = sess.payment_intent || deal.payment.intentId;
+          deal.payment.amount = (sess.amount_total || 0) / 100 || deal.compensation?.amount || 0;
+          deal.payment.fundedAt = new Date();
+          await deal.save();
+          await Activity.create({
+            user: deal.brand, type: 'campaign_launched',
+            title: 'Deal funded (escrow)', message: `Escrow funded for: ${deal.title}`,
+            relatedDeal: deal._id
+          }).catch(() => {});
+        }
+      } else if (m.kind === 'signup_fee' && m.userId) {
         const user = await User.findByIdAndUpdate(m.userId, { signupFeePaid: true }, { new: true });
+        if (user) qualifyReferral(user).catch(() => {});
         if (user) {
           await Activity.create({
             user: user._id, type: 'campaign_launched',

@@ -1,8 +1,66 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
+import mongoose from 'mongoose';
+import User from '../models/User.js';
+import Deal from '../models/Deal.js';
+import { requireAuth, upgradeRequired } from '../middleware/auth.js';
+import { planCan, minPlanForCap } from '../lib/plans.js';
 import { findYouTubeReelIds } from '../lib/youtube.js';
+import { computeFmv } from '../lib/valuation.js';
 
 const router = express.Router();
+const oid = (id) => mongoose.Types.ObjectId.isValid(id);
+
+// Closed-deal comps for an athlete = the gross of every deal they've actually completed.
+async function compsFor(athleteId) {
+  const deals = await Deal.find({ athlete: athleteId, status: 'completed' }).select('compensation').lean();
+  return deals.map(d => d.compensation?.amount || 0).filter(Boolean);
+}
+
+// Resolve + serialize an FMV estimate for an athlete user doc.
+async function fmvForAthlete(athlete) {
+  const comps = await compsFor(athlete._id);
+  return computeFmv({
+    socialHandles: athlete.socialHandles || [],
+    sport: athlete.sport, proStatus: athlete.proStatus,
+    draftTrend: athlete.draftTrend, comps
+  });
+}
+
+// GET /api/socials/fmv — the logged-in athlete's own FMV (also persists nilValue).
+router.get('/fmv', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'athlete') return res.status(400).json({ error: 'FMV applies to athletes.' });
+    const fmv = await fmvForAthlete(req.user);
+    if (fmv.annual && fmv.annual !== req.user.nilValue) {
+      await User.findByIdAndUpdate(req.user._id, { nilValue: fmv.annual }).catch(() => {});
+    }
+    res.json({ fmv });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/socials/fmv/:athleteId — brand/agent/admin view of an athlete's FMV. Brands
+// need the fmvAnalytics capability (Growth+); agents can value their roster; admins any.
+router.get('/fmv/:athleteId', requireAuth, async (req, res) => {
+  try {
+    if (!oid(req.params.athleteId)) return res.status(400).json({ error: 'Invalid athlete' });
+    const athlete = await User.findOne({ _id: req.params.athleteId, role: 'athlete' })
+      .select('name socialHandles sport proStatus draftTrend nilValue agentId');
+    if (!athlete) return res.status(404).json({ error: 'Athlete not found' });
+
+    if (req.user.role === 'athlete' && String(req.user._id) !== String(athlete._id)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    if (req.user.role === 'brand' && !planCan(req.user, 'fmvAnalytics')) {
+      return upgradeRequired(res, 'Fair-market-value analytics', minPlanForCap('brand', 'fmvAnalytics'));
+    }
+    const fmv = await fmvForAthlete(athlete);
+    res.json({ fmv, athlete: { id: athlete._id, name: athlete.name } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // RapidAPI scraper providers. Hosts are overridable via env so you can swap to
 // whichever RapidAPI product you've subscribed to without touching code — the

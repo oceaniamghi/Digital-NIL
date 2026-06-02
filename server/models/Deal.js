@@ -35,6 +35,23 @@ const dealSchema = new mongoose.Schema({
   },
   platformFeeRate: { type: Number, default: 0.20 },
 
+  // Escrow + payout state (Stripe Connect; see lib/payments.js). The brand funds the
+  // gross into platform escrow while the deal is active; on completion the athlete's
+  // NET is transferred to their connected account and the platform keeps the fee.
+  //   unfunded → funding → escrowed → released   (or → refunded)
+  // `fee`/`net` are frozen at release so historical payouts stay correct.
+  payment: {
+    status: { type: String, enum: ['unfunded', 'funding', 'escrowed', 'released', 'refunded'], default: 'unfunded' },
+    intentId: { type: String, default: '' },     // Stripe PaymentIntent (escrow charge)
+    transferId: { type: String, default: '' },   // Stripe Transfer (athlete payout)
+    amount: { type: Number, default: 0 },         // gross escrowed
+    fee: { type: Number, default: 0 },            // platform fee retained at release
+    net: { type: Number, default: 0 },            // athlete net paid out
+    simulated: { type: Boolean, default: false }, // true when run in dev (no live Stripe)
+    fundedAt: { type: Date },
+    releasedAt: { type: Date }
+  },
+
   // Status workflow: open → applied → active → completed / declined
   // 'offered' = a brand offered this deal to a specific athlete, awaiting their acceptance
   status: {

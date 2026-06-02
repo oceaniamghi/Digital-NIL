@@ -20,7 +20,12 @@ import timelogRoutes from './routes/timelogs.js';
 import cfbdRoutes from './routes/cfbd.js';
 import socialsRoutes from './routes/socials.js';
 import crmRoutes from './routes/crm.js';
+import coachRoutes from './routes/coaches.js';
+import affiliateRoutes from './routes/affiliate.js';
+import { seedRewards } from './lib/affiliate.js';
+import messageRoutes from './routes/messages.js';
 import exportRoutes from './routes/export.js';
+import { seedDefaultPeriods } from './lib/recruiting.js';
 import ownerRoutes from './routes/owner.js';
 import inviteRoutes from './routes/invites.js';
 import billingRoutes from './routes/billing.js';
@@ -121,6 +126,9 @@ app.use('/api/timelogs', timelogRoutes);
 app.use('/api/cfbd', cfbdRoutes);
 app.use('/api/socials', socialsRoutes);
 app.use('/api/crm', crmRoutes);
+app.use('/api/coaches', coachRoutes);
+app.use('/api/affiliate', affiliateRoutes);
+app.use('/api/messages', messageRoutes);
 app.use('/api/export', exportRoutes);
 
 // Unknown API routes must 404 as JSON — never fall through to the SPA, or clients
@@ -157,7 +165,8 @@ const seedTestUsers = async () => {
   const seeds = [
     { email: 'agent@dnil.test', password: 'test1234', name: 'Test Agent', role: 'agent', agency: 'Digital NIL Sports' },
     { email: 'athlete@dnil.test', password: 'test1234', name: 'Test Athlete', role: 'athlete', sport: 'Football', school: 'Digital NIL University', position: 'WR' },
-    { email: 'brand@dnil.test', password: 'test1234', name: 'Test Brand', role: 'brand', company: 'Digital NIL Apparel', industry: 'Apparel' }
+    { email: 'brand@dnil.test', password: 'test1234', name: 'Test Brand', role: 'brand', company: 'Digital NIL Apparel', industry: 'Apparel' },
+    { email: 'coach@dnil.test', password: 'test1234', name: 'Coach Dabo Riley', role: 'coach', program: 'Digital NIL University', division: 'D1', sportCoached: 'Football', coachTitle: 'Head Coach', verifiedProgram: true, complianceOfficerEmail: 'compliance@dnil.test', recruitingPhilosophy: 'We recruit character first, then talent — transparently and within every NCAA rule.', coachRecord: '84-21, 7 seasons' }
   ];
   for (const s of seeds) {
     const exists = await User.findOne({ email: s.email });
@@ -664,6 +673,12 @@ const runSeeds = async () => {
   await seedTestUsers();
   await seedAthletes();
   await seedBrandsAndDeals();
+  try {
+    const n = await seedDefaultPeriods();   // NCAA recruiting calendar (idempotent)
+    if (n) console.log(`  + seeded ${n} NCAA recruiting period(s)`);
+    const r = await seedRewards();          // affiliate reward catalog (idempotent)
+    if (r) console.log(`  + seeded ${r} affiliate reward(s)`);
+  } catch (err) { console.warn('recruiting/affiliate seed skipped:', err.message); }
 };
 
 const connectMongo = async () => {

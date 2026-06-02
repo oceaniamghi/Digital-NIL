@@ -1,0 +1,15 @@
+{
+  "name": "Digital NIL — Athlete Marketing Platform",
+  "short_name": "Digital NIL",
+  "description": "Recruiting and NIL in one place — for athletes, brands, agents, and coaches.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1E1E1E",
+  "theme_color": "#1E1E1E",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

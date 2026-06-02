@@ -1,6 +1,8 @@
 import express from 'express';
 import User from '../models/User.js';
 import Activity from '../models/Activity.js';
+import RecruitingPeriod, { PERIOD_TYPES } from '../models/RecruitingPeriod.js';
+import ContactLog from '../models/ContactLog.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -17,15 +19,16 @@ const MAX_FEATURED = 20;
 // GET /api/admin/stats — headline counts for the console.
 router.get('/stats', async (req, res) => {
   try {
-    const [athletes, agents, brands, admins, featured, unverified] = await Promise.all([
+    const [athletes, agents, brands, coaches, admins, featured, unverified] = await Promise.all([
       User.countDocuments({ role: 'athlete' }),
       User.countDocuments({ role: 'agent' }),
       User.countDocuments({ role: 'brand' }),
+      User.countDocuments({ role: 'coach' }),
       User.countDocuments({ role: 'admin' }),
       User.countDocuments({ role: 'athlete', featured: true }),
       User.countDocuments({ verified: false })
     ]);
-    res.json({ athletes, agents, brands, admins, featured, maxFeatured: MAX_FEATURED, unverified });
+    res.json({ athletes, agents, brands, coaches, admins, featured, maxFeatured: MAX_FEATURED, unverified });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -51,13 +54,14 @@ router.get('/users', async (req, res) => {
 // PUT /api/admin/users/:id — master-edit a user record (the app + login fields).
 const EDITABLE = ['name', 'email', 'role', 'verified', 'onboarded', 'featured',
   'phone', 'signupFeePaid', 'cardOnFile', 'sport', 'school', 'position', 'company',
-  'industry', 'agency', 'bio', 'nilValue', 'exportTier', 'managed'];
+  'industry', 'agency', 'bio', 'nilValue', 'exportTier', 'managed',
+  'program', 'division', 'sportCoached', 'coachTitle', 'verifiedProgram', 'complianceOfficerEmail'];
 router.put('/users/:id', async (req, res) => {
   try {
     const updates = {};
     for (const k of EDITABLE) if (req.body[k] !== undefined) updates[k] = req.body[k];
     if (updates.email) updates.email = String(updates.email).toLowerCase().trim();
-    if (updates.role && !['athlete', 'brand', 'agent', 'admin'].includes(updates.role)) {
+    if (updates.role && !['athlete', 'brand', 'agent', 'coach', 'admin'].includes(updates.role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
     // Enforce the featured cap when turning one on.
@@ -168,6 +172,63 @@ router.delete('/messages/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── NCAA recruiting calendar (admin-editable) ─────────────────────────────────
+// The calendar varies by sport/division and changes yearly, so admins maintain it
+// here rather than in code. lib/recruiting.js reads these rows to gate coach actions.
+router.get('/recruiting-periods', async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.sport) query.sport = req.query.sport;
+    if (req.query.division) query.division = req.query.division;
+    const periods = await RecruitingPeriod.find(query).sort({ startDate: 1 });
+    res.json({ periods, types: PERIOD_TYPES });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/recruiting-periods', async (req, res) => {
+  try {
+    const { sport, division, type, label, startDate, endDate, year } = req.body || {};
+    if (!sport || !type || !startDate || !endDate) return res.status(400).json({ error: 'sport, type, startDate, endDate are required' });
+    if (!PERIOD_TYPES.includes(type)) return res.status(400).json({ error: 'Invalid period type' });
+    const period = await RecruitingPeriod.create({ sport, division: division || 'D1', type, label, startDate, endDate, year });
+    res.status(201).json({ period });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/recruiting-periods/:id', async (req, res) => {
+  try {
+    const allowed = ['sport', 'division', 'type', 'label', 'startDate', 'endDate', 'year', 'active'];
+    const updates = {};
+    for (const k of allowed) if (req.body[k] !== undefined) updates[k] = req.body[k];
+    if (updates.type && !PERIOD_TYPES.includes(updates.type)) return res.status(400).json({ error: 'Invalid period type' });
+    const period = await RecruitingPeriod.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
+    if (!period) return res.status(404).json({ error: 'Period not found' });
+    res.json({ period });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/recruiting-periods/:id', async (req, res) => {
+  try {
+    const period = await RecruitingPeriod.findByIdAndDelete(req.params.id);
+    if (!period) return res.status(404).json({ error: 'Period not found' });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Compliance audit: recent contact-log activity across all coaches, blocked first.
+router.get('/compliance/log', async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.blocked === '1') query.allowed = false;
+    const entries = await ContactLog.find(query)
+      .populate('coach', 'name program')
+      .populate('recruit', 'name')
+      .sort({ createdAt: -1 })
+      .limit(Math.min(parseInt(req.query.limit) || 200, 1000));
+    res.json({ entries });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 export default router;

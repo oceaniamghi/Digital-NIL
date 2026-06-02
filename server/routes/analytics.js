@@ -3,7 +3,9 @@ import Deal from '../models/Deal.js';
 import Content from '../models/Content.js';
 import Campaign from '../models/Campaign.js';
 import User from '../models/User.js';
-import { requireAuth } from '../middleware/auth.js';
+import Message from '../models/Message.js';
+import ContactLog from '../models/ContactLog.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -179,6 +181,67 @@ router.get('/deals', requireAuth, async (req, res) => {
     ]);
 
     res.json({ breakdown, byType });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/analytics/liquidity — the marketplace's ONE real health metric (admin).
+// Signups are vanity; this counts *two-sided actions* — interactions where both sides
+// engaged: funded/completed deals, two-way message threads, and answered coach contacts.
+// See GAMEPLAN.md Phase 0. `?weeks=` controls the trend window (default 6).
+router.get('/liquidity', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const DAY = 86400000;
+    const now = Date.now();
+    const since7 = new Date(now - 7 * DAY);
+
+    // Threads with at least one message in BOTH directions in the window = genuine
+    // two-sided conversations (not one party shouting into the void).
+    const twoWayThreads = await Message.aggregate([
+      { $match: { createdAt: { $gte: since7 } } },
+      { $group: { _id: '$thread', senders: { $addToSet: '$from' }, msgs: { $sum: 1 } } },
+      { $match: { 'senders.1': { $exists: true } } },   // ≥2 distinct senders
+      { $count: 'n' }
+    ]);
+
+    const [fundedDeals7d, completedDeals7d, coachContacts7d, messages7d, newSignups7d] = await Promise.all([
+      Deal.countDocuments({ 'payment.fundedAt': { $gte: since7 }, 'payment.status': { $in: ['escrowed', 'released'] } }),
+      Deal.countDocuments({ status: 'completed', updatedAt: { $gte: since7 } }),
+      ContactLog.countDocuments({ kind: 'message', allowed: true, createdAt: { $gte: since7 } }),
+      Message.countDocuments({ createdAt: { $gte: since7 } }),
+      User.countDocuments({ createdAt: { $gte: since7 } })
+    ]);
+
+    const activeThreads7d = twoWayThreads[0]?.n || 0;
+    const twoSidedActions7d = fundedDeals7d + completedDeals7d + activeThreads7d + coachContacts7d;
+
+    // Weekly trend of the headline number.
+    const weeks = Math.min(parseInt(req.query.weeks) || 6, 26);
+    const trend = [];
+    for (let i = weeks - 1; i >= 0; i--) {
+      const start = new Date(now - (i + 1) * 7 * DAY);
+      const end = new Date(now - i * 7 * DAY);
+      const [f, c, cc, tw] = await Promise.all([
+        Deal.countDocuments({ 'payment.fundedAt': { $gte: start, $lt: end }, 'payment.status': { $in: ['escrowed', 'released'] } }),
+        Deal.countDocuments({ status: 'completed', updatedAt: { $gte: start, $lt: end } }),
+        ContactLog.countDocuments({ kind: 'message', allowed: true, createdAt: { $gte: start, $lt: end } }),
+        Message.aggregate([
+          { $match: { createdAt: { $gte: start, $lt: end } } },
+          { $group: { _id: '$thread', senders: { $addToSet: '$from' } } },
+          { $match: { 'senders.1': { $exists: true } } },
+          { $count: 'n' }
+        ])
+      ]);
+      trend.push({ label: `wk-${i}`, value: f + c + cc + (tw[0]?.n || 0) });
+    }
+
+    res.json({
+      headline: { twoSidedActions7d, label: 'Two-sided actions (7d)' },
+      breakdown: { fundedDeals7d, completedDeals7d, activeThreads7d, coachContacts7d },
+      context: { newSignups7d, messages7d },
+      trend
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

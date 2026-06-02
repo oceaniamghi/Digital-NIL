@@ -9,6 +9,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<!-- PWA: installable + offline app shell (see client/sw.js, manifest.webmanifest) -->
+<link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="icon" href="/icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="/icon.svg"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Digital NIL"/>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#1E1E1E}
@@ -464,22 +479,32 @@ const usd=n=>'$'+(Number(n)||0).toLocaleString();
 // gating (planCan / planLimit). The server enforces all of this too.
 const PLANS_BY_ROLE={
   brand:[
-    {key:'free',name:'Free',price:0,tagline:'Explore the marketplace',limits:{deals:1,campaigns:0},caps:{directOffers:false,analytics:false,recruitmentTrips:false},features:['Browse the full athlete directory','View media kits & highlights','1 active deal listing at a time','Receive athlete applications']},
-    {key:'starter',name:'Starter',price:1000,tagline:'Start signing athletes',limits:{deals:5,campaigns:1},caps:{directOffers:true,analytics:false,recruitmentTrips:false},features:['Everything in Free, plus:','Send direct offers to any athlete','Up to 5 active deals','1 active campaign']},
-    {key:'growth',name:'Growth',price:2500,tagline:'Scale your NIL program',popular:true,limits:{deals:25,campaigns:10},caps:{directOffers:true,analytics:true,recruitmentTrips:false},features:['Everything in Starter, plus:','Up to 25 active deals','Up to 10 campaigns','Performance analytics & insights']},
-    {key:'pro',name:'Pro',price:5000,tagline:'Unlimited deal flow',limits:{deals:null,campaigns:null},caps:{directOffers:true,analytics:true,recruitmentTrips:false,prioritySupport:true},features:['Everything in Growth, plus:','Unlimited active deals','Unlimited campaigns','Priority athlete placement','Priority support']},
-    {key:'elite',name:'Elite',price:10000,tagline:'Full platform + recruitment trips',limits:{deals:null,campaigns:null},caps:{directOffers:true,analytics:true,recruitmentTrips:true,prioritySupport:true,accountManager:true},features:['Everything in Pro, plus:','Full access to every Digital NIL tool','Deals with funded recruitment trips','Dedicated account manager','White-glove onboarding']},
+    {key:'free',name:'Free',price:0,tagline:'Explore the marketplace',limits:{deals:1,campaigns:0,contacts:3,seats:1},caps:{directOffers:false,analytics:false,fmvAnalytics:false,bulkOutreach:false,recruitmentTrips:false,prioritySupport:false,accountManager:false,whiteLabel:false,api:false,sso:false},features:['Browse the full athlete directory','View media kits & highlights','1 active deal listing at a time','3 athlete contacts / month','Receive athlete applications']},
+    {key:'starter',name:'Starter',price:99,annual:990,tagline:'Start signing athletes',limits:{deals:5,campaigns:3,contacts:25,seats:2},caps:{directOffers:true,analytics:false,fmvAnalytics:false,bulkOutreach:false,recruitmentTrips:false,prioritySupport:false,accountManager:false,whiteLabel:false,api:false,sso:false},features:['Everything in Free, plus:','Send direct offers to any athlete','Up to 5 active deals & 3 campaigns','25 athlete contacts / month','2 team seats']},
+    {key:'growth',name:'Growth',price:299,annual:2990,tagline:'Scale your NIL program',popular:true,limits:{deals:25,campaigns:10,contacts:100,seats:5},caps:{directOffers:true,analytics:true,fmvAnalytics:true,bulkOutreach:false,recruitmentTrips:false,prioritySupport:false,accountManager:false,whiteLabel:false,api:false,sso:false},features:['Everything in Starter, plus:','Up to 25 active deals & 10 campaigns','100 athlete contacts / month','Fair-market-value & audience analytics','5 team seats']},
+    {key:'pro',name:'Pro',price:799,annual:7990,tagline:'Unlimited deal flow',limits:{deals:null,campaigns:null,contacts:null,seats:10},caps:{directOffers:true,analytics:true,fmvAnalytics:true,bulkOutreach:true,recruitmentTrips:false,prioritySupport:true,accountManager:false,whiteLabel:false,api:false,sso:false},features:['Everything in Growth, plus:','Unlimited deals, campaigns & contacts','Bulk athlete outreach','ROI & performance analytics','10 team seats','Priority support']},
+    {key:'elite',name:'Enterprise',price:2500,annual:25000,tagline:'Custom — full platform + recruitment trips',custom:true,limits:{deals:null,campaigns:null,contacts:null,seats:null},caps:{directOffers:true,analytics:true,fmvAnalytics:true,bulkOutreach:true,recruitmentTrips:true,prioritySupport:true,accountManager:true,whiteLabel:true,api:true,sso:true},features:['Everything in Pro, plus:','Funded recruitment-trip deals','White-label, API & SSO','Unlimited seats','Dedicated account manager','White-glove onboarding']},
   ],
   athlete:[
-    {key:'free',name:'Free',price:0,tagline:'Get discovered',limits:{mediaKitItems:3},caps:{mediaKitPdf:false,analytics:false,featuredBoost:false,outreach:false},features:['Public athlete profile & highlight reel','Apply to open deals','Share-card (PNG) export','Up to 3 media-kit items']},
-    {key:'plus',name:'Plus',price:19,tagline:'Stand out to brands',popular:true,limits:{mediaKitItems:null},caps:{mediaKitPdf:true,analytics:true,featuredBoost:false,outreach:false},features:['Everything in Free, plus:','High-end media-kit PDF export','Unlimited media-kit items','Profile & reach analytics']},
-    {key:'pro',name:'Pro',price:49,tagline:'Maximize your NIL',limits:{mediaKitItems:null},caps:{mediaKitPdf:true,analytics:true,featuredBoost:true,outreach:true,prioritySupport:true},features:['Everything in Plus, plus:','Featured placement in Discover','Direct outreach to brands & programs','Priority support']},
+    {key:'free',name:'Free',price:0,tagline:'Get discovered',limits:{mediaKitItems:3,coachContacts:3},caps:{contactCoach:false,mediaKitPdf:false,analytics:false,featuredBoost:false,outreach:false,prioritySupport:false},features:['Public athlete profile & highlight reel','Apply to open deals','Browse the coach & program directory','Share-card (PNG) export','3 coach intro requests / month','Up to 3 media-kit items']},
+    {key:'starter',name:'Recruit',price:19,annual:190,tagline:'Reach out to programs',limits:{mediaKitItems:10,coachContacts:null},caps:{contactCoach:true,mediaKitPdf:false,analytics:false,featuredBoost:false,outreach:false,prioritySupport:false},features:['Everything in Free, plus:','Unlimited coach messaging & interest','Advanced school search & filters','Who-viewed-me + recruiting checklist','Up to 10 media-kit items']},
+    {key:'plus',name:'Spotlight',price:39,annual:390,tagline:'Stand out to brands',popular:true,limits:{mediaKitItems:null,coachContacts:null},caps:{contactCoach:true,mediaKitPdf:true,analytics:true,featuredBoost:false,outreach:false,prioritySupport:false},features:['Everything in Recruit, plus:','High-end media-kit PDF export','Brand-deal marketplace access','Unlimited media-kit items','Profile & reach analytics']},
+    {key:'pro',name:'Pro',price:79,annual:790,tagline:'Maximize your NIL',limits:{mediaKitItems:null,coachContacts:null},caps:{contactCoach:true,mediaKitPdf:true,analytics:true,featuredBoost:true,outreach:true,prioritySupport:false},features:['Everything in Spotlight, plus:','Featured placement in Discover','AI-assisted outreach to brands & programs','Verified badge & priority visibility']},
+    {key:'elite',name:'Elite',price:149,annual:1490,tagline:'Concierge NIL + recruiting',limits:{mediaKitItems:null,coachContacts:null},caps:{contactCoach:true,mediaKitPdf:true,analytics:true,featuredBoost:true,outreach:true,prioritySupport:true},features:['Everything in Pro, plus:','Top placement across Discover & coach search','Concierge media-kit production','Human-assisted recruiting outreach','Priority support']},
   ],
   agent:[
-    {key:'free',name:'Free',price:0,tagline:'Manage a small roster',limits:{roster:3},dealFeeRate:0.20,caps:{outreachEmail:false,analytics:false},features:['Up to 3 roster athletes','CRM: leads, pipeline & accounts','Build & broker deals','Media-kit tools','20% platform fee on closed deals']},
-    {key:'starter',name:'Starter',price:99,tagline:'Grow your book',limits:{roster:15},dealFeeRate:0.15,caps:{outreachEmail:false,analytics:false},features:['Everything in Free, plus:','Up to 15 roster athletes','Talent marketing tools','Bulk media-kit export','Reduced 15% platform fee']},
-    {key:'pro',name:'Pro',price:299,tagline:'Run a full agency',popular:true,limits:{roster:60},dealFeeRate:0.10,caps:{outreachEmail:true,analytics:true},features:['Everything in Starter, plus:','Up to 60 roster athletes','CRM outreach email','Agency analytics & reporting','Reduced 10% platform fee']},
-    {key:'agency',name:'Agency',price:799,tagline:'Unlimited scale',limits:{roster:null},dealFeeRate:0.05,caps:{outreachEmail:true,analytics:true,prioritySupport:true,whiteLabel:true},features:['Everything in Pro, plus:','Unlimited roster athletes','Lowest 5% platform fee','White-glove onboarding','Priority support','White-label media kits']},
+    {key:'free',name:'Free',price:0,tagline:'Manage a small roster',limits:{roster:3,seats:1},dealFeeRate:0.20,caps:{outreachEmail:false,analytics:false,clientPortal:false,prioritySupport:false,whiteLabel:false,api:false,sso:false},features:['Up to 3 roster athletes','CRM: leads, pipeline & accounts','Build & broker deals','Media-kit tools','20% platform fee on closed deals']},
+    {key:'starter',name:'Starter',price:99,annual:990,tagline:'Grow your book',limits:{roster:15,seats:1},dealFeeRate:0.15,caps:{outreachEmail:false,analytics:false,clientPortal:false,prioritySupport:false,whiteLabel:false,api:false,sso:false},features:['Everything in Free, plus:','Up to 15 roster athletes','Talent marketing tools','Bulk media-kit export','Reduced 15% platform fee']},
+    {key:'pro',name:'Pro',price:299,annual:2990,tagline:'Run a full agency',popular:true,limits:{roster:50,seats:3},dealFeeRate:0.10,caps:{outreachEmail:true,analytics:true,clientPortal:true,prioritySupport:false,whiteLabel:false,api:false,sso:false},features:['Everything in Starter, plus:','Up to 50 roster athletes','3 agency seats','CRM outreach email (Resend)','Branded client portal','Reduced 10% platform fee']},
+    {key:'agency',name:'Agency',price:699,annual:6990,tagline:'Scale your agency',limits:{roster:200,seats:10},dealFeeRate:0.07,caps:{outreachEmail:true,analytics:true,clientPortal:true,prioritySupport:true,whiteLabel:true,api:false,sso:false},features:['Everything in Pro, plus:','Up to 200 roster athletes','10 agency seats','Reduced 7% platform fee','White-label media kits','Priority support']},
+    {key:'enterprise',name:'Enterprise',price:1499,annual:14990,tagline:'Unlimited scale',custom:true,limits:{roster:null,seats:null},dealFeeRate:0.04,caps:{outreachEmail:true,analytics:true,clientPortal:true,prioritySupport:true,whiteLabel:true,api:true,sso:true},features:['Everything in Agency, plus:','Unlimited roster & seats','Lowest 4% platform fee','Dedicated account team','API, SSO & custom integrations']},
+  ],
+  coach:[
+    {key:'free',name:'Free',price:0,tagline:'Track a few recruits',limits:{recruits:5,seats:1},caps:{recruitMessaging:false,visitScheduling:false,complianceExport:false,multiSeat:false,analytics:false,prioritySupport:false,whiteLabel:false},features:['Up to 5 tracked recruits','Live NCAA recruiting-calendar view','Transparent contact log','Receive athlete-initiated interest']},
+    {key:'recruiter',name:'Recruiter',price:99,annual:990,tagline:'Work your board',limits:{recruits:50,seats:1},caps:{recruitMessaging:true,visitScheduling:false,complianceExport:false,multiSeat:false,analytics:false,prioritySupport:false,whiteLabel:false},features:['Everything in Free, plus:','Up to 50 recruits','Calendar-gated recruit messaging','Saved searches, pipeline stages & lead scoring']},
+    {key:'program',name:'Program',price:299,annual:2990,tagline:'Run a program',popular:true,limits:{recruits:250,seats:3},caps:{recruitMessaging:true,visitScheduling:true,complianceExport:true,multiSeat:true,analytics:true,prioritySupport:false,whiteLabel:false},features:['Everything in Recruiter, plus:','Up to 250 recruits','3 coach seats','Official/unofficial visit scheduling','Compliance log export (PDF/CSV)','Recruiting analytics']},
+    {key:'department',name:'Department',price:699,annual:6990,tagline:'Whole department',limits:{recruits:null,seats:10},caps:{recruitMessaging:true,visitScheduling:true,complianceExport:true,multiSeat:true,analytics:true,prioritySupport:false,whiteLabel:false},features:['Everything in Program, plus:','Unlimited recruits','Multi-coach seats (up to 10)','Multi-sport & advanced analytics','Integrations']},
+    {key:'conference',name:'Conference',price:1999,annual:19990,tagline:'Custom — conference-grade',custom:true,limits:{recruits:null,seats:null},caps:{recruitMessaging:true,visitScheduling:true,complianceExport:true,multiSeat:true,analytics:true,prioritySupport:true,whiteLabel:true},features:['Everything in Department, plus:','Unlimited coach seats','Dedicated compliance dashboard','White-label, SSO & multi-program','Priority support']},
   ],
 };
 const plansForRole=role=>PLANS_BY_ROLE[role]||[];
@@ -534,8 +559,10 @@ const Modal=({open,onClose,title,children,maxWidth=600})=>{
 const NAV_ATHLETE=[
   {id:'dashboard',icon:'dashboard',label:'Home'},
   {id:'opportunities',icon:'explore',label:'Discover'},
+  {id:'coaches',icon:'sports',label:'Coaches'},
   {id:'tracker',icon:'view_kanban',label:'Pipeline'},
   {id:'my-deals',icon:'handshake',label:'Deals'},
+  {id:'rewards',icon:'redeem',label:'Rewards'},
   {id:'inbox',icon:'forum',label:'Inbox'},
   {id:'pricing',icon:'workspace_premium',label:'Upgrade'},
   {id:'profile',icon:'person',label:'Profile'},
@@ -564,16 +591,27 @@ const NAV_AGENT=[
   {id:'help',icon:'help',label:'Help'},
 ];
 
+const NAV_COACH=[
+  {id:'dashboard',icon:'dashboard',label:'Home'},
+  {id:'coach-recruits',icon:'groups',label:'Recruits'},
+  {id:'coach-calendar',icon:'event',label:'Calendar'},
+  {id:'coach-compliance',icon:'verified_user',label:'Compliance'},
+  {id:'plans',icon:'workspace_premium',label:'Plan'},
+  {id:'profile',icon:'person',label:'Profile'},
+  {id:'help',icon:'help',label:'Help'},
+];
+
 const NAV_ADMIN=[
   {id:'dashboard',icon:'admin_panel_settings',label:'Console'},
   {id:'admin-users',icon:'group',label:'Users'},
   {id:'admin-featured',icon:'star',label:'Top 20'},
+  {id:'admin-calendar',icon:'event',label:'NCAA Calendar'},
   {id:'admin-messages',icon:'forum',label:'Messages'},
   {id:'profile',icon:'person',label:'Profile'},
   {id:'help',icon:'help',label:'Help'},
 ];
 
-const getNav=role=>role==='admin'?NAV_ADMIN:role==='brand'?NAV_BRAND:role==='agent'?NAV_AGENT:NAV_ATHLETE;
+const getNav=role=>role==='admin'?NAV_ADMIN:role==='brand'?NAV_BRAND:role==='agent'?NAV_AGENT:role==='coach'?NAV_COACH:NAV_ATHLETE;
 // financials/content/analytics are deep-links into the Inbox hub — keep the
 // sidebar's Inbox item highlighted when one of those landing pages is open.
 const INBOX_ALIASES=new Set(['inbox','financials','content','analytics']);
@@ -650,8 +688,8 @@ const MobileTopBar=({user,unread,onProfile,onNotifications})=>{
 // ── Auth Screen ───────────────────────────────────────────────────────────────
 const AuthScreen=({onAuth})=>{
   // Default to Sign Up when arrived via aiga8.com's "create free account" funnel (?signup=1).
-  const[tab,setTab]=useState(()=>{try{return (new URLSearchParams(location.search).get('signup')||new URLSearchParams(location.search).get('invite'))?'register':'login';}catch(e){return 'login';}});
-  const[form,setForm]=useState({email:'',password:'',name:'',role:'athlete',sport:'',school:'',company:'',industry:'',inviteCode:'',inviteToken:''});
+  const[tab,setTab]=useState(()=>{try{const p=new URLSearchParams(location.search);return (p.get('signup')||p.get('invite')||p.get('ref'))?'register':'login';}catch(e){return 'login';}});
+  const[form,setForm]=useState({email:'',password:'',name:'',role:'athlete',sport:'',school:'',company:'',industry:'',program:'',division:'D1',sportCoached:'',coachTitle:'',inviteCode:'',inviteToken:'',ref:(()=>{try{return new URLSearchParams(location.search).get('ref')||'';}catch(e){return '';}})()});
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState('');
   const[showPw,setShowPw]=useState(false);
@@ -671,7 +709,7 @@ const AuthScreen=({onAuth})=>{
       }else{setError('This invite link is invalid or has expired.');}
     }).catch(()=>setError('This invite link is invalid or has expired.'));
   },[]);
-  const roleLabel=r=>({agent:'🤝 Agent',admin:'🛡️ Admin',athlete:'🏃 Athlete',brand:'🏢 Brand'}[r]||r);
+  const roleLabel=r=>({agent:'🤝 Agent',admin:'🛡️ Admin',athlete:'🏃 Athlete',brand:'🏢 Brand',coach:'🏟️ Coach'}[r]||r);
 
   // Seeded demo accounts (server seeds these in dev / when SEED_TEST_USERS is on).
   // Click one to fill the sign-in form so any role can be tried in one tap.
@@ -679,7 +717,8 @@ const AuthScreen=({onAuth})=>{
     {role:'admin',label:'🛡️ Admin',email:'admin@dnil.test',password:'admin1234'},
     {role:'agent',label:'🤝 Agent',email:'agent@dnil.test',password:'test1234'},
     {role:'athlete',label:'🏃 Athlete',email:'athlete@dnil.test',password:'test1234'},
-    {role:'brand',label:'🏢 Brand',email:'brand@dnil.test',password:'test1234'}
+    {role:'brand',label:'🏢 Brand',email:'brand@dnil.test',password:'test1234'},
+    {role:'coach',label:'🏟️ Coach',email:'coach@dnil.test',password:'test1234'}
   ];
   const fillDemo=d=>{setTab('login');setError('');setForm(f=>({...f,email:d.email,password:d.password}));};
 
@@ -718,6 +757,8 @@ const AuthScreen=({onAuth})=>{
         error&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.danger}`,padding:'10px 14px',borderRadius:10,fontSize:13,marginBottom:16}},error),
         React.createElement('form',{onSubmit:submit},
           tab==='register'&&React.createElement(React.Fragment,null,
+            form.ref&&React.createElement('div',{style:{marginBottom:14,padding:'10px 14px',background:`${C.success}14`,border:`1px solid ${C.success}55`,borderRadius:10,fontSize:13,color:C.text}},
+              React.createElement('span',{style:{fontWeight:700,color:C.success}},'🎁 Referred by a teammate — '),'join and they earn a reward when you go paid.'),
             React.createElement('div',{style:{marginBottom:14}},
               React.createElement('label',{className:'label'},'Full Name'),
               React.createElement('input',{className:'input',placeholder:'Your full name',value:form.name,onChange:set('name'),required:true})),
@@ -730,11 +771,23 @@ const AuthScreen=({onAuth})=>{
                   React.createElement('select',{className:'input',value:form.role,onChange:set('role')},
                     React.createElement('option',{value:'athlete'},'🏃 Athlete'),
                     React.createElement('option',{value:'brand'},'🏢 Brand / Company'),
-                    React.createElement('option',{value:'agent'},'🤝 Agent'))),
+                    React.createElement('option',{value:'agent'},'🤝 Agent'),
+                    React.createElement('option',{value:'coach'},'🏟️ Coach'))),
             !invite&&form.role==='agent'&&React.createElement('div',{style:{marginBottom:14}},
               React.createElement('label',{className:'label'},'Agent invite code'),
               React.createElement('input',{className:'input',placeholder:'Enter your agency code',value:form.inviteCode,onChange:set('inviteCode'),required:true}),
               React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:6}},'Required to register as an agent — ask your agency admin for the code.')),
+            !invite&&form.role==='coach'&&React.createElement(React.Fragment,null,
+              React.createElement('div',{style:{marginBottom:14}},
+                React.createElement('label',{className:'label'},'Coach invite code'),
+                React.createElement('input',{className:'input',placeholder:'Enter your program code',value:form.inviteCode,onChange:set('inviteCode'),required:true}),
+                React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:6}},'Required to register as a coach — verifies you represent a real program. Recruiting is NCAA calendar-gated and logged.')),
+              React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
+                React.createElement('div',null,React.createElement('label',{className:'label'},'Program / School'),React.createElement('input',{className:'input',placeholder:'Ohio State',value:form.program,onChange:set('program')})),
+                React.createElement('div',null,React.createElement('label',{className:'label'},'Division'),React.createElement('select',{className:'input',value:form.division,onChange:set('division')},['D1','D2','D3','NAIA','JUCO'].map(d=>React.createElement('option',{key:d,value:d},d))))),
+              React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
+                React.createElement('div',null,React.createElement('label',{className:'label'},'Sport'),React.createElement('input',{className:'input',placeholder:'Football',value:form.sportCoached,onChange:set('sportCoached')})),
+                React.createElement('div',null,React.createElement('label',{className:'label'},'Title'),React.createElement('input',{className:'input',placeholder:'Recruiting Coordinator',value:form.coachTitle,onChange:set('coachTitle')})))),
             !invite&&form.role==='athlete'&&React.createElement(React.Fragment,null,
               React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
                 React.createElement('div',null,React.createElement('label',{className:'label'},'Sport'),React.createElement('input',{className:'input',placeholder:'Football',value:form.sport,onChange:set('sport')})),
@@ -1417,6 +1470,24 @@ const MyDeals=({token,user})=>{
     try{await api('DELETE',`/deals/${id}`,null,token);load();}catch(err){alert(err.message);}
   };
 
+  // Brand funds a deal into escrow (Stripe Connect). Real Stripe → redirect to Checkout;
+  // dev → escrows instantly. Completing the deal later releases the athlete's payout.
+  const fundDeal=async id=>{
+    try{
+      const r=await api('POST',`/deals/${id}/fund`,{},token);
+      if(r&&r.url){window.location.href=r.url;return;}
+      load();setSelected(null);
+    }catch(err){alert(err.message);}
+  };
+  // Athlete connects a payout account so completed deals pay out automatically.
+  const startPayouts=async()=>{
+    try{
+      const r=await api('POST','/billing/connect',{},token);
+      if(r&&r.url&&!r.simulated){window.location.href=r.url;return;}
+      alert('Payouts are enabled on your account.');
+    }catch(err){alert(err.message);}
+  };
+
   // Pipeline total (active+pending payout)
   const pipeline=deals.filter(d=>['open','applied','active'].includes(d.status)).reduce((s,d)=>s+(d.compensation?.amount||0),0);
   const closedCount=deals.filter(d=>d.status==='completed').length;
@@ -1441,6 +1512,12 @@ const MyDeals=({token,user})=>{
       React.createElement('div',{className:'kicker',style:{marginBottom:8}},'Pipeline'),
       React.createElement('h1',{className:'page-title'},isAgent?'Roster Deals':'Deals Management'),
       React.createElement('p',{className:'page-subtitle'},isAgent?'Track every deal across your athletes.':isBrand?'Manage sponsorships and applications.':'Active contracts and pending opportunities.')),
+    // Athlete payout onboarding nudge — completed deals pay out via a connected account.
+    (!isBrand&&!isAgent&&!user.payoutsEnabled)?React.createElement('div',{className:'card',style:{padding:16,marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,border:`1px solid ${C.borderRed}`}},
+      React.createElement('div',null,
+        React.createElement('div',{style:{fontSize:14,fontWeight:700,color:'#fff'}},'Set up payouts'),
+        React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},'Connect a payout account so brand deals pay out to you automatically.')),
+      React.createElement('button',{className:'btn btn-primary',style:{padding:'8px 14px',fontSize:13,flexShrink:0},onClick:startPayouts},'Enable payouts')):null,
     // Bento stat overview (Stitch design)
     React.createElement('div',{className:'stat-grid',style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:24}},
       [
@@ -1574,6 +1651,16 @@ const MyDeals=({token,user})=>{
                     onClick:()=>action(selected._id,'accept',{athleteId:app.athlete?._id})},'Accept'),
                   React.createElement('button',{className:'btn btn-ghost',style:{padding:'6px 10px',fontSize:12,color:C.danger},
                     onClick:()=>action(selected._id,'decline')},'Pass'))))):null,
+        // Escrow: brand funds the deal; completing it releases the athlete's payout.
+        selected.status==='active'&&isBrand&&selected.payment?.status!=='escrowed'&&selected.payment?.status!=='released'?
+          React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center',marginBottom:8},
+            onClick:()=>fundDeal(selected._id)},'Fund escrow — '+formatMoney(selected.compensation?.amount||0)):null,
+        selected.payment?.status==='escrowed'?
+          React.createElement('div',{style:{background:'rgba(78,201,176,.10)',color:C.success,padding:'10px',borderRadius:8,fontSize:13,textAlign:'center',marginBottom:8}},
+            '✓ '+formatMoney(selected.payment?.amount||selected.compensation?.amount||0)+' held in escrow — completing the deal releases the payout.'):null,
+        selected.payment?.status==='released'?
+          React.createElement('div',{style:{background:'rgba(78,201,176,.10)',color:C.success,padding:'10px',borderRadius:8,fontSize:13,textAlign:'center',marginBottom:8}},
+            '✓ Payout released'+(selected.payment?.net?' — '+formatMoney(selected.payment.net)+' to athlete':'')):null,
         selected.status==='active'&&(isBrand||isAgent)?
           React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center',marginBottom:8},
             onClick:()=>action(selected._id,'complete')},'Mark as Completed ✓'):null,
@@ -5620,6 +5707,294 @@ const AdminConsole=({token,user,initialTab='overview'})=>{
     tab==='messages'&&React.createElement(AdminMessages,{token}));
 };
 
+// ── Athlete affiliate / referral rewards ──────────────────────────────────────
+const AffiliateRewards=({token,user,onUpdate})=>{
+  const[data,setData]=useState(null);
+  const[rewards,setRewards]=useState([]);
+  const[copied,setCopied]=useState(false);
+  const[msg,setMsg]=useState('');const[busy,setBusy]=useState('');
+  const load=()=>{api('GET','/affiliate/me',null,token).then(setData).catch(()=>setData({error:true}));api('GET','/affiliate/rewards',null,token).then(d=>setRewards(d.rewards||[])).catch(()=>{});};
+  useEffect(()=>{load();},[]);
+  const copy=()=>{if(!data)return;try{navigator.clipboard.writeText(data.shareLink);setCopied(true);setTimeout(()=>setCopied(false),1800);}catch(e){}};
+  const redeem=async(r)=>{setMsg('');setBusy(r.key);try{const d=await api('POST','/affiliate/redeem',{key:r.key},token);setMsg(`🎉 Redeemed ${r.name}! Your plan is free until ${d.redemption.compUntil?new Date(d.redemption.compUntil).toLocaleDateString():'soon'}.`);if(onUpdate&&d.user)onUpdate(d.user);load();}catch(e){setMsg(e.message);}setBusy('');};
+  if(!data)return React.createElement('div',{className:'page'},React.createElement(Spinner));
+  const credits=data.credits||0;
+  const statusBadge=s=>s==='qualified'?{t:'Paid ✓',c:C.success}:{t:'Pending upgrade',c:'#F59E0B'};
+  const stat=(label,val,icon,color)=>React.createElement('div',{key:label,style:{flex:1,minWidth:150,background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:'16px 18px'}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,color:C.textSecondary,fontSize:12,fontWeight:600,marginBottom:6}},React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18,color:color||C.primary}},icon),label),
+    React.createElement('div',{style:{fontSize:26,fontWeight:800,color:'#fff'}},val));
+  return React.createElement('div',{className:'page'},
+    React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff',marginBottom:4}},'Refer & Earn'),
+    React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginBottom:18}},'Refer 2 athletes who go paid and earn a free month. Coaches count double.'),
+    data.comp&&data.comp.active&&React.createElement('div',{style:{background:`${C.success}1a`,border:`1px solid ${C.success}55`,color:C.success,borderRadius:12,padding:'12px 16px',fontSize:13,fontWeight:600,marginBottom:16}},`🎁 Your ${planName(user)} plan is free until ${new Date(data.comp.until).toLocaleDateString()}.`),
+    msg&&React.createElement('div',{style:{background:`${C.primary}14`,border:`1px solid ${C.primary}55`,color:C.text,borderRadius:10,padding:'12px 14px',fontSize:13,marginBottom:16}},msg),
+    // Share link
+    React.createElement('div',{style:{background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:18,marginBottom:18}},
+      React.createElement('div',{style:{fontWeight:800,color:'#fff',marginBottom:4}},'Your referral link'),
+      React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginBottom:12}},`Code: ${data.referralCode}`),
+      React.createElement('div',{style:{display:'flex',gap:10,flexWrap:'wrap'}},
+        React.createElement('input',{className:'input',readOnly:true,value:data.shareLink,style:{flex:1,minWidth:220}}),
+        React.createElement('button',{className:'btn btn-primary',onClick:copy},copied?'Copied!':'Copy link'))),
+    // Stats
+    React.createElement('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginBottom:18}},
+      stat('Credits available',credits,'paid'),
+      stat('Paid referrals',data.qualifiedReferralCount||0,'group_add',C.success),
+      stat('Pending',data.pendingCount||0,'hourglass_top','#F59E0B'),
+      stat('Lifetime earned',data.creditsEarned||0,'military_tech')),
+    // Rewards catalog
+    React.createElement('h2',{style:{fontSize:18,fontWeight:800,color:'#fff',margin:'4px 0 12px'}},'Rewards'),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:12,marginBottom:22}},
+      rewards.map(r=>{const can=credits>=r.creditsCost;return React.createElement('div',{key:r.key,style:{background:C.glass,border:`1px solid ${can?C.primary+'66':C.border}`,borderRadius:14,padding:18,display:'flex',flexDirection:'column',gap:8}},
+        React.createElement('div',{style:{fontSize:30}},'🎁'),
+        React.createElement('div',{style:{fontWeight:800,color:'#fff',fontSize:16}},r.name),
+        React.createElement('div',{style:{fontSize:12,color:C.textSecondary,flex:1}},r.description),
+        React.createElement('div',{style:{fontWeight:700,color:C.primary,fontSize:13}},`${r.creditsCost} credits`),
+        React.createElement('button',{className:can?'btn btn-primary':'btn btn-secondary',disabled:!can||busy===r.key,onClick:()=>redeem(r),style:{width:'100%'}},busy===r.key?'Redeeming…':can?'Redeem':`Need ${r.creditsCost-credits} more`));})),
+    // Referral list
+    React.createElement('h2',{style:{fontSize:18,fontWeight:800,color:'#fff',margin:'4px 0 12px'}},'Your referrals'),
+    (data.referrals||[]).length===0?React.createElement('p',{style:{color:C.textMuted,fontSize:13}},'No referrals yet — share your link to get started.'):
+    React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+      data.referrals.map(rf=>{const sb=statusBadge(rf.status);return React.createElement('div',{key:rf._id,style:{display:'flex',alignItems:'center',gap:12,background:C.glass,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px 14px'}},
+        React.createElement(Avatar,{name:rf.referredUser?rf.referredUser.name:'?',src:rf.referredUser&&rf.referredUser.avatar,size:36}),
+        React.createElement('div',{style:{flex:1}},
+          React.createElement('div',{style:{fontWeight:700,color:'#fff',fontSize:14}},rf.referredUser?rf.referredUser.name:'Invited athlete'),
+          React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},`${rf.referredRole==='coach'?'Coach':'Athlete'} · joined ${fmtDate(rf.createdAt)}`)),
+        rf.status==='qualified'&&React.createElement('span',{style:{fontSize:12,fontWeight:700,color:C.primary}},`+${rf.creditsAwarded}`),
+        React.createElement('span',{style:{fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:12,background:`${sb.c}1a`,color:sb.c}},sb.t));})));
+};
+
+// ── Coaches module (NCAA recruiting funnel) ───────────────────────────────────
+const PERIOD_COLORS={contact:C.success,evaluation:'#F59E0B',quiet:'#06B6D4',dead:C.danger,none:C.textMuted};
+const PERIOD_LABEL={contact:'Contact Period',evaluation:'Evaluation Period',quiet:'Quiet Period',dead:'Dead Period',none:'No window on calendar'};
+const RECRUIT_STAGE_LABELS={prospect:'Prospect',contacted:'Contacted',evaluating:'Evaluating',visit_scheduled:'Visit Scheduled',offer_extended:'Offer Extended',committed:'Committed',signed:'Signed',closed:'Closed'};
+const RECRUIT_STAGES_ORDER=['prospect','contacted','evaluating','visit_scheduled','offer_extended','committed','signed','closed'];
+const fmtDate=d=>{try{return new Date(d).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}catch(e){return '';}};
+const consentBadge=cs=>({none:{t:'No consent',c:C.textMuted},invited:{t:'Invite sent',c:'#F59E0B'},athlete:{t:'Athlete consented',c:C.success},guardian:{t:'Guardian consented',c:C.success},revoked:{t:'Consent revoked',c:C.danger}}[cs]||{t:cs,c:C.textMuted});
+
+// Live NCAA recruiting-calendar banner. Used at the top of coach views.
+const CalendarBanner=({token,user,sport,division})=>{
+  const[cal,setCal]=useState(null);
+  useEffect(()=>{api('GET',`/coaches/calendar${sport?`?sport=${encodeURIComponent(sport)}${division?`&division=${division}`:''}`:''}`,null,token).then(setCal).catch(()=>{});},[sport,division]);
+  if(!cal)return null;
+  const t=cal.current?cal.current.type:'none';const col=PERIOD_COLORS[t]||C.textMuted;
+  return React.createElement('div',{style:{display:'flex',alignItems:'center',gap:14,padding:'14px 18px',borderRadius:14,background:`${col}14`,border:`1px solid ${col}55`,marginBottom:18,flexWrap:'wrap'}},
+    React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:24,color:col}},t==='dead'?'block':t==='contact'?'check_circle':'event'),
+    React.createElement('div',{style:{flex:1,minWidth:200}},
+      React.createElement('div',{style:{fontWeight:800,color:'#fff',fontSize:15}},`${cal.sport} · ${cal.division} — ${PERIOD_LABEL[t]||t}`),
+      React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},cal.current?`${fmtDate(cal.current.startDate)} → ${fmtDate(cal.current.endDate)}`:'No active recruiting window on file')),
+    cal.next&&React.createElement('div',{style:{fontSize:12,color:C.textSecondary,textAlign:'right'}},
+      React.createElement('div',{style:{color:C.textMuted}},'Next'),
+      React.createElement('div',{style:{fontWeight:700,color:PERIOD_COLORS[cal.next.type]}},`${PERIOD_LABEL[cal.next.type]||cal.next.type} · ${fmtDate(cal.next.startDate)}`)));
+};
+
+const CoachDashboard=({token,user,onNavigate})=>{
+  const[recruits,setRecruits]=useState(null);
+  useEffect(()=>{api('GET','/coaches/recruits',null,token).then(d=>setRecruits(d.recruits||[])).catch(()=>setRecruits([]));},[]);
+  const limit=planLimit(user,'recruits');
+  const byStage=(recruits||[]).reduce((a,r)=>{a[r.stage]=(a[r.stage]||0)+1;return a;},{});
+  const card=(label,val,icon,color)=>React.createElement('div',{key:label,style:{flex:1,minWidth:150,background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:'16px 18px'}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,color:C.textSecondary,fontSize:12,fontWeight:600,marginBottom:6}},React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18,color:color||C.primary}},icon),label),
+    React.createElement('div',{style:{fontSize:26,fontWeight:800,color:'#fff'}},val));
+  return React.createElement('div',{className:'page'},
+    React.createElement('div',{style:{marginBottom:18}},
+      React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff'}},`Welcome, ${user.name}`),
+      React.createElement('p',{style:{color:C.textSecondary,fontSize:14}},`${user.program||'Your program'} · ${user.sportCoached||'—'} · ${planName(user)} plan`)),
+    React.createElement(CalendarBanner,{token,user}),
+    React.createElement('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginBottom:18}},
+      card('Tracked recruits',`${(recruits||[]).length}${Number.isFinite(limit)?` / ${limit}`:''}`,'groups'),
+      card('Committed',byStage.committed||0,'verified',C.success),
+      card('Visits scheduled',byStage.visit_scheduled||0,'event','#06B6D4'),
+      card('Offers out',byStage.offer_extended||0,'send','#F59E0B')),
+    React.createElement('div',{style:{display:'flex',gap:12,flexWrap:'wrap'}},
+      React.createElement('button',{className:'btn btn-primary',onClick:()=>onNavigate('coach-recruits')},'Open recruiting board →'),
+      React.createElement('button',{className:'btn btn-secondary',onClick:()=>onNavigate('coach-calendar')},'View NCAA calendar'),
+      React.createElement('button',{className:'btn btn-secondary',onClick:()=>onNavigate('coach-compliance')},'Compliance log')));
+};
+
+// Per-recruit action drawer: consent, calendar-gated message, visit, stage, log.
+const RecruitDrawer=({token,user,recruit,onClose,onChanged})=>{
+  const[tab,setTab]=useState('actions');
+  const[msg,setMsg]=useState('');
+  const[err,setErr]=useState('');const[ok,setOk]=useState('');
+  const[log,setLog]=useState(null);
+  const cb=consentBadge(recruit.consentStatus);
+  const loadLog=()=>api('GET',`/coaches/recruits/${recruit._id}/log`,null,token).then(d=>setLog(d.entries||[])).catch(()=>setLog([]));
+  useEffect(()=>{if(tab==='log'&&!log)loadLog();},[tab]);
+  const act=async(fn)=>{setErr('');setOk('');try{await fn();onChanged&&onChanged();}catch(e){setErr(e.message);}};
+  const sendMsg=()=>act(async()=>{if(!msg.trim())throw new Error('Write a message first.');await api('POST',`/coaches/recruits/${recruit._id}/message`,{body:msg},token);setOk('Message sent and logged.');setMsg('');});
+  const invite=()=>act(async()=>{await api('POST',`/coaches/recruits/${recruit._id}/invite`,{},token);setOk('Consent invite sent.');});
+  const visit=()=>act(async()=>{await api('POST',`/coaches/recruits/${recruit._id}/visit`,{kind:'Official visit'},token);setOk('Visit scheduled and logged.');});
+  const setStage=s=>act(async()=>{await api('PUT',`/coaches/recruits/${recruit._id}/stage`,{stage:s},token);});
+  return React.createElement(Modal,{open:true,onClose,title:recruit.name,maxWidth:560},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginBottom:14}},
+      React.createElement('span',{style:{padding:'4px 10px',borderRadius:20,fontSize:12,fontWeight:700,background:`${cb.c}1a`,color:cb.c,border:`1px solid ${cb.c}55`}},cb.t),
+      recruit.isMinor&&React.createElement('span',{style:{padding:'4px 10px',borderRadius:20,fontSize:12,fontWeight:700,background:`${C.danger}1a`,color:C.danger,border:`1px solid ${C.danger}55`}},'Minor — guardian consent required'),
+      recruit.offPlatform&&React.createElement('span',{style:{padding:'4px 10px',borderRadius:20,fontSize:12,fontWeight:600,background:C.surface1,color:C.textSecondary}},'Off-platform')),
+    React.createElement('div',{className:'tabs-pill',style:{marginBottom:16}},['actions','log'].map(t=>React.createElement('button',{key:t,className:tab===t?'active':'',onClick:()=>setTab(t)},t==='actions'?'Actions':'Contact log'))),
+    err&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.danger}`,padding:'10px 12px',borderRadius:10,fontSize:13,marginBottom:12}},err),
+    ok&&React.createElement('div',{style:{background:`${C.success}1a`,color:C.success,border:`1px solid ${C.success}55`,padding:'10px 12px',borderRadius:10,fontSize:13,marginBottom:12}},ok),
+    tab==='actions'?React.createElement('div',null,
+      React.createElement('div',{style:{marginBottom:14}},
+        React.createElement('label',{className:'label'},'Stage'),
+        React.createElement('select',{className:'input',value:recruit.stage,onChange:e=>setStage(e.target.value)},RECRUIT_STAGES_ORDER.map(s=>React.createElement('option',{key:s,value:s},RECRUIT_STAGE_LABELS[s])))),
+      (recruit.consentStatus==='none'||recruit.consentStatus==='invited'||recruit.consentStatus==='revoked')&&React.createElement('button',{className:'btn btn-secondary',style:{width:'100%',marginBottom:12},onClick:invite},recruit.isMinor?'Send guardian consent invite':'Send consent invite'),
+      React.createElement('label',{className:'label'},'Message recruit'),
+      React.createElement('textarea',{className:'input',rows:4,placeholder:'Your message — sent only if consent + the NCAA calendar allow it.',value:msg,onChange:e=>setMsg(e.target.value),style:{resize:'vertical',marginBottom:10}}),
+      React.createElement('div',{style:{display:'flex',gap:10,flexWrap:'wrap'}},
+        React.createElement('button',{className:'btn btn-primary',onClick:sendMsg},'Send message'),
+        React.createElement('button',{className:'btn btn-secondary',onClick:visit},'Schedule visit')),
+      React.createElement('p',{style:{fontSize:11,color:C.textMuted,marginTop:12}},'Coach-initiated contact is blocked during Dead/Evaluation/Quiet periods and without valid consent. Every attempt is logged for your compliance officer.'))
+    :React.createElement('div',null,
+      log===null?React.createElement(Spinner):log.length===0?React.createElement('p',{style:{color:C.textMuted,fontSize:13}},'No interactions logged yet.'):
+      log.map(e=>React.createElement('div',{key:e._id,style:{padding:'10px 12px',borderRadius:10,background:C.surface1,border:`1px solid ${C.border}`,marginBottom:8}},
+        React.createElement('div',{style:{display:'flex',justifyContent:'space-between',gap:8,fontSize:12,marginBottom:4}},
+          React.createElement('span',{style:{fontWeight:700,color:e.allowed?'#fff':C.danger}},`${e.kind}${e.allowed?'':' · BLOCKED'}`),
+          React.createElement('span',{style:{color:C.textMuted}},fmtDate(e.createdAt))),
+        React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},`${e.initiatedBy} · ${e.channel} · period: ${e.periodType||'—'}`),
+        e.body&&React.createElement('div',{style:{fontSize:12,color:C.text,marginTop:4}},e.body),
+        e.blockReason&&React.createElement('div',{style:{fontSize:11,color:C.danger,marginTop:4}},e.blockReason)))));
+};
+
+const CoachRecruits=({token,user})=>{
+  const[recruits,setRecruits]=useState(null);
+  const[adding,setAdding]=useState(false);
+  const[sel,setSel]=useState(null);
+  const[f,setF]=useState({name:'',email:'',sport:user.sportCoached||'',division:user.division||'D1',position:'',gradYear:'',isHighSchool:false});
+  const[err,setErr]=useState('');
+  const load=()=>api('GET','/coaches/recruits',null,token).then(d=>setRecruits(d.recruits||[])).catch(()=>setRecruits([]));
+  useEffect(()=>{load();},[]);
+  const add=async()=>{setErr('');try{await api('POST','/coaches/recruits',{...f,gradYear:f.gradYear?Number(f.gradYear):undefined},token);setAdding(false);setF({name:'',email:'',sport:user.sportCoached||'',division:user.division||'D1',position:'',gradYear:'',isHighSchool:false});load();}catch(e){setErr(e.message);}};
+  const set=k=>e=>setF(s=>({...s,[k]:e.target.type==='checkbox'?e.target.checked:e.target.value}));
+  return React.createElement('div',{className:'page'},
+    React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,gap:12,flexWrap:'wrap'}},
+      React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff'}},'Recruiting Board'),
+      React.createElement('button',{className:'btn btn-primary',onClick:()=>setAdding(true)},'+ Add recruit')),
+    React.createElement(CalendarBanner,{token,user}),
+    recruits===null?React.createElement(Spinner):recruits.length===0?React.createElement('p',{style:{color:C.textMuted}},'No recruits yet. Add a prospect or wait for athlete-initiated interest.'):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}},
+      recruits.map(r=>{const cb=consentBadge(r.consentStatus);return React.createElement('div',{key:r._id,onClick:()=>setSel(r),style:{cursor:'pointer',background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:16}},
+        React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,marginBottom:8}},
+          React.createElement('div',{style:{fontWeight:800,color:'#fff',fontSize:16}},r.name),
+          React.createElement('span',{style:{fontSize:11,fontWeight:700,color:C.primary,background:`${C.primary}1a`,padding:'2px 8px',borderRadius:12}},`${r.score||0}`)),
+        React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginBottom:10}},`${[r.position,r.school,r.gradYear].filter(Boolean).join(' · ')||'—'}`),
+        React.createElement('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
+          React.createElement('span',{style:{fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:12,background:C.surface1,color:C.text}},RECRUIT_STAGE_LABELS[r.stage]),
+          React.createElement('span',{style:{fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:12,background:`${cb.c}1a`,color:cb.c}},cb.t),
+          r.isMinor&&React.createElement('span',{style:{fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:12,background:`${C.danger}1a`,color:C.danger}},'Minor')));})),
+    adding&&React.createElement(Modal,{open:true,onClose:()=>setAdding(false),title:'Add recruit',maxWidth:480},
+      err&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.danger}`,padding:'10px 12px',borderRadius:10,fontSize:13,marginBottom:12}},err),
+      React.createElement('div',{style:{marginBottom:12}},React.createElement('label',{className:'label'},'Name'),React.createElement('input',{className:'input',value:f.name,onChange:set('name')})),
+      React.createElement('div',{style:{marginBottom:12}},React.createElement('label',{className:'label'},'Email (for consent invite)'),React.createElement('input',{className:'input',type:'email',value:f.email,onChange:set('email')})),
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
+        React.createElement('div',null,React.createElement('label',{className:'label'},'Sport'),React.createElement('input',{className:'input',value:f.sport,onChange:set('sport')})),
+        React.createElement('div',null,React.createElement('label',{className:'label'},'Division'),React.createElement('select',{className:'input',value:f.division,onChange:set('division')},['D1','D2','D3','NAIA','JUCO'].map(d=>React.createElement('option',{key:d,value:d},d))))),
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
+        React.createElement('div',null,React.createElement('label',{className:'label'},'Position'),React.createElement('input',{className:'input',value:f.position,onChange:set('position')})),
+        React.createElement('div',null,React.createElement('label',{className:'label'},'Grad year'),React.createElement('input',{className:'input',type:'number',value:f.gradYear,onChange:set('gradYear')}))),
+      React.createElement('label',{style:{display:'flex',alignItems:'center',gap:8,fontSize:13,color:C.text,marginBottom:16}},React.createElement('input',{type:'checkbox',checked:f.isHighSchool,onChange:set('isHighSchool')}),'High-school prospect (requires guardian consent before messaging)'),
+      React.createElement('button',{className:'btn btn-primary',style:{width:'100%'},onClick:add},'Add to board')),
+    sel&&React.createElement(RecruitDrawer,{token,user,recruit:sel,onClose:()=>setSel(null),onChanged:()=>{load();api('GET','/coaches/recruits',null,token).then(d=>{const u=(d.recruits||[]).find(x=>x._id===sel._id);if(u)setSel(u);}).catch(()=>{});}}));
+};
+
+const CoachCalendar=({token,user})=>{
+  return React.createElement('div',{className:'page'},
+    React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff',marginBottom:6}},'NCAA Recruiting Calendar'),
+    React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginBottom:18}},'Your live recruiting window. Coach-initiated contact and visits are permitted only during allowed periods — the platform enforces this automatically.'),
+    React.createElement(CalendarBanner,{token,user}),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12,marginTop:8}},
+      [['contact','Contact','Calls, off-campus contact & visits all allowed.'],['evaluation','Evaluation','You may evaluate talent but NOT have off-campus contact.'],['quiet','Quiet','Contact only on your own campus; no off-campus or evals.'],['dead','Dead','No in-person contact or evaluation anywhere.']].map(([k,t,d])=>
+        React.createElement('div',{key:k,style:{background:C.glass,border:`1px solid ${PERIOD_COLORS[k]}55`,borderRadius:14,padding:16}},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6}},React.createElement('span',{style:{width:10,height:10,borderRadius:5,background:PERIOD_COLORS[k]}}),React.createElement('span',{style:{fontWeight:800,color:'#fff'}},t)),
+          React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},d)))));
+};
+
+const CoachCompliance=({token,user})=>{
+  const[msg,setMsg]=useState('');const[busy,setBusy]=useState(false);
+  const canExport=planCan(user,'complianceExport');
+  const digest=async()=>{setBusy(true);setMsg('');try{const d=await api('POST','/coaches/compliance/digest',{},token);setMsg(d.configured?`Digest sent to ${user.complianceOfficerEmail} (${d.count} entries, status: ${d.emailStatus}).`:`No compliance email on file — add one in your profile. ${d.count} entries are logged.`);}catch(e){setMsg(e.message);}setBusy(false);};
+  const exportCsv=async()=>{try{const r=await fetch(API_BASE+'/coaches/compliance/export',{headers:{Authorization:`Bearer ${token}`}});if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.message||j.error||'Export failed');}const blob=await r.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='compliance-log.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}catch(e){setMsg(e.message);}};
+  return React.createElement('div',{className:'page'},
+    React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff',marginBottom:6}},'Compliance'),
+    React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginBottom:18}},'Every coach↔recruit interaction is logged immutably and visible to the athlete, you, and your compliance officer. Blocked attempts during restricted periods are flagged automatically.'),
+    msg&&React.createElement('div',{style:{background:`${C.primary}14`,color:C.text,border:`1px solid ${C.primary}55`,padding:'12px 14px',borderRadius:10,fontSize:13,marginBottom:16}},msg),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12}},
+      React.createElement('div',{style:{background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:18}},
+        React.createElement('div',{style:{fontWeight:800,color:'#fff',marginBottom:6}},'Compliance officer'),
+        React.createElement('div',{style:{fontSize:13,color:C.textSecondary,marginBottom:12}},user.complianceOfficerEmail||'Not set — add it in your profile to receive digests + violation alerts.'),
+        React.createElement('button',{className:'btn btn-secondary',disabled:busy,onClick:digest},busy?'Sending…':'Email contact-log digest')),
+      React.createElement('div',{style:{background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:18}},
+        React.createElement('div',{style:{fontWeight:800,color:'#fff',marginBottom:6}},'Export log'),
+        React.createElement('div',{style:{fontSize:13,color:C.textSecondary,marginBottom:12}},canExport?'Download the full contact log as CSV for your records.':'Compliance export is available on the Program plan and up.'),
+        React.createElement('button',{className:'btn btn-primary',disabled:!canExport,onClick:exportCsv},'Download CSV'))));
+};
+
+// Admin: edit the NCAA recruiting calendar (sport/division/year windows).
+const AdminCalendar=({token})=>{
+  const[periods,setPeriods]=useState(null);
+  const[f,setF]=useState({sport:'Football',division:'D1',type:'contact',label:'',startDate:'',endDate:'',year:new Date().getFullYear()});
+  const[err,setErr]=useState('');
+  const load=()=>api('GET','/admin/recruiting-periods',null,token).then(d=>setPeriods(d.periods||[])).catch(()=>setPeriods([]));
+  useEffect(()=>{load();},[]);
+  const set=k=>e=>setF(s=>({...s,[k]:e.target.value}));
+  const add=async()=>{setErr('');try{await api('POST','/admin/recruiting-periods',f,token);setF(s=>({...s,label:'',startDate:'',endDate:''}));load();}catch(e){setErr(e.message);}};
+  const del=async(id)=>{try{await api('DELETE','/admin/recruiting-periods/'+id,null,token);load();}catch(e){setErr(e.message);}};
+  return React.createElement('div',{className:'page'},
+    React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff',marginBottom:6}},'NCAA Recruiting Calendar'),
+    React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginBottom:18}},'These windows gate every coach-initiated action. Keep them current per sport, division and year.'),
+    err&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.danger}`,padding:'10px 12px',borderRadius:10,fontSize:13,marginBottom:12}},err),
+    React.createElement('div',{style:{background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:16,marginBottom:18,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:10,alignItems:'end'}},
+      React.createElement('div',null,React.createElement('label',{className:'label'},'Sport'),React.createElement('input',{className:'input',value:f.sport,onChange:set('sport')})),
+      React.createElement('div',null,React.createElement('label',{className:'label'},'Division'),React.createElement('select',{className:'input',value:f.division,onChange:set('division')},['D1','D2','D3','NAIA','JUCO'].map(d=>React.createElement('option',{key:d,value:d},d)))),
+      React.createElement('div',null,React.createElement('label',{className:'label'},'Type'),React.createElement('select',{className:'input',value:f.type,onChange:set('type')},['contact','evaluation','quiet','dead'].map(t=>React.createElement('option',{key:t,value:t},t)))),
+      React.createElement('div',null,React.createElement('label',{className:'label'},'Label'),React.createElement('input',{className:'input',value:f.label,onChange:set('label')})),
+      React.createElement('div',null,React.createElement('label',{className:'label'},'Start'),React.createElement('input',{className:'input',type:'date',value:f.startDate,onChange:set('startDate')})),
+      React.createElement('div',null,React.createElement('label',{className:'label'},'End'),React.createElement('input',{className:'input',type:'date',value:f.endDate,onChange:set('endDate')})),
+      React.createElement('button',{className:'btn btn-primary',onClick:add},'+ Add')),
+    periods===null?React.createElement(Spinner):React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+      periods.map(p=>React.createElement('div',{key:p._id,style:{display:'flex',alignItems:'center',gap:12,background:C.glass,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px 14px'}},
+        React.createElement('span',{style:{width:10,height:10,borderRadius:5,background:PERIOD_COLORS[p.type]}}),
+        React.createElement('div',{style:{flex:1}},
+          React.createElement('div',{style:{fontWeight:700,color:'#fff',fontSize:14}},`${p.sport} · ${p.division} — ${PERIOD_LABEL[p.type]||p.type}`),
+          React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},`${p.label?p.label+' · ':''}${fmtDate(p.startDate)} → ${fmtDate(p.endDate)}`)),
+        React.createElement('button',{className:'btn btn-secondary',onClick:()=>del(p._id)},'Delete')))));
+};
+
+// Athlete-facing: browse coaches/programs and express interest (calendar-exempt).
+const CoachDirectory=({token,user})=>{
+  const[coaches,setCoaches]=useState(null);
+  const[q,setQ]=useState({sport:'',division:'',search:''});
+  const[sel,setSel]=useState(null);const[note,setNote]=useState('');const[msg,setMsg]=useState('');
+  const canContact=planCan(user,'contactCoach');
+  const load=()=>{const p=new URLSearchParams();if(q.sport)p.set('sport',q.sport);if(q.division)p.set('division',q.division);if(q.search)p.set('search',q.search);api('GET','/coaches/directory?'+p.toString(),null,token).then(d=>setCoaches(d.coaches||[])).catch(()=>setCoaches([]));};
+  useEffect(()=>{load();},[]);
+  const express=async(c)=>{setMsg('');try{const d=await api('POST',`/coaches/${c._id}/interest`,{message:note},token);setMsg(d.needsGuardianConsent?'Interest sent! A parent/guardian must consent before the coach can reply.':'Interest sent! The coach can now respond when the recruiting calendar allows.');setSel(null);setNote('');}catch(e){setMsg(e.message);}};
+  return React.createElement('div',{className:'page'},
+    React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff',marginBottom:6}},'Coaches & Programs'),
+    React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginBottom:16}},'Browse programs for free. Reaching out is calendar-exempt for you — a prospect may contact a coach anytime.',!canContact&&React.createElement('span',{style:{color:'#F59E0B'}},' Upgrade to message coaches.')),
+    msg&&React.createElement('div',{style:{background:`${C.success}1a`,color:C.success,border:`1px solid ${C.success}55`,padding:'10px 12px',borderRadius:10,fontSize:13,marginBottom:14}},msg),
+    React.createElement('div',{style:{display:'flex',gap:10,flexWrap:'wrap',marginBottom:16}},
+      React.createElement('input',{className:'input',placeholder:'Search program / coach',value:q.search,onChange:e=>setQ(s=>({...s,search:e.target.value})),style:{maxWidth:220}}),
+      React.createElement('input',{className:'input',placeholder:'Sport',value:q.sport,onChange:e=>setQ(s=>({...s,sport:e.target.value})),style:{maxWidth:140}}),
+      React.createElement('select',{className:'input',value:q.division,onChange:e=>setQ(s=>({...s,division:e.target.value})),style:{maxWidth:120}},React.createElement('option',{value:''},'All div.'),['D1','D2','D3','NAIA','JUCO'].map(d=>React.createElement('option',{key:d,value:d},d))),
+      React.createElement('button',{className:'btn btn-secondary',onClick:load},'Search')),
+    coaches===null?React.createElement(Spinner):coaches.length===0?React.createElement('p',{style:{color:C.textMuted}},'No coaches found.'):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}},
+      coaches.map(c=>React.createElement('div',{key:c._id,style:{background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:16}},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:10}},
+          React.createElement(Avatar,{name:c.name,src:c.avatar,size:44}),
+          React.createElement('div',{style:{flex:1}},
+            React.createElement('div',{style:{display:'flex',alignItems:'center',gap:6}},React.createElement('span',{style:{fontWeight:800,color:'#fff'}},c.name),c.verifiedProgram&&React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16,color:C.primary}},'verified')),
+            React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},`${[c.coachTitle,c.program].filter(Boolean).join(' · ')}`))),
+        React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginBottom:8}},`${[c.sportCoached,c.division].filter(Boolean).join(' · ')}`),
+        c.recruitingPhilosophy&&React.createElement('div',{style:{fontSize:12,color:C.text,marginBottom:10,lineHeight:1.5}},`"${c.recruitingPhilosophy.slice(0,120)}${c.recruitingPhilosophy.length>120?'…':''}"`),
+        React.createElement('button',{className:'btn btn-primary',style:{width:'100%'},onClick:()=>setSel(c)},'Express interest →')))),
+    sel&&React.createElement(Modal,{open:true,onClose:()=>setSel(null),title:`Reach out to ${sel.name}`,maxWidth:460},
+      React.createElement('p',{style:{fontSize:13,color:C.textSecondary,marginBottom:12}},`${sel.program||''} · ${sel.sportCoached||''}`),
+      React.createElement('label',{className:'label'},'Your message (optional)'),
+      React.createElement('textarea',{className:'input',rows:4,value:note,onChange:e=>setNote(e.target.value),placeholder:'Introduce yourself and why you\'re interested.',style:{resize:'vertical',marginBottom:14}}),
+      React.createElement('button',{className:'btn btn-primary',style:{width:'100%'},onClick:()=>express(sel)},'Send interest')));
+};
+
 const App=()=>{
   const[user,setUser]=useState(null);
   const[token,setToken]=useState(null);
@@ -5734,10 +6109,16 @@ const App=()=>{
 
   const renderView=()=>{
     switch(view){
-      case'dashboard':return user.role==='admin'?React.createElement(AdminConsole,{token,user,initialTab:'overview'}):user.role==='athlete'?React.createElement(AthleteDashboard,{token,user,onNavigate:setView}):React.createElement(Dashboard,{token,user,onNavigate:setView});
+      case'dashboard':return user.role==='admin'?React.createElement(AdminConsole,{token,user,initialTab:'overview'}):user.role==='coach'?React.createElement(CoachDashboard,{token,user,onNavigate:setView}):user.role==='athlete'?React.createElement(AthleteDashboard,{token,user,onNavigate:setView}):React.createElement(Dashboard,{token,user,onNavigate:setView});
       case'admin-users':return React.createElement(AdminConsole,{token,user,initialTab:'users'});
       case'admin-featured':return React.createElement(AdminConsole,{token,user,initialTab:'featured'});
+      case'admin-calendar':return React.createElement(AdminCalendar,{token});
       case'admin-messages':return React.createElement(AdminConsole,{token,user,initialTab:'messages'});
+      case'coaches':return React.createElement(CoachDirectory,{token,user});
+      case'rewards':return React.createElement(AffiliateRewards,{token,user,onUpdate});
+      case'coach-recruits':return React.createElement(CoachRecruits,{token,user});
+      case'coach-calendar':return React.createElement(CoachCalendar,{token,user});
+      case'coach-compliance':return React.createElement(CoachCompliance,{token,user});
       case'opportunities':return React.createElement(Opportunities,{token,user});
       case'tracker':return React.createElement(AthleteTracker,{token,user,onNavigate:setView});
       case'my-deals':return React.createElement(MyDeals,{token,user});

@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   name: { type: String, required: true, trim: true },
-  role: { type: String, enum: ['athlete', 'brand', 'agent', 'admin'], default: 'athlete' },
+  role: { type: String, enum: ['athlete', 'brand', 'agent', 'coach', 'admin'], default: 'athlete' },
   avatar: { type: String, default: '' },
   bio: { type: String, default: '', maxlength: 500 },
   verified: { type: Boolean, default: false },
@@ -84,6 +84,11 @@ const userSchema = new mongoose.Schema({
   planSince: { type: Date },
   stripeCustomerId: { type: String, default: '' },
   stripeSubscriptionId: { type: String, default: '' },
+  // Stripe Connect payout account (athletes/agents receiving deal payouts). Onboarded
+  // via /api/billing/connect; payoutsEnabled flips true once Stripe clears the account
+  // (charges_enabled + payouts_enabled). See lib/payments.js.
+  stripeAccountId: { type: String, default: '' },
+  payoutsEnabled: { type: Boolean, default: false },
 
   // Brand fields
   company: { type: String, default: '' },
@@ -94,6 +99,51 @@ const userSchema = new mongoose.Schema({
   // Agent fields
   agency: { type: String, default: '' },
   athletes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+  // Coach fields (NCAA recruiting). A coach belongs to a program and recruits
+  // athletes through the calendar-gated funnel (see models/Recruit.js). Coaches
+  // never represent athletes or take deal fees.
+  program: { type: String, default: '' },                       // institution / school
+  division: { type: String, enum: ['D1', 'D2', 'D3', 'NAIA', 'JUCO', ''], default: '' },
+  sportCoached: { type: String, default: '' },
+  coachTitle: { type: String, default: '' },                    // Head Coach, Recruiting Coordinator, ...
+  recruitingPhilosophy: { type: String, default: '', maxlength: 1000 },
+  positionNeeds: [{ type: String }],
+  scholarshipStatus: { type: String, default: '' },
+  contactPrefs: { type: String, default: '' },
+  introVideoUrl: { type: String, default: '' },
+  coachRecord: { type: String, default: '' },                   // e.g. "84-21, 7 seasons"
+  complianceOfficerEmail: { type: String, default: '', lowercase: true, trim: true },
+  verifiedProgram: { type: Boolean, default: false },           // verified staff/program (self-serve .edu or admin)
+  institutionalEmail: { type: String, default: '', lowercase: true, trim: true }, // school-domain email used to verify
+  programVerifyToken: { type: String, default: '' },            // single-use self-serve verification token
+  headCoachId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // multi-seat owner
+  // Per-field provenance for the profile: 'input' (coach-entered, authoritative)
+  // vs a source name ('cfbd','staff','youtube'). Scraped fields stay unverified
+  // until the coach confirms them. Stored as a plain object map.
+  profileSources: { type: mongoose.Schema.Types.Mixed, default: {} },
+
+  // Athlete recruiting-eligibility / minor protection (NCAA + youth-privacy). Used
+  // to gate coach messaging: a minor recruit cannot be messaged until a guardian
+  // consents. dateOfBirth is optional; isMinor can also be derived from gradYear.
+  dateOfBirth: { type: Date },
+  isHighSchool: { type: Boolean, default: false },
+
+  // ── Athlete affiliate / referral program ────────────────────────────────────
+  // Athletes earn referral CREDITS when someone they refer converts to a PAID plan
+  // (or pays the sign-up fee). Credits redeem for free paid months (auto-applied via
+  // planCompUntil). Rule of thumb: 2 referred athletes = 1 free month (athlete=1
+  // credit, coach=2). See server/lib/affiliate.js + routes/affiliate.js.
+  referralCode: { type: String, default: '', index: true, sparse: true },        // this user's own share code
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // who referred this user
+  referralQualified: { type: Boolean, default: false },                          // this user already paid out their referrer (once)
+  affiliateCredits: { type: Number, default: 0 },                                // spendable referral credits
+  affiliateCreditsEarned: { type: Number, default: 0 },                          // lifetime credits earned
+  qualifiedReferralCount: { type: Number, default: 0 },                          // # of referrals that converted to paid
+  // Free-paid-months comp. While planCompUntil is in the future the user holds a
+  // paid plan for free; planComped marks it so auth can auto-revert on expiry.
+  planComped: { type: Boolean, default: false },
+  planCompUntil: { type: Date },
 
   // Athlete bookmarks — opportunities saved from Discover
   savedDeals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Deal' }],
