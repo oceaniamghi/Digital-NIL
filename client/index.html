@@ -5477,6 +5477,23 @@ const VerifyLanding=({token:vtoken})=>{
     React.createElement('button',{className:'btn btn-primary',onClick:go,style:{width:'100%',justifyContent:'center',padding:'11px',fontWeight:600}},'Continue →'));
 };
 
+// Coach program-verification landing — consumes the token from the emailed link
+// and flips the verified-program badge.
+const VerifyProgramLanding=({token:vtoken})=>{
+  const[state,setState]=useState('working');
+  const[msg,setMsg]=useState('');const[program,setProgram]=useState('');
+  useEffect(()=>{
+    api('GET',`/coaches/verify/${vtoken}`).then(d=>{setState('ok');setProgram(d.program||'');})
+      .catch(err=>{setState('error');setMsg(err.message||'This verification link is invalid or has expired.');});
+  },[vtoken]);
+  const go=()=>{window.location.href='/';};
+  if(state==='working')return React.createElement(GateShell,{icon:'hourglass_top',title:'Verifying your program…',subtitle:'One moment while we confirm your link.'});
+  if(state==='error')return React.createElement(GateShell,{icon:'error',title:'Link problem',subtitle:msg},
+    React.createElement('button',{className:'btn btn-primary',onClick:go,style:{width:'100%',justifyContent:'center',padding:'11px',fontWeight:600}},'Back to sign in'));
+  return React.createElement(GateShell,{icon:'verified',title:'Program verified ✓',subtitle:`${program||'Your program'} is now verified. Athletes will see your verified badge across the directory.`},
+    React.createElement('button',{className:'btn btn-primary',onClick:go,style:{width:'100%',justifyContent:'center',padding:'11px',fontWeight:600}},'Continue →'));
+};
+
 // GATE 1 — "verify your email". Shown for any signed-in but unverified account.
 const VerifyEmailScreen=({user,token,onUpdate,onLogout})=>{
   const[emailLive,setEmailLive]=useState(null); // null until known
@@ -5615,9 +5632,10 @@ const AdminUsers=({token,user})=>{
     api('GET',`/admin/users?${p}`,null,token).then(d=>setRows(d.users||[])).catch(()=>{}).finally(()=>setLoading(false));};
   useEffect(()=>{const t=setTimeout(load,250);return()=>clearTimeout(t);},[role,search]);
   const del=async u=>{if(!confirm(`Delete ${u.name||u.email}? This cannot be undone.`))return;try{await api('DELETE',`/admin/users/${u._id}`,null,token);setRows(rs=>rs.filter(x=>x._id!==u._id));}catch(e){alert(e.message);}};
+  const verifyCoach=async u=>{try{const d=await api('PUT',`/admin/users/${u._id}`,{verifiedProgram:!u.verifiedProgram},token);setRows(rs=>rs.map(x=>x._id===u._id?{...x,verifiedProgram:d.user.verifiedProgram}:x));}catch(e){alert(e.message);}};
   return React.createElement('div',null,
     React.createElement('div',{style:{display:'flex',gap:10,flexWrap:'wrap',marginBottom:16}},
-      React.createElement('div',{className:'tabs-pill'},['all','athlete','agent','brand','admin'].map(r=>
+      React.createElement('div',{className:'tabs-pill'},['all','athlete','agent','brand','coach','admin'].map(r=>
         React.createElement('button',{key:r,onClick:()=>setRole(r),className:role===r?'active':'',style:{textTransform:'capitalize'}},r))),
       React.createElement('input',{className:'input',placeholder:'Search name, email, company…',value:search,onChange:e=>setSearch(e.target.value),style:{flex:1,minWidth:200}})),
     loading?React.createElement(Spinner):!rows.length?React.createElement(Empty,{icon:'group',text:'No users match'}):
@@ -5629,8 +5647,10 @@ const AdminUsers=({token,user})=>{
             React.createElement('span',{style:{color:'#fff',fontWeight:600,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},u.name||'—'),
             React.createElement('span',{style:{fontSize:10,fontWeight:700,textTransform:'uppercase',color:ROLE_BADGE[u.role]||C.textMuted,background:`${ROLE_BADGE[u.role]||C.textMuted}22`,padding:'1px 7px',borderRadius:999}},u.role),
             u.featured&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:15,color:'#F59E0B'},title:'Featured'},'star'),
+            u.role==='coach'&&u.verifiedProgram&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:15,color:C.success},title:'Verified program'},'verified'),
             !u.verified&&React.createElement('span',{style:{fontSize:10,color:C.warning,fontWeight:700},title:'Unverified'},'UNVERIFIED')),
-          React.createElement('div',{className:'mono',style:{fontSize:11,color:C.textMuted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},u.email)),
+          React.createElement('div',{className:'mono',style:{fontSize:11,color:C.textMuted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},u.email+(u.role==='coach'&&u.program?` · ${u.program}`:''))),
+        u.role==='coach'&&React.createElement('button',{onClick:()=>verifyCoach(u),title:u.verifiedProgram?'Remove verification':'Verify program',style:{width:34,height:34,borderRadius:9,background:u.verifiedProgram?`${C.success}22`:C.surface2,border:`1px solid ${u.verifiedProgram?C.success:C.border}`,color:u.verifiedProgram?C.success:C.textMuted,cursor:'pointer'}},React.createElement('span',{className:'material-symbols-outlined'+(u.verifiedProgram?' mi-fill':''),style:{fontSize:18}},'verified')),
         React.createElement('button',{onClick:()=>setEditing(u),title:'Edit',style:{width:34,height:34,borderRadius:9,background:C.surface2,border:`1px solid ${C.border}`,color:C.textSecondary,cursor:'pointer'}},React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'edit')),
         u._id!==user._id&&React.createElement('button',{onClick:()=>del(u),title:'Delete',style:{width:34,height:34,borderRadius:9,background:C.surface2,border:`1px solid ${C.border}`,color:C.danger,cursor:'pointer'}},React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'delete'))))),
     editing&&React.createElement(AdminUserModal,{token,target:editing,onClose:()=>setEditing(null),onSaved:u=>{setRows(rs=>rs.map(x=>x._id===u._id?{...x,...u}:x));setEditing(null);}}));
@@ -5787,6 +5807,26 @@ const CalendarBanner=({token,user,sport,division})=>{
       React.createElement('div',{style:{fontWeight:700,color:PERIOD_COLORS[cal.next.type]}},`${PERIOD_LABEL[cal.next.type]||cal.next.type} · ${fmtDate(cal.next.startDate)}`)));
 };
 
+// Coach self-serve program verification: submit a school (.edu-style) email →
+// we email a confirm link → clicking it flips the verified badge.
+const ProgramVerifyCard=({token,user})=>{
+  const[email,setEmail]=useState(user.institutionalEmail||'');
+  const[state,setState]=useState(user.verifiedProgram?'verified':'idle');
+  const[msg,setMsg]=useState('');
+  if(state==='verified')return React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',borderRadius:14,background:`${C.success}14`,border:`1px solid ${C.success}55`,marginBottom:18}},
+    React.createElement('span',{className:'material-symbols-outlined',style:{color:C.success}},'verified'),
+    React.createElement('div',null,React.createElement('div',{style:{fontWeight:800,color:'#fff'}},'Verified program'),
+      React.createElement('div',{style:{fontSize:12,color:C.textSecondary}},'Athletes see your verified badge across the directory.')));
+  const submit=async()=>{setMsg('');try{const d=await api('POST','/coaches/verify',{institutionalEmail:email},token);if(d.alreadyVerified){setState('verified');return;}setState('sent');setMsg(d.emailStatus==='sent'?`Verification link sent to ${d.sentTo}. Click it to earn your badge.`:`Saved. Email delivery isn't configured here — an admin can verify you, or set RESEND_API_KEY to send the link to ${d.sentTo}.`);}catch(e){setMsg(e.message);}};
+  return React.createElement('div',{style:{padding:'16px 18px',borderRadius:14,background:C.glass,border:`1px solid ${C.primary}55`,marginBottom:18}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6}},React.createElement('span',{className:'material-symbols-outlined',style:{color:C.primary}},'shield'),React.createElement('span',{style:{fontWeight:800,color:'#fff'}},'Verify your program')),
+    React.createElement('div',{style:{fontSize:13,color:C.textSecondary,marginBottom:12}},'Confirm a school-issued (.edu) email to earn the verified badge athletes look for. This is the anti-impersonation check.'),
+    msg&&React.createElement('div',{style:{background:`${C.primary}14`,border:`1px solid ${C.primary}55`,color:C.text,padding:'10px 12px',borderRadius:10,fontSize:13,marginBottom:10}},msg),
+    React.createElement('div',{style:{display:'flex',gap:10,flexWrap:'wrap'}},
+      React.createElement('input',{className:'input',type:'email',placeholder:'you@university.edu',value:email,onChange:e=>setEmail(e.target.value),style:{flex:1,minWidth:200}}),
+      React.createElement('button',{className:'btn btn-primary',onClick:submit},state==='sent'?'Resend link':'Verify')));
+};
+
 const CoachDashboard=({token,user,onNavigate})=>{
   const[recruits,setRecruits]=useState(null);
   useEffect(()=>{api('GET','/coaches/recruits',null,token).then(d=>setRecruits(d.recruits||[])).catch(()=>setRecruits([]));},[]);
@@ -5800,6 +5840,7 @@ const CoachDashboard=({token,user,onNavigate})=>{
       React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff'}},`Welcome, ${user.name}`),
       React.createElement('p',{style:{color:C.textSecondary,fontSize:14}},`${user.program||'Your program'} · ${user.sportCoached||'—'} · ${planName(user)} plan`)),
     React.createElement(CalendarBanner,{token,user}),
+    React.createElement(ProgramVerifyCard,{token,user}),
     React.createElement('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginBottom:18}},
       card('Tracked recruits',`${(recruits||[]).length}${Number.isFinite(limit)?` / ${limit}`:''}`,'groups'),
       card('Committed',byStage.committed||0,'verified',C.success),
@@ -6091,6 +6132,10 @@ const App=()=>{
   // Email-verification landing — consumes the token from the emailed link.
   const verifyMatch=window.location.pathname.match(/^\/verify\/([^/]+)\/?$/);
   if(verifyMatch)return React.createElement(VerifyLanding,{token:verifyMatch[1]});
+
+  // Coach program-verification landing (from the emailed link).
+  const vpMatch=window.location.pathname.match(/^\/verify-program\/([^/]+)\/?$/);
+  if(vpMatch)return React.createElement(VerifyProgramLanding,{token:vpMatch[1]});
 
   if(booting||!licChecked)return React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',flexDirection:'column',gap:16,background:C.bg}},
     React.createElement('div',{style:{width:48,height:48,background:C.primary,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 32px rgba(255,255,255,.18)'}},

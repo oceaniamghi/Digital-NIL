@@ -400,7 +400,7 @@ router.post('/verify', async (req, res) => {
     await req.user.save();
 
     const base = (process.env.APP_URL || process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
-    const link = `${base}/api/coaches/verify/${token}`;
+    const link = `${base}/verify-program/${token}`;
     const { status } = await sendEmail({
       to: institutionalEmail,
       subject: 'Verify your program on Digital NIL',
