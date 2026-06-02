@@ -9,7 +9,7 @@ import Deal from '../models/Deal.js';
 import Activity from '../models/Activity.js';
 import User from '../models/User.js';
 import { sendEmail } from '../lib/resend.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole, requireCap } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -341,7 +341,8 @@ router.delete('/events/:id', async (req, res) => {
 });
 
 // Compose + log (and send when RESEND_API_KEY is set) an outreach email.
-router.post('/opportunities/:id/email', async (req, res) => {
+// Outreach email is a paid agent capability (Pro+).
+router.post('/opportunities/:id/email', requireCap('outreachEmail', 'CRM outreach email'), async (req, res) => {
   try {
     const opp = await ownsOpp(req.params.id, req.user._id);
     if (!opp) return res.status(404).json({ error: 'Opportunity not found' });

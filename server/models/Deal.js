@@ -22,12 +22,18 @@ const dealSchema = new mongoose.Schema({
   sports: [String],
   minFollowers: { type: Number, default: 0 },
 
-  // Compensation
+  // Compensation. `amount` is the gross deal value the brand pays. Digital NIL takes
+  // a platform commission off the top on every deal; the athlete is paid the
+  // remainder. The rate is set by the REPRESENTING AGENT's subscription tier (higher
+  // tiers pay a smaller cut) and falls back to PLATFORM_FEE_RATE when there's no
+  // agent. It's stamped onto the deal (at creation for preview, re-resolved at
+  // completion) so historical payouts stay correct if a rate ever changes.
   compensation: {
     amount: { type: Number, required: true },
     type: { type: String, enum: ['flat', 'per_post', 'per_thousand_impressions', 'rev_share'], default: 'flat' },
     currency: { type: String, default: 'USD' }
   },
+  platformFeeRate: { type: Number, default: 0.20 },
 
   // Status workflow: open → applied → active → completed / declined
   // 'offered' = a brand offered this deal to a specific athlete, awaiting their acceptance
@@ -41,6 +47,15 @@ const dealSchema = new mongoose.Schema({
   // Deliverables
   deliverables: [deliverableSchema],
   disclosureTag: { type: String, default: '#ad' },
+
+  // Elite-only add-on: a brand-funded recruitment trip bundled into the deal
+  // (e.g. flying an athlete out for an appearance/visit). Gated server-side to
+  // brands whose plan has the `recruitmentTrips` capability.
+  recruitmentTrip: {
+    included: { type: Boolean, default: false },
+    budget: { type: Number, default: 0 },
+    notes: { type: String, default: '' }
+  },
 
   // Applications (for open deals)
   applications: [{
@@ -75,5 +90,26 @@ dealSchema.pre('save', function (next) {
   this.updatedAt = new Date();
   next();
 });
+
+// Default/fallback platform service fee when a deal has no representing agent to set
+// a tiered rate. Per-deal rates are resolved from the agent's plan (see plans.js).
+export const PLATFORM_FEE_RATE = 0.20;
+
+// Helpers so the fee math is identical everywhere it's computed/displayed.
+export const platformFeeOn = (amount, rate = PLATFORM_FEE_RATE) =>
+  Math.round((Number(amount) || 0) * rate);
+export const athleteNetOf = (amount, rate = PLATFORM_FEE_RATE) =>
+  (Number(amount) || 0) - platformFeeOn(amount, rate);
+
+// Surface the breakdown on every serialized deal: gross (compensation.amount),
+// the service fee Digital NIL keeps, and the athlete's net payout.
+dealSchema.virtual('platformFee').get(function () {
+  return platformFeeOn(this.compensation?.amount, this.platformFeeRate ?? PLATFORM_FEE_RATE);
+});
+dealSchema.virtual('athleteNet').get(function () {
+  return athleteNetOf(this.compensation?.amount, this.platformFeeRate ?? PLATFORM_FEE_RATE);
+});
+dealSchema.set('toJSON', { virtuals: true });
+dealSchema.set('toObject', { virtuals: true });
 
 export default mongoose.model('Deal', dealSchema);

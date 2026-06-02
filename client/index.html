@@ -287,7 +287,7 @@ const Icon=(name,opts={})=>React.createElement('span',{
 // ── Weather backdrop ─────────────────────────────────────────────────────────
 // Calls Open-Meteo with cached coords. Maps WMO weather codes to ambient scenes.
 // Scene is rendered behind glass cards (z-index:1; #root is z:2).
-const WX_CACHE_KEY='aic_wx_v1';
+const WX_CACHE_KEY='dnil_wx_v1';
 const WX_TTL=20*60*1000; // 20 min
 const wxScene=(code,isDay)=>{
   if(code==null)return{kind:'clear',isDay:!!isDay,label:'Clear'};
@@ -379,6 +379,11 @@ const API_BASE='/api';
 function signalLocked(data){
   try{window.dispatchEvent(new CustomEvent('app-locked',{detail:data||{}}));}catch(e){}
 }
+// A gated route returned 402 "Upgrade required". Broadcast it so the app shows its
+// Brand Pro upgrade prompt from anywhere, without each caller wiring navigation.
+function signalUpgrade(data){
+  try{window.dispatchEvent(new CustomEvent('app-upgrade',{detail:data||{}}));}catch(e){}
+}
 async function api(method,path,body,token){
   const opts={method,headers:{'Content-Type':'application/json'}};
   if(token)opts.headers['Authorization']=`Bearer ${token}`;
@@ -386,7 +391,8 @@ async function api(method,path,body,token){
   const r=await fetch(API_BASE+path,opts);
   const data=await r.json().catch(()=>({}));
   if(r.status===503&&data&&data.locked){signalLocked(data);throw new Error(data.reason||'Service unavailable');}
-  if(!r.ok)throw new Error(data.error||'Request failed');
+  if(r.status===402&&data&&data.upgrade){signalUpgrade(data);}
+  if(!r.ok){const e=new Error(data.message||data.error||'Request failed');e.status=r.status;e.upgrade=data.upgrade;throw e;}
   return data;
 }
 async function apiUpload(path,formData,token){
@@ -403,11 +409,12 @@ function useAuth(){return useContext(AuthCtx);}
 
 // ── Utility components ───────────────────────────────────────────────────────
 const Avatar=({name='',src,size=36,style:s={}})=>{
+  const[imgErr,setImgErr]=useState(false);
   const initials=(name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const colors=['#3B5BFF','#7C3AED','#10B981','#F59E0B','#4D4D4D','#06B6D4'];
   const bg=colors[(name.charCodeAt(0)||0)%colors.length];
   const ring='1px solid rgba(255,255,255,.10)';
-  if(src)return React.createElement('img',{src,style:{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:ring,...s}});
+  if(src&&!imgErr)return React.createElement('img',{src,onError:()=>setImgErr(true),style:{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:ring,...s}});
   return React.createElement('div',{style:{width:size,height:size,borderRadius:'50%',background:bg,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*0.38,fontWeight:700,border:ring,...s}},initials);
 };
 
@@ -440,6 +447,48 @@ const Empty=({icon='inbox',text='Nothing here yet'})=>React.createElement('div',
   React.createElement('p',{style:{fontSize:14}},text));
 
 function formatMoney(n){n=n||0;return n>=1000000?`$${(n/1000000).toFixed(1)}M`:n>=1000?`$${(n/1000).toFixed(1)}k`:`$${n.toLocaleString()}`;}
+// Platform service fee taken on every deal, all tiers (mirrors server PLATFORM_FEE_RATE).
+const PLATFORM_FEE_RATE=0.20;
+const FEE_PCT=Math.round(PLATFORM_FEE_RATE*100);
+// Rate is per-deal (set by the representing agent's tier). Falls back to the default
+// when a deal predates the tiered model or no rate is known.
+const platformFeeOn=(a,rate=PLATFORM_FEE_RATE)=>Math.round((Number(a)||0)*(rate??PLATFORM_FEE_RATE));
+const athleteNetOf=(a,rate=PLATFORM_FEE_RATE)=>(Number(a)||0)-platformFeeOn(a,rate);
+// The deal fee rate an agent earns from their own plan (drives previews for agents).
+const dealRateFor=user=>{const p=(plansForRole(user&&user.role)||[]).find(x=>x.key===(user&&user.plan));return p&&typeof p.dealFeeRate==='number'?p.dealFeeRate:PLATFORM_FEE_RATE;};
+// Exact $ for fee/payout lines (formatMoney rounds to k/M, too lossy for a breakdown).
+const usd=n=>'$'+(Number(n)||0).toLocaleString();
+
+// Subscription tiers per role — MIRRORS server/lib/plans.js (keep in sync). `null`
+// limit = unlimited. Drives both the Plans marketing page and client-side feature
+// gating (planCan / planLimit). The server enforces all of this too.
+const PLANS_BY_ROLE={
+  brand:[
+    {key:'free',name:'Free',price:0,tagline:'Explore the marketplace',limits:{deals:1,campaigns:0},caps:{directOffers:false,analytics:false,recruitmentTrips:false},features:['Browse the full athlete directory','View media kits & highlights','1 active deal listing at a time','Receive athlete applications']},
+    {key:'starter',name:'Starter',price:1000,tagline:'Start signing athletes',limits:{deals:5,campaigns:1},caps:{directOffers:true,analytics:false,recruitmentTrips:false},features:['Everything in Free, plus:','Send direct offers to any athlete','Up to 5 active deals','1 active campaign']},
+    {key:'growth',name:'Growth',price:2500,tagline:'Scale your NIL program',popular:true,limits:{deals:25,campaigns:10},caps:{directOffers:true,analytics:true,recruitmentTrips:false},features:['Everything in Starter, plus:','Up to 25 active deals','Up to 10 campaigns','Performance analytics & insights']},
+    {key:'pro',name:'Pro',price:5000,tagline:'Unlimited deal flow',limits:{deals:null,campaigns:null},caps:{directOffers:true,analytics:true,recruitmentTrips:false,prioritySupport:true},features:['Everything in Growth, plus:','Unlimited active deals','Unlimited campaigns','Priority athlete placement','Priority support']},
+    {key:'elite',name:'Elite',price:10000,tagline:'Full platform + recruitment trips',limits:{deals:null,campaigns:null},caps:{directOffers:true,analytics:true,recruitmentTrips:true,prioritySupport:true,accountManager:true},features:['Everything in Pro, plus:','Full access to every Digital NIL tool','Deals with funded recruitment trips','Dedicated account manager','White-glove onboarding']},
+  ],
+  athlete:[
+    {key:'free',name:'Free',price:0,tagline:'Get discovered',limits:{mediaKitItems:3},caps:{mediaKitPdf:false,analytics:false,featuredBoost:false,outreach:false},features:['Public athlete profile & highlight reel','Apply to open deals','Share-card (PNG) export','Up to 3 media-kit items']},
+    {key:'plus',name:'Plus',price:19,tagline:'Stand out to brands',popular:true,limits:{mediaKitItems:null},caps:{mediaKitPdf:true,analytics:true,featuredBoost:false,outreach:false},features:['Everything in Free, plus:','High-end media-kit PDF export','Unlimited media-kit items','Profile & reach analytics']},
+    {key:'pro',name:'Pro',price:49,tagline:'Maximize your NIL',limits:{mediaKitItems:null},caps:{mediaKitPdf:true,analytics:true,featuredBoost:true,outreach:true,prioritySupport:true},features:['Everything in Plus, plus:','Featured placement in Discover','Direct outreach to brands & programs','Priority support']},
+  ],
+  agent:[
+    {key:'free',name:'Free',price:0,tagline:'Manage a small roster',limits:{roster:3},dealFeeRate:0.20,caps:{outreachEmail:false,analytics:false},features:['Up to 3 roster athletes','CRM: leads, pipeline & accounts','Build & broker deals','Media-kit tools','20% platform fee on closed deals']},
+    {key:'starter',name:'Starter',price:99,tagline:'Grow your book',limits:{roster:15},dealFeeRate:0.15,caps:{outreachEmail:false,analytics:false},features:['Everything in Free, plus:','Up to 15 roster athletes','Talent marketing tools','Bulk media-kit export','Reduced 15% platform fee']},
+    {key:'pro',name:'Pro',price:299,tagline:'Run a full agency',popular:true,limits:{roster:60},dealFeeRate:0.10,caps:{outreachEmail:true,analytics:true},features:['Everything in Starter, plus:','Up to 60 roster athletes','CRM outreach email','Agency analytics & reporting','Reduced 10% platform fee']},
+    {key:'agency',name:'Agency',price:799,tagline:'Unlimited scale',limits:{roster:null},dealFeeRate:0.05,caps:{outreachEmail:true,analytics:true,prioritySupport:true,whiteLabel:true},features:['Everything in Pro, plus:','Unlimited roster athletes','Lowest 5% platform fee','White-glove onboarding','Priority support','White-label media kits']},
+  ],
+};
+const plansForRole=role=>PLANS_BY_ROLE[role]||[];
+const planFor=(role,key)=>{const l=plansForRole(role);return l.find(p=>p.key===key)||l[0]||null;};
+const planOf=user=>user?planFor(user.role,user.plan||'free'):null;
+const planCan=(user,cap)=>{const p=planOf(user);return!!(p&&p.caps&&p.caps[cap]);};
+const planLimit=(user,key)=>{const p=planOf(user);const v=p&&p.limits?p.limits[key]:undefined;return v===undefined?Infinity:(v===null?Infinity:v);};
+const planName=user=>{const p=planOf(user);return p?p.name:'Free';};
+const planPriceLabel=p=>p.price>0?usd(p.price)+'/mo':'Free';
 function formatNum(n){if(!n)return'0';if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n);}
 function timeAgo(d){
   const s=Math.floor((Date.now()-new Date(d))/1000);
@@ -488,6 +537,7 @@ const NAV_ATHLETE=[
   {id:'tracker',icon:'view_kanban',label:'Pipeline'},
   {id:'my-deals',icon:'handshake',label:'Deals'},
   {id:'inbox',icon:'forum',label:'Inbox'},
+  {id:'pricing',icon:'workspace_premium',label:'Upgrade'},
   {id:'profile',icon:'person',label:'Profile'},
   {id:'help',icon:'help',label:'Help'},
 ];
@@ -497,6 +547,7 @@ const NAV_BRAND=[
   {id:'my-deals',icon:'handshake',label:'Deals'},
   {id:'inbox',icon:'forum',label:'Inbox'},
   {id:'sponsor-portal',icon:'sports_football',label:'Athletes'},
+  {id:'plans',icon:'workspace_premium',label:'Plan'},
   {id:'profile',icon:'person',label:'Profile'},
   {id:'help',icon:'help',label:'Help'},
 ];
@@ -508,11 +559,21 @@ const NAV_AGENT=[
   {id:'inbox',icon:'forum',label:'Inbox'},
   {id:'media-kits',icon:'description',label:'Media Kits'},
   {id:'talent-marketing',icon:'star',label:'Marketing'},
+  {id:'plans',icon:'workspace_premium',label:'Plan'},
   {id:'profile',icon:'person',label:'Profile'},
   {id:'help',icon:'help',label:'Help'},
 ];
 
-const getNav=role=>role==='brand'?NAV_BRAND:role==='agent'?NAV_AGENT:NAV_ATHLETE;
+const NAV_ADMIN=[
+  {id:'dashboard',icon:'admin_panel_settings',label:'Console'},
+  {id:'admin-users',icon:'group',label:'Users'},
+  {id:'admin-featured',icon:'star',label:'Top 20'},
+  {id:'admin-messages',icon:'forum',label:'Messages'},
+  {id:'profile',icon:'person',label:'Profile'},
+  {id:'help',icon:'help',label:'Help'},
+];
+
+const getNav=role=>role==='admin'?NAV_ADMIN:role==='brand'?NAV_BRAND:role==='agent'?NAV_AGENT:NAV_ATHLETE;
 // financials/content/analytics are deep-links into the Inbox hub — keep the
 // sidebar's Inbox item highlighted when one of those landing pages is open.
 const INBOX_ALIASES=new Set(['inbox','financials','content','analytics']);
@@ -589,11 +650,38 @@ const MobileTopBar=({user,unread,onProfile,onNotifications})=>{
 // ── Auth Screen ───────────────────────────────────────────────────────────────
 const AuthScreen=({onAuth})=>{
   // Default to Sign Up when arrived via aiga8.com's "create free account" funnel (?signup=1).
-  const[tab,setTab]=useState(()=>{try{return new URLSearchParams(location.search).get('signup')?'register':'login';}catch(e){return 'login';}});
-  const[form,setForm]=useState({email:'',password:'',name:'',role:'athlete',sport:'',school:'',company:'',industry:''});
+  const[tab,setTab]=useState(()=>{try{return (new URLSearchParams(location.search).get('signup')||new URLSearchParams(location.search).get('invite'))?'register':'login';}catch(e){return 'login';}});
+  const[form,setForm]=useState({email:'',password:'',name:'',role:'athlete',sport:'',school:'',company:'',industry:'',inviteCode:'',inviteToken:''});
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState('');
+  const[showPw,setShowPw]=useState(false);
+  // A validated per-email/per-link invite (from ?invite=<token>). When set, the role
+  // is fixed by the invite and the email is locked to the invited address.
+  const[invite,setInvite]=useState(null);
   const set=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
+
+  // Redeem a ?invite=<token> link: validate it and lock role/email accordingly.
+  useEffect(()=>{
+    let tok;try{tok=new URLSearchParams(location.search).get('invite');}catch(e){}
+    if(!tok)return;
+    api('GET','/auth/invite/'+encodeURIComponent(tok)).then(r=>{
+      if(r&&r.valid){
+        setInvite(r);setTab('register');
+        setForm(f=>({...f,inviteToken:tok,role:r.role||'agent',email:r.email||f.email}));
+      }else{setError('This invite link is invalid or has expired.');}
+    }).catch(()=>setError('This invite link is invalid or has expired.'));
+  },[]);
+  const roleLabel=r=>({agent:'🤝 Agent',admin:'🛡️ Admin',athlete:'🏃 Athlete',brand:'🏢 Brand'}[r]||r);
+
+  // Seeded demo accounts (server seeds these in dev / when SEED_TEST_USERS is on).
+  // Click one to fill the sign-in form so any role can be tried in one tap.
+  const demoLogins=[
+    {role:'admin',label:'🛡️ Admin',email:'admin@dnil.test',password:'admin1234'},
+    {role:'agent',label:'🤝 Agent',email:'agent@dnil.test',password:'test1234'},
+    {role:'athlete',label:'🏃 Athlete',email:'athlete@dnil.test',password:'test1234'},
+    {role:'brand',label:'🏢 Brand',email:'brand@dnil.test',password:'test1234'}
+  ];
+  const fillDemo=d=>{setTab('login');setError('');setForm(f=>({...f,email:d.email,password:d.password}));};
 
   const submit=async e=>{
     e.preventDefault();setError('');setLoading(true);
@@ -633,31 +721,123 @@ const AuthScreen=({onAuth})=>{
             React.createElement('div',{style:{marginBottom:14}},
               React.createElement('label',{className:'label'},'Full Name'),
               React.createElement('input',{className:'input',placeholder:'Your full name',value:form.name,onChange:set('name'),required:true})),
-            React.createElement('div',{style:{marginBottom:14}},
-              React.createElement('label',{className:'label'},'I am a...'),
-              React.createElement('select',{className:'input',value:form.role,onChange:set('role')},
-                React.createElement('option',{value:'athlete'},'🏃 Athlete'),
-                React.createElement('option',{value:'brand'},'🏢 Brand / Company'),
-                React.createElement('option',{value:'agent'},'🤝 Agent'))),
-            form.role==='athlete'&&React.createElement(React.Fragment,null,
+            invite
+              ? React.createElement('div',{style:{marginBottom:14,padding:'12px 14px',background:`${C.primary}14`,border:`1px solid ${C.primary}55`,borderRadius:10,fontSize:13,color:C.text}},
+                  React.createElement('div',{style:{fontWeight:700,color:'#fff',marginBottom:2}},'Invitation accepted'),
+                  'You\'re joining as ',React.createElement('strong',null,roleLabel(invite.role)),invite.agency?` · ${invite.agency}`:'','.')
+              : React.createElement('div',{style:{marginBottom:14}},
+                  React.createElement('label',{className:'label'},'I am a...'),
+                  React.createElement('select',{className:'input',value:form.role,onChange:set('role')},
+                    React.createElement('option',{value:'athlete'},'🏃 Athlete'),
+                    React.createElement('option',{value:'brand'},'🏢 Brand / Company'),
+                    React.createElement('option',{value:'agent'},'🤝 Agent'))),
+            !invite&&form.role==='agent'&&React.createElement('div',{style:{marginBottom:14}},
+              React.createElement('label',{className:'label'},'Agent invite code'),
+              React.createElement('input',{className:'input',placeholder:'Enter your agency code',value:form.inviteCode,onChange:set('inviteCode'),required:true}),
+              React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:6}},'Required to register as an agent — ask your agency admin for the code.')),
+            !invite&&form.role==='athlete'&&React.createElement(React.Fragment,null,
               React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
                 React.createElement('div',null,React.createElement('label',{className:'label'},'Sport'),React.createElement('input',{className:'input',placeholder:'Football',value:form.sport,onChange:set('sport')})),
                 React.createElement('div',null,React.createElement('label',{className:'label'},'School / Team'),React.createElement('input',{className:'input',placeholder:'Ohio State',value:form.school,onChange:set('school')})))),
-            form.role==='brand'&&React.createElement(React.Fragment,null,
+            !invite&&form.role==='brand'&&React.createElement(React.Fragment,null,
               React.createElement('div',{className:'grid-col2',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
                 React.createElement('div',null,React.createElement('label',{className:'label'},'Company'),React.createElement('input',{className:'input',placeholder:'Nike',value:form.company,onChange:set('company')})),
                 React.createElement('div',null,React.createElement('label',{className:'label'},'Industry'),React.createElement('input',{className:'input',placeholder:'Apparel',value:form.industry,onChange:set('industry')}))))),
           React.createElement('div',{style:{marginBottom:14}},
             React.createElement('label',{className:'label'},'Email'),
-            React.createElement('input',{className:'input',type:'email',placeholder:'you@email.com',value:form.email,onChange:set('email'),required:true})),
+            React.createElement('input',{className:'input',type:'email',placeholder:'you@email.com',value:form.email,onChange:set('email'),required:true,readOnly:!!(invite&&invite.email),style:(invite&&invite.email)?{opacity:.7,cursor:'not-allowed'}:undefined})),
           React.createElement('div',{style:{marginBottom:20}},
             React.createElement('label',{className:'label'},'Password'),
-            React.createElement('input',{className:'input',type:'password',placeholder:'••••••••',value:form.password,onChange:set('password'),required:true,minLength:6})),
+            React.createElement('div',{style:{position:'relative'}},
+              React.createElement('input',{className:'input',type:showPw?'text':'password',placeholder:'••••••••',value:form.password,onChange:set('password'),required:true,minLength:6,style:{paddingRight:42,width:'100%'}}),
+              React.createElement('button',{type:'button',onClick:()=>setShowPw(v=>!v),title:showPw?'Hide password':'Show password','aria-label':showPw?'Hide password':'Show password',
+                style:{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',color:C.textSecondary,cursor:'pointer'}},
+                React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:20}},showPw?'visibility_off':'visibility')))),
           React.createElement('button',{className:'btn btn-primary',type:'submit',disabled:loading,style:{width:'100%',justifyContent:'center',padding:'11px',fontSize:15,fontWeight:600}},
-            loading?'Please wait…':tab==='login'?'Sign In →':'Create Account →')))));
+            loading?'Please wait…':tab==='login'?'Sign In →':'Create Account →')),
+        // Demo logins — one-tap fill for each seeded role (handy for agent sign-in).
+        tab==='login'&&React.createElement('div',{style:{marginTop:24,paddingTop:20,borderTop:`1px solid ${C.border}`}},
+          React.createElement('div',{className:'kicker',style:{marginBottom:10}},'Demo logins'),
+          React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+            demoLogins.map(d=>React.createElement('button',{key:d.role,type:'button',onClick:()=>fillDemo(d),
+              style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,width:'100%',textAlign:'left',padding:'10px 12px',background:C.surface1,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,cursor:'pointer'}},
+              React.createElement('span',{style:{fontSize:14,fontWeight:600}},d.label),
+              React.createElement('span',{className:'mono',style:{fontSize:12,color:C.textSecondary}},d.email+' · '+d.password)))),
+          React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:8}},'Tap a row to fill the form, then Sign In.')))));
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
+// Player "face" for the trading-card leaderboard — ESPN/CFBD headshot cutout,
+// falling back to the initials Avatar when no image resolves (same pattern as the roster).
+const PlayerFace=({a,height})=>{
+  const[err,setErr]=useState(false);
+  const src=headshot(a);
+  if(src&&!err)return React.createElement('img',{src,alt:a.name,onError:()=>setErr(true),
+    style:{height,width:'auto',maxWidth:'100%',objectFit:'contain',objectPosition:'bottom center',filter:'drop-shadow(0 14px 26px rgba(0,0,0,.55))'}});
+  return React.createElement(Avatar,{name:a.name,size:Math.round(height*0.66)});
+};
+
+// Top-3 athlete leaderboard, trading-card styled. #1 is a hero card; #2/#3 are
+// smaller. Each links to the public athlete page. Shared by every role's dashboard.
+const TopAthletes=({token,user,onNavigate})=>{
+  const[list,setList]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[selected,setSelected]=useState(null);
+  useEffect(()=>{
+    api('GET','/auth/athletes',null,token).then(d=>{
+      const a=(d.athletes||[]).map(x=>({...x,_f:(x.socialHandles||[]).reduce((s,h)=>s+(h.followers||0),0)}));
+      a.sort((p,q)=>(q._f-p._f)||((q.nilValue||0)-(p.nilValue||0)));
+      setList(a.slice(0,3));
+    }).catch(()=>{}).finally(()=>setLoading(false));
+  },[token]);
+  if(loading||!list.length)return null;
+  // Open the in-app player profile (AthleteProfile modal), not the public media-kit page.
+  const open=a=>setSelected(a);
+  const sub=a=>[a.position,a.school||a.sport].filter(Boolean).join(' · ')||'Athlete';
+  const viewAll=user.role==='agent'?'roster':'opportunities';
+  const a1=list[0];
+
+  return React.createElement(React.Fragment,null,
+    React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:'Athlete Profile',maxWidth:880},
+      React.createElement(AthleteProfile,{token,athlete:selected,viewer:user,onInquire:()=>{setSelected(null);onNavigate('media-kits');}})),
+    React.createElement('div',{style:{marginBottom:16}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}},
+      React.createElement('div',null,
+        React.createElement('div',{className:'kicker'},'Leaderboard'),
+        React.createElement('h3',{style:{fontWeight:700,fontSize:18,color:'#fff',marginTop:2}},'Top Athletes')),
+      React.createElement('button',{className:'btn btn-ghost',style:{fontSize:13},onClick:()=>onNavigate(viewAll)},'View all',
+        React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16,marginLeft:2}},'arrow_forward'))),
+    React.createElement('div',{style:{display:'flex',gap:16,flexWrap:'wrap'}},
+      // #1 — hero trading card
+      React.createElement('div',{onClick:()=>open(a1),className:'card-hover',style:{position:'relative',flex:'1.3 1 300px',minHeight:360,borderRadius:18,overflow:'hidden',cursor:'pointer',border:`1px solid ${C.border}`,background:'linear-gradient(165deg,#26262e 0%,#15151a 58%)'}},
+        React.createElement('div',{style:{position:'absolute',inset:0,background:'radial-gradient(130% 80% at 22% -10%,rgba(255,255,255,.16),transparent 52%)',pointerEvents:'none'}}),
+        React.createElement('div',{style:{position:'absolute',top:16,left:16,zIndex:3,display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:999,background:'rgba(0,0,0,.5)',border:`1px solid ${C.border}`}},
+          React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:16,color:'#E9C46A'}},'emoji_events'),
+          React.createElement('span',{style:{fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.05em'}},'#1')),
+        React.createElement('div',{style:{position:'absolute',inset:0,top:24,display:'flex',alignItems:'flex-end',justifyContent:'center'}},
+          React.createElement(PlayerFace,{a:a1,height:300})),
+        React.createElement('div',{style:{position:'absolute',left:0,right:0,bottom:0,zIndex:3,padding:'22px 22px 20px',background:'linear-gradient(to top,rgba(0,0,0,.92) 30%,transparent)'}},
+          React.createElement('div',{style:{fontSize:22,fontWeight:800,color:'#fff',letterSpacing:'-.01em'}},a1.name),
+          React.createElement('div',{style:{fontSize:13,color:C.textMuted,marginTop:3}},sub(a1)),
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:6,marginTop:12}},
+            React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16,color:C.primaryFg}},'group'),
+            React.createElement('span',{style:{fontSize:14,fontWeight:700,color:'#fff'}},formatNum(a1._f)),
+            React.createElement('span',{style:{fontSize:12,color:C.textMuted}},'followers')))),
+      // #2 / #3 — smaller stacked cards
+      React.createElement('div',{style:{flex:'1 1 260px',display:'flex',flexDirection:'column',gap:16}},
+        list.slice(1).map((a,i)=>
+          React.createElement('div',{key:a._id,onClick:()=>open(a),className:'card-hover',style:{position:'relative',flex:1,minHeight:172,display:'flex',alignItems:'center',gap:16,padding:18,borderRadius:16,cursor:'pointer',overflow:'hidden',border:`1px solid ${C.border}`,background:'linear-gradient(120deg,#202027,#15151a)'}},
+            React.createElement('div',{style:{position:'absolute',top:12,right:14,fontSize:13,fontWeight:800,color:C.textMuted}},'#'+(i+2)),
+            React.createElement('div',{style:{width:96,height:128,display:'flex',alignItems:'flex-end',justifyContent:'center',flexShrink:0}},
+              React.createElement(PlayerFace,{a,height:120})),
+            React.createElement('div',{style:{minWidth:0}},
+              React.createElement('div',{style:{fontSize:16,fontWeight:700,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},a.name),
+              React.createElement('div',{style:{fontSize:12,color:C.textMuted,marginTop:2}},sub(a)),
+              React.createElement('div',{style:{display:'flex',alignItems:'center',gap:5,marginTop:8}},
+                React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:14,color:C.primaryFg}},'group'),
+                React.createElement('span',{style:{fontSize:13,fontWeight:700,color:'#fff'}},formatNum(a._f))))))))));
+};
+
 // ── Athlete Dashboard (Stitch bento — wired to real data) ────────────────────
 const AthleteDashboard=({token,user,onNavigate})=>{
   const[data,setData]=useState(null);
@@ -713,6 +893,9 @@ const AthleteDashboard=({token,user,onNavigate})=>{
           React.createElement('span',{className:'material-symbols-outlined',style:{color:C.primaryFg,fontSize:20}},'notifications')),
         React.createElement('button',{className:'btn btn-primary',style:{padding:'10px 22px'},onClick:()=>onNavigate('content')},
           React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:20}},'add'),'Post New Content'))),
+
+    // Top Athletes leaderboard — trading-card style, links out to each player's page
+    React.createElement(TopAthletes,{token,user,onNavigate}),
 
     // Hero + right column
     React.createElement('div',{className:'grid-dash',style:{display:'grid',gridTemplateColumns:'2fr 1fr',gap:16,marginBottom:16}},
@@ -922,6 +1105,10 @@ const Dashboard=({token,user,onNavigate})=>{
         React.createElement('div',{className:'mono',style:{fontSize:10,color:C.textSecondary,marginBottom:6,textTransform:'uppercase'}},st.label),
         React.createElement('div',{style:{fontSize:28,fontWeight:800,color:'#fff',letterSpacing:'-.01em'}},st.value)))),
 
+    // Top Athletes leaderboard — trading-card style, links out to each player's page
+    React.createElement('div',{style:{marginBottom:28}},
+      React.createElement(TopAthletes,{token,user,onNavigate})),
+
     // Two-column: recent deals + activity feed
     React.createElement('div',{className:'grid-dash',style:{display:'grid',gridTemplateColumns:'1fr 380px',gap:16}},
       React.createElement('div',{className:'card'},
@@ -1061,6 +1248,7 @@ const Opportunities=({token,user})=>{
           React.createElement('div',{key:k,style:{background:C.surfaceDim,padding:10,borderRadius:8}},
             React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginBottom:2}},k),
             React.createElement('div',{style:{fontSize:13,fontWeight:600}},v)))),
+        React.createElement('div',{style:{marginBottom:16}},React.createElement(FeeBreakdown,{amount:selected.compensation?.amount,rate:selected.platformFeeRate})),
         selected.deliverables?.length?React.createElement('div',{style:{marginBottom:16}},
           React.createElement('h4',{style:{fontSize:13,fontWeight:700,marginBottom:8}},'Deliverables'),
           selected.deliverables.map((d,i)=>React.createElement('div',{key:i,style:{padding:'8px 12px',background:C.surfaceDim,borderRadius:6,marginBottom:6,fontSize:13}},
@@ -1369,6 +1557,7 @@ const MyDeals=({token,user})=>{
           React.createElement('div',{key:k,style:{background:C.surfaceDim,padding:10,borderRadius:8}},
             React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginBottom:2}},k),
             React.createElement('div',{style:{fontSize:13,fontWeight:600}},v)))),
+        React.createElement('div',{style:{marginBottom:16}},React.createElement(FeeBreakdown,{amount:selected.compensation?.amount,rate:selected.platformFeeRate})),
         // Applications list (brand/agent view)
         (isBrand||isAgent)&&selected.status==='applied'&&selected.applications?.length?
           React.createElement('div',{style:{marginBottom:16}},
@@ -1930,8 +2119,93 @@ const Analytics=({token,user})=>{
             React.createElement('div',{style:{fontSize:11,color:C.textMuted}},s.handle?`@${s.handle}`:'Not connected'))))):null);
 };
 
+// Global upgrade prompt — fired by any 402 from a gated route (see signalUpgrade).
+const UpgradeModal=({open,message,onClose,onView})=>React.createElement(Modal,{open,onClose,title:'Upgrade your plan',maxWidth:460},
+  React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:16}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12}},
+      React.createElement('div',{style:{width:46,height:46,borderRadius:12,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:C.primaryLight,border:`1px solid ${C.borderRed}`}},
+        React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.primary,fontSize:26}},'workspace_premium')),
+      React.createElement('p',{style:{fontSize:14,color:C.textSecondary,lineHeight:1.5,margin:0}},
+        message||'This feature is part of a higher plan. Upgrade to unlock it.')),
+    React.createElement('div',{style:{display:'flex',justifyContent:'flex-end',gap:10}},
+      React.createElement('button',{type:'button',className:'btn btn-secondary',onClick:onClose},'Maybe later'),
+      React.createElement('button',{type:'button',className:'btn btn-primary',onClick:onView},'View plans'))));
+
+// ── Plans / Billing (role-aware: brand / athlete / agent) ────────────────────────
+const RANK_KEYS=role=>plansForRole(role).map(p=>p.key);
+const Plans=({token,user,onUpdate})=>{
+  const[cfg,setCfg]=useState(null);
+  const[busy,setBusy]=useState('');
+  const[err,setErr]=useState('');
+  const[msg,setMsg]=useState('');
+  const tiers=plansForRole(user.role);
+  const current=user.plan||'free';
+  const rank=RANK_KEYS(user.role);
+  const curIdx=Math.max(0,rank.indexOf(current));
+  useEffect(()=>{api('GET','/billing/config',null,token).then(setCfg).catch(()=>{});},[token]);
+  // Brands/athletes close deals → the 20% fee note is relevant; agents broker, skip.
+  const showFee=user.role==='brand'||user.role==='athlete';
+  const act=async(plan)=>{
+    setBusy(plan);setErr('');setMsg('');
+    try{
+      if(plan==='free'){
+        const d=await api('POST','/billing/cancel',{},token);
+        if(d.user&&onUpdate)onUpdate(d.user);setMsg('Switched to the Free plan.');
+      }else{
+        const d=await api('POST','/billing/checkout',{plan},token);
+        if(d.url){window.location.href=d.url;return;}            // hosted Stripe Checkout
+        if(d.granted){if(d.user&&onUpdate)onUpdate(d.user);setMsg(planFor(user.role,plan).name+' unlocked — your new features are live.');}
+      }
+    }catch(e){setErr(e.message);}
+    setBusy('');
+  };
+  const card=(p,i)=>{
+    const isCurrent=p.key===current;
+    const accent=!!p.popular||p.key==='elite'||p.key==='agency';
+    const cta=isCurrent?null:(i>curIdx?'Upgrade':(p.key==='free'?'Downgrade to Free':'Switch'));
+    return React.createElement('div',{key:p.key,style:{position:'relative',flex:'1 1 220px',minWidth:220,background:C.glass,border:`1px solid ${accent?C.borderRed:C.border}`,borderRadius:16,padding:'22px 20px',display:'flex',flexDirection:'column',gap:12,boxShadow:accent?'0 0 24px rgba(255,255,255,.06)':'none'}},
+      p.popular&&React.createElement('div',{style:{position:'absolute',top:-10,right:16,background:C.primary,color:'#fff',fontSize:10,fontWeight:800,letterSpacing:.5,padding:'3px 9px',borderRadius:999,textTransform:'uppercase'}},'Most popular'),
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
+        React.createElement('h3',{style:{fontSize:16,fontWeight:800,color:'#fff'}},p.name),
+        isCurrent&&React.createElement('span',{className:'badge badge-green'},'Current')),
+      React.createElement('div',{style:{fontSize:12,color:C.textMuted,minHeight:16}},p.tagline||''),
+      React.createElement('div',{style:{display:'flex',alignItems:'baseline',gap:4}},
+        React.createElement('span',{style:{fontSize:28,fontWeight:800,color:'#fff'}},p.price>0?usd(p.price):'$0'),
+        React.createElement('span',{style:{fontSize:13,color:C.textMuted}},'/mo')),
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:7,flex:1,marginTop:4}},
+        (p.features||[]).map((f,j)=>React.createElement('div',{key:j,style:{display:'flex',alignItems:'flex-start',gap:7,fontSize:12.5,color:C.textSecondary}},
+          React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16,color:accent?C.primary:C.textMuted,marginTop:1}},'check_circle'),f))),
+      cta?React.createElement('button',{className:`btn ${accent?'btn-primary':'btn-secondary'}`,disabled:!!busy,onClick:()=>act(p.key),style:{justifyContent:'center'}},
+        busy===p.key?'…':cta):
+      React.createElement('button',{className:'btn btn-secondary',disabled:true,style:{justifyContent:'center',opacity:.6}},'Current plan'));
+  };
+  const roleHead={brand:'Plans for brands',athlete:'Plans for athletes',agent:'Plans for agents'}[user.role]||'Plans & Billing';
+  const roleSub={
+    brand:'Reach athletes, run campaigns, and close NIL deals at any scale.',
+    athlete:'Get discovered, export a pro media kit, and land more NIL deals.',
+    agent:'Manage your roster, broker deals, and run your agency.'
+  }[user.role]||'';
+  return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
+    React.createElement('div',{style:{background:'linear-gradient(135deg,#1E1E1E,#3A3A3A)',borderRadius:18,padding:'30px 28px',marginBottom:22,color:'#fff'}},
+      React.createElement('h1',{style:{fontSize:27,fontWeight:800,lineHeight:1.1,marginBottom:8}},roleHead),
+      React.createElement('p',{style:{fontSize:14,opacity:.82,maxWidth:680,lineHeight:1.5}},roleSub),
+      React.createElement('div',{style:{marginTop:12,fontSize:12,opacity:.7}},'You\'re on the ',React.createElement('strong',null,planName(user)),' plan.')),
+    msg&&React.createElement('div',{style:{background:`${C.success}1a`,border:`1px solid ${C.success}55`,color:C.success,borderRadius:10,padding:'10px 14px',marginBottom:16,fontSize:13,fontWeight:600}},msg),
+    err&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,padding:10,borderRadius:8,fontSize:13,marginBottom:14}},err),
+    cfg&&cfg.devGrant&&React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginBottom:14}},'⚙︎ Dev mode: Stripe not configured — upgrades unlock instantly without a charge. Set STRIPE_SECRET_KEY for real checkout.'),
+    React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:14,alignItems:'stretch'}},tiers.map(card)),
+    showFee&&React.createElement('div',{style:{marginTop:18,padding:'12px 14px',background:C.surfaceDim,border:`1px solid ${C.border}`,borderRadius:10,display:'flex',alignItems:'center',gap:10}},
+      React.createElement('span',{className:'material-symbols-outlined',style:{color:C.textMuted,fontSize:20}},'percent'),
+      React.createElement('span',{style:{fontSize:12,color:C.textSecondary}},
+        user&&user.role==='agent'
+          ? [React.createElement('strong',{key:'s',style:{color:'#fff'}},'Your platform fee scales with your plan'),' — from 20% on Free down to 5% on Agency, taken from each closed deal\'s value with the remainder paid to the athlete. Upgrade to keep more of every deal.']
+          : [React.createElement('strong',{key:'s',style:{color:'#fff'}},FEE_PCT+'% platform service fee'),' applies to every closed deal — taken from the deal value, with the remainder paid to the athlete.'])),
+    React.createElement('p',{style:{fontSize:11,color:C.textMuted,marginTop:12}},'Billed monthly. Cancel anytime.'));
+};
+
 // ── Campaigns (Brand) ──────────────────────────────────────────────────────────
-const Campaigns=({token})=>{
+const Campaigns=({token,user,onNavigate})=>{
+  const canCampaign=planLimit(user,'campaigns')>0;
   const[campaigns,setCampaigns]=useState([]);
   const[loading,setLoading]=useState(true);
   const[showNew,setShowNew]=useState(false);
@@ -1963,8 +2237,16 @@ const Campaigns=({token})=>{
       React.createElement('div',null,
         React.createElement('h1',{style:{fontSize:22,fontWeight:700}},'Campaigns'),
         React.createElement('p',{style:{color:C.textSecondary,fontSize:14,marginTop:4}},'Plan and manage your athlete marketing campaigns')),
-      React.createElement('button',{className:'btn btn-primary',onClick:()=>{setShowNew(true);setError('');}},
-        '+ New Campaign')),
+      React.createElement('button',{className:'btn btn-primary',onClick:()=>{
+        if(!canCampaign){signalUpgrade({message:'Campaigns are available on the Starter plan and up. Upgrade to launch campaigns.'});return;}
+        setShowNew(true);setError('');}},
+        canCampaign?'+ New Campaign':React.createElement(React.Fragment,null,React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16}},'lock'),'New Campaign'))),
+    !canCampaign?React.createElement('div',{style:{background:C.glass,border:`1px solid ${C.borderRed}`,borderRadius:14,padding:'16px 18px',marginBottom:18,display:'flex',alignItems:'center',gap:12}},
+      React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.primary,fontSize:24}},'workspace_premium'),
+      React.createElement('div',{style:{flex:1}},
+        React.createElement('div',{style:{fontWeight:700,fontSize:14,color:'#fff'}},'Campaigns start on the Starter plan'),
+        React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginTop:2}},'Upgrade to plan, brief, and match athletes at scale.')),
+      React.createElement('button',{className:'btn btn-primary',onClick:()=>onNavigate&&onNavigate('plans')},'Upgrade')):null,
     loading?React.createElement(Spinner):
     !campaigns.length?React.createElement(Empty,{icon:'📣',text:'No campaigns yet. Create your first!'}):
     React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:16}},
@@ -2330,6 +2612,7 @@ const Roster=({token,user,onNavigate})=>{
   const[pos,setPos]=useState('');
   const[showAdd,setShowAdd]=useState(false);
   const[backfilling,setBackfilling]=useState(false);
+  const[backfillingHeads,setBackfillingHeads]=useState(false);
   const positionColors={QB:'#4D4D4D',WR:'#F59E0B',RB:'#10B981',TE:'#7C3AED',OL:'#3B82F6',DL:'#6B7280',LB:'#EC4899',DB:'#0EA5E9'};
   const load=useCallback(async()=>{
     setLoading(true);
@@ -2354,6 +2637,17 @@ const Roster=({token,user,onNavigate})=>{
       load();
     }catch(e){alert(e.message);}finally{setBackfilling(false);}
   };
+  const backfillHeadshots=async(force=false)=>{
+    if(force&&!confirm('Re-resolve ESPN headshots for your ENTIRE roster and replace existing images?\n\nUploaded/custom avatars will be overwritten with the ESPN headshot.'))return;
+    setBackfillingHeads(true);
+    try{
+      const r=await api('POST','/auth/athletes/backfill-headshots',{force},token);
+      alert(force
+        ?`Refreshed ${r.filled} of ${r.scanned} headshot${r.scanned===1?'':'s'}.`
+        :`Filled ${r.filled} of ${r.scanned} missing headshot${r.scanned===1?'':'s'}.`);
+      load();
+    }catch(e){alert(e.message);}finally{setBackfillingHeads(false);}
+  };
   useEffect(()=>{load();},[load]);
   const shown=pos?athletes.filter(a=>(a.position||'').toUpperCase()===pos):athletes;
   return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100,margin:'0 auto'}},
@@ -2365,6 +2659,7 @@ const Roster=({token,user,onNavigate})=>{
         React.createElement('button',{className:'btn btn-primary',onClick:()=>setShowAdd(true)},'＋ Add Player'),
         React.createElement('button',{className:'btn btn-secondary',onClick:()=>backfillHighlights(false),disabled:backfilling,title:'Auto-find YouTube highlight reels for athletes missing one'},backfilling?'Finding…':'🎬 Find Highlights'),
         React.createElement('button',{className:'btn btn-secondary',onClick:()=>backfillHighlights(true),disabled:backfilling,title:'Re-find reels for the whole roster and replace existing links (fixes blocked embeds)'},backfilling?'Finding…':'↻ Re-find All'),
+        React.createElement('button',{className:'btn btn-secondary',onClick:()=>backfillHeadshots(false),disabled:backfillingHeads,title:'Auto-resolve ESPN headshots for athletes missing one'},backfillingHeads?'Finding…':'🪪 Find Headshots'),
         React.createElement('button',{className:'btn btn-secondary',onClick:()=>onNavigate('media-kits')},'📋 Media Kits'))),
     React.createElement('div',{style:{display:'flex',gap:10,marginBottom:20,flexWrap:'wrap'}},
       React.createElement('input',{className:'input',placeholder:'🔍 Search athletes…',value:search,onChange:e=>setSearch(e.target.value),style:{maxWidth:300}}),
@@ -2555,6 +2850,8 @@ const TalentMarketing=({token,user})=>{
 // ── Sponsor Portal ─────────────────────────────────────────────────────────────
 const SponsorPortal=({token,user})=>{
   const[athletes,setAthletes]=useState([]);
+  const[recruits,setRecruits]=useState([]);
+  const[recruitsBusy,setRecruitsBusy]=useState(false);
   const[loading,setLoading]=useState(true);
   const[filters,setFilters]=useState({search:'',position:''});
   const[selected,setSelected]=useState(null);
@@ -2568,6 +2865,18 @@ const SponsorPortal=({token,user})=>{
     let list=data.athletes||[];
     if(filters.position)list=list.filter(a=>a.position?.toUpperCase()===filters.position.toUpperCase());
     setAthletes(list);setLoading(false);
+    // Also surface NCAA recruiting prospects (incoming HS recruits + rostered players)
+    // matching the search — discovery beyond athletes already on the platform.
+    if(filters.search.trim()){
+      setRecruitsBusy(true);
+      try{
+        const d=await api('GET','/cfbd/search?name='+encodeURIComponent(filters.search.trim()),null,token);
+        let r=(d.players||[]).filter(p=>p.hasRecruitData||p.isRecruit);
+        if(filters.position)r=r.filter(p=>p.position?.toUpperCase()===filters.position.toUpperCase());
+        setRecruits(r);
+      }catch(e){setRecruits([]);}
+      setRecruitsBusy(false);
+    }else{setRecruits([]);}
   },[token,filters]);
   useEffect(()=>{load();},[load]);
   return React.createElement('div',{className:'page-wrap',style:{padding:'24px',maxWidth:1100}},
@@ -2586,7 +2895,7 @@ const SponsorPortal=({token,user})=>{
         positions.map(p=>React.createElement('option',{key:p,value:p},p))),
       React.createElement('button',{className:'btn btn-primary',onClick:load},'Search')),
     loading?React.createElement(Spinner):
-    !athletes.length?React.createElement(Empty,{icon:'🏈',text:'No athletes match your search'}):
+    !athletes.length?((recruits.length||recruitsBusy)?null:React.createElement(Empty,{icon:'🏈',text:'No athletes match your search'})):
     React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}},
       athletes.map(a=>{
         const totalF=(a.socialHandles||[]).reduce((s,h)=>s+(h.followers||0),0);
@@ -2610,6 +2919,31 @@ const SponsorPortal=({token,user})=>{
           isBrand&&React.createElement('button',{className:'btn btn-primary',style:{width:'100%',justifyContent:'center',fontSize:13},
             onClick:e=>{e.stopPropagation();alert('Request sent! Digital NIL will connect you with this athlete\'s team within 24 hours.');}},
             'Request Partnership 🤝'));})),
+    // NCAA recruiting prospects (CFBD) — discovery beyond on-platform athletes
+    (recruitsBusy||recruits.length>0)&&React.createElement('div',{style:{marginTop:28}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:14}},
+        React.createElement('h2',{style:{fontSize:16,fontWeight:700}},'Recruiting Prospects'),
+        React.createElement('span',{style:{fontSize:11,color:C.textMuted}},'NCAA recruiting data · 2024–2026 classes'),
+        recruitsBusy&&React.createElement('span',{style:{fontSize:12,color:C.textMuted}},'searching…')),
+      recruits.length>0&&React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}},
+        recruits.map((r,i)=>React.createElement('div',{key:String(r.id)+'-'+i,className:'card'},
+          React.createElement('div',{style:{background:`linear-gradient(135deg,#1E1E1E,#1A1A1A)`,borderRadius:'8px 8px 0 0',margin:'-20px -20px 14px',padding:'16px 20px',display:'flex',alignItems:'center',gap:12}},
+            React.createElement(Avatar,{name:r.name,src:r.id?espnHeadshot(r.id):'',size:44}),
+            React.createElement('div',{style:{minWidth:0}},
+              React.createElement('div',{style:{color:'#fff',fontWeight:700,fontSize:14,display:'flex',alignItems:'center',gap:6}},r.name,
+                r.isRecruit&&React.createElement('span',{style:{background:`${C.primary}33`,color:'#fff',borderRadius:4,padding:'1px 5px',fontSize:9,fontWeight:700}},'RECRUIT')),
+              React.createElement('div',{style:{color:'rgba(255,255,255,.6)',fontSize:12}},(r.position?r.position+' · ':'')+(r.isRecruit?(r.committedTo||'Uncommitted'):r.team)))),
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
+            [['Stars',r.stars?'★'.repeat(r.stars):'—',C.primary],['Nat. Rank',r.recruitRank?'#'+r.recruitRank:'—',C.success]].map(([lbl,val,col])=>
+              React.createElement('div',{key:lbl,style:{textAlign:'center',padding:'10px',background:C.surfaceDim,borderRadius:8}},
+                React.createElement('div',{style:{fontSize:15,fontWeight:800,color:col}},val),
+                React.createElement('div',{style:{fontSize:10,color:C.textMuted}},lbl)))),
+          React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginBottom:12}},
+            [r.recruitRating?Number(r.recruitRating).toFixed(4)+' composite':null,r.recruitYear?r.recruitYear+' class':null,r.highSchool,(r.hometownCity?r.hometownCity+(r.hometownState?', '+r.hometownState:''):null)].filter(Boolean).join(' · ')||'—'),
+          isBrand&&React.createElement('button',{className:'btn btn-secondary',style:{width:'100%',justifyContent:'center',fontSize:13},
+            onClick:()=>alert('Prospect flagged! Digital NIL will reach out to '+r.name.split(' ')[0]+"'s camp to start an NIL conversation.")},
+            'Express Interest 🎯')))),
+      !recruitsBusy&&recruits.length===0&&filters.search.trim()&&React.createElement('div',{style:{fontSize:12,color:C.textMuted}},'No recruiting prospects found for that name.')),
     React.createElement(Modal,{open:!!selected,onClose:()=>setSelected(null),title:'Athlete Profile',maxWidth:880},
       React.createElement(AthleteProfile,{token,athlete:selected,viewer:user,onInquire:()=>{setSelected(null);alert('Request sent! Digital NIL will connect you with '+selected.name.split(' ')[0]+"'s team within 24 hours.");}})));
 };
@@ -2922,16 +3256,37 @@ const SocialLinks=({token,handles})=>{
           React.createElement('div',{style:{fontSize:10,color:C.textMuted}},'@'+String(s.handle).trim().replace(/^@+/,''))));
     }));
 };
+// Service-fee breakdown for a deal value — shown wherever money is set/displayed so
+// every side sees the 20% platform fee and the athlete's net payout.
+const FeeBreakdown=({amount,compact,rate})=>{
+  const a=Number(amount)||0;
+  if(a<=0)return null;
+  const r=(typeof rate==='number')?rate:PLATFORM_FEE_RATE;
+  const fee=platformFeeOn(a,r),net=athleteNetOf(a,r);
+  const row=(label,val,strong)=>React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:compact?11:12,color:strong?'#fff':C.textSecondary,fontWeight:strong?700:500}},
+    React.createElement('span',null,label),React.createElement('span',{className:'mono'},val));
+  return React.createElement('div',{style:{marginTop:8,padding:'8px 10px',background:C.surfaceDim||C.surface1,border:`1px solid ${C.border}`,borderRadius:8,display:'flex',flexDirection:'column',gap:3}},
+    row('Deal value',usd(a)),
+    row(`Platform service fee (${Math.round(r*100)}%)`,'−'+usd(fee)),
+    row('Athlete receives',usd(net),true));
+};
+
 // Brand → athlete direct offer (creates a pending 'offered' deal)
-const SendOfferModal=({token,athlete,onClose,onSent})=>{
+const SendOfferModal=({token,athlete,user,onClose,onSent})=>{
   const[f,setF]=useState({title:'',description:'',amount:'',platforms:[]});
+  const[trip,setTrip]=useState({included:false,budget:'',notes:''});
   const[busy,setBusy]=useState(false);const[err,setErr]=useState('');
   const set=k=>v=>setF(p=>({...p,[k]:v}));
+  const setT=k=>v=>setTrip(p=>({...p,[k]:v}));
   const togglePlat=p=>setF(s=>({...s,platforms:s.platforms.includes(p)?s.platforms.filter(x=>x!==p):[...s.platforms,p]}));
+  // Funded recruitment trips are an Elite-only add-on (gated server-side too).
+  const canTrip=planCan(user,'recruitmentTrips');
   const submit=async e=>{
     e.preventDefault();setBusy(true);setErr('');
-    try{await api('POST','/deals/offer',{athleteId:athlete._id,title:f.title,description:f.description,
-      compensation:{amount:Number(f.amount)||0,type:'flat'},platforms:f.platforms},token);
+    const payload={athleteId:athlete._id,title:f.title,description:f.description,
+      compensation:{amount:Number(f.amount)||0,type:'flat'},platforms:f.platforms};
+    if(canTrip&&trip.included)payload.recruitmentTrip={included:true,budget:Number(trip.budget)||0,notes:trip.notes};
+    try{await api('POST','/deals/offer',payload,token);
       onSent();
     }catch(e2){setErr(e2.message);setBusy(false);}
   };
@@ -2946,7 +3301,8 @@ const SendOfferModal=({token,athlete,onClose,onSent})=>{
         React.createElement('textarea',{className:'input',rows:3,value:f.description,onChange:e=>set('description')(e.target.value),placeholder:'What you\'re proposing…'})),
       React.createElement('div',null,
         React.createElement('label',{className:'label'},'Compensation ($)'),
-        React.createElement('input',{className:'input',type:'number',min:0,value:f.amount,onChange:e=>set('amount')(e.target.value),required:true,placeholder:'25000'})),
+        React.createElement('input',{className:'input',type:'number',min:0,value:f.amount,onChange:e=>set('amount')(e.target.value),required:true,placeholder:'25000'}),
+        React.createElement(FeeBreakdown,{amount:Number(f.amount)||0})),
       React.createElement('div',null,
         React.createElement('label',{className:'label'},'Platforms'),
         React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:8}},
@@ -2954,6 +3310,25 @@ const SendOfferModal=({token,athlete,onClose,onSent})=>{
             return React.createElement('button',{key:p,type:'button',onClick:()=>togglePlat(p),
               style:{padding:'5px 12px',borderRadius:999,fontSize:12,fontWeight:600,textTransform:'capitalize',
                 background:on?C.primaryLight:C.surface1,color:on?C.primaryFg:C.textSecondary,border:`1px solid ${on?C.borderRed:C.border}`}},p);}))),
+      // Elite-only: bundle a brand-funded recruitment trip into the offer.
+      React.createElement('div',{style:{border:`1px solid ${trip.included&&canTrip?C.borderRed:C.border}`,borderRadius:10,padding:'12px 14px',background:C.surfaceDim}},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10}},
+          React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:canTrip?C.primary:C.textMuted,fontSize:22}},'flight_takeoff'),
+          React.createElement('div',{style:{flex:1}},
+            React.createElement('div',{style:{fontSize:13,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',gap:6}},'Funded recruitment trip',
+              !canTrip&&React.createElement('span',{className:'badge badge-gray',style:{fontSize:9}},'ELITE')),
+            React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:1}},'Fly the athlete out for an appearance or visit, on you.')),
+          canTrip
+            ?React.createElement('label',{style:{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,color:C.textSecondary,cursor:'pointer'}},
+              React.createElement('input',{type:'checkbox',checked:trip.included,onChange:e=>setT('included')(e.target.checked)}),'Include')
+            :React.createElement('button',{type:'button',className:'btn btn-secondary',style:{padding:'4px 10px',fontSize:12},onClick:()=>signalUpgrade({message:'Funded recruitment trips are an Elite feature. Upgrade to bundle a trip into your offer.'})},'Upgrade')),
+        canTrip&&trip.included&&React.createElement('div',{style:{display:'flex',gap:10,marginTop:10,flexWrap:'wrap'}},
+          React.createElement('div',{style:{flex:'1 1 140px'}},
+            React.createElement('label',{className:'label'},'Trip budget ($)'),
+            React.createElement('input',{className:'input',type:'number',min:0,value:trip.budget,onChange:e=>setT('budget')(e.target.value),placeholder:'8000'})),
+          React.createElement('div',{style:{flex:'2 1 220px'}},
+            React.createElement('label',{className:'label'},'Trip notes'),
+            React.createElement('input',{className:'input',value:trip.notes,onChange:e=>setT('notes')(e.target.value),placeholder:'2-day campus visit + appearance'})))),
       React.createElement('div',{style:{display:'flex',justifyContent:'flex-end',gap:10}},
         React.createElement('button',{type:'button',className:'btn btn-secondary',onClick:onClose},'Cancel'),
         React.createElement('button',{type:'submit',className:'btn btn-primary',disabled:busy},busy?'Sending…':'Send offer'))));
@@ -3007,7 +3382,10 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
           React.createElement('span',null,React.createElement('strong',{style:{color:C.text}},formatMoney(a.nilValue||0)),' NIL value'),
           React.createElement('span',null,React.createElement('strong',{style:{color:C.text}},a.dealsCompleted||0),' deals'))),
       React.createElement('div',{style:{display:'flex',gap:8,flexShrink:0,flexWrap:'wrap'}},
-        isBrand?React.createElement('button',{className:'btn btn-primary',onClick:()=>setShowOffer(true)},'Send Offer'):
+        isBrand?React.createElement('button',{className:'btn btn-primary',onClick:()=>{
+          if(!planCan(viewer,'directOffers')){signalUpgrade({message:'Sending direct offers starts on the Starter plan. Upgrade to make offers to '+(a.name?a.name.split(' ')[0]:'athletes')+'.'});return;}
+          setShowOffer(true);}},
+          !planCan(viewer,'directOffers')?React.createElement(React.Fragment,null,React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:16}},'lock'),'Send Offer'):'Send Offer'):
         canInquire?React.createElement('button',{className:'btn btn-primary',onClick:()=>onInquire?onInquire(a):alert('Inquiry sent! Digital NIL will connect you with '+a.name.split(' ')[0]+"'s team within 24 hours.")},'Inquire for Deal'):null,
         React.createElement('button',{className:'btn btn-secondary',onClick:share},'Share Profile'),
         token?React.createElement('button',{className:'btn btn-secondary',onClick:()=>exportFile('pdf'),disabled:!!exporting},
@@ -3056,7 +3434,7 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
       React.createElement('span',{style:{fontWeight:700,fontSize:13}},'Performance Metrics'),
       React.createElement('span',{style:{fontSize:11,color:C.textMuted,marginLeft:'auto'}},'collegefootballdata.com')),
     React.createElement(CFBStats,{token,athleteName:a.name,athleteTeam:a.school,cfbPlayerId:a.cfbPlayerId}),
-    showOffer&&React.createElement(SendOfferModal,{token,athlete:a,onClose:()=>setShowOffer(false),
+    showOffer&&React.createElement(SendOfferModal,{token,athlete:a,user:viewer,onClose:()=>setShowOffer(false),
       onSent:()=>{setShowOffer(false);alert('Offer sent! '+a.name.split(' ')[0]+' will see it in their pipeline.');}}));
 };
 
@@ -3088,12 +3466,23 @@ const AthleteForm=({token,onSave,onClose})=>{
     setTbBusy(false);
   };
   const pickCfb=p=>{
+    const recruitBio=p.hasRecruitData?[
+      p.stars?p.stars+'★ recruit':null,
+      p.recruitRating?'('+Number(p.recruitRating).toFixed(4)+' composite)':null,
+      p.recruitRank?'#'+p.recruitRank+' nationally':null,
+      p.recruitYear?'· '+p.recruitYear+' class':null,
+      p.highSchool?'· '+p.highSchool+(p.hometownCity?' ('+p.hometownCity+(p.hometownState?', '+p.hometownState:'')+')':''):null
+    ].filter(Boolean).join(' '):'';
     setF(prev=>({...prev,
-      name:p.name||prev.name,school:p.team||prev.school,position:p.position||prev.position,
+      name:p.name||prev.name,
+      school:(p.isRecruit?p.committedTo:p.team)||prev.school,
+      position:p.position||prev.position,
       jerseyNumber:p.jersey!=null?String(p.jersey):prev.jerseyNumber,
       heightDisplay:p.height?inToFt(p.height):prev.heightDisplay,
       weightLbs:p.weight!=null?String(p.weight):prev.weightLbs,
-      cfbPlayerId:String(p.id||''),
+      classYear:p.isRecruit?'Freshman':prev.classYear,
+      cfbPlayerId:p.isRecruit?prev.cfbPlayerId:String(p.id||''),
+      bio:prev.bio||recruitBio,
       avatar:p.id?espnHeadshot(p.id):prev.avatar}));
     setCfbResults(null);setCfbq('');
   };
@@ -3129,12 +3518,22 @@ const AthleteForm=({token,onSave,onClose})=>{
         React.createElement('input',{className:'input',placeholder:"Or browse a team's roster (e.g. UCLA)",value:tbTeam,onChange:e=>setTbTeam(e.target.value),onKeyDown:e=>{if(e.key==='Enter'){e.preventDefault();tbBrowse();}},style:{flex:1}}),
         React.createElement('button',{type:'button',className:'btn btn-secondary',onClick:tbBrowse,disabled:tbBusy},tbBusy?'…':'Browse')),
       tbYear&&cfbResults&&cfbResults.length>0&&React.createElement('div',{style:{marginTop:8,fontSize:11,color:C.textMuted}},'Showing '+tbTeam+' roster · '+tbYear+' season'+(tbYear!==new Date().getFullYear()?' (latest CFBD has)':'')),
-      cfbResults&&cfbResults.length>0&&React.createElement('div',{style:{marginTop:8,maxHeight:tbYear?320:210,overflowY:'auto',display:'flex',flexDirection:'column',gap:4}},
-        cfbResults.slice(0,tbYear?200:8).map(p=>React.createElement('button',{key:p.id,type:'button',onClick:()=>pickCfb(p),
-          style:{display:'flex',alignItems:'center',gap:10,textAlign:'left',padding:'7px 10px',background:'transparent',border:`1px solid ${C.border}`,borderRadius:8,color:C.text,cursor:'pointer'}},
+      cfbResults&&cfbResults.length>0&&React.createElement('div',{style:{marginTop:8,maxHeight:tbYear?320:260,overflowY:'auto',display:'flex',flexDirection:'column',gap:4}},
+        cfbResults.slice(0,tbYear?200:12).map((p,i)=>React.createElement('button',{key:String(p.id)+'-'+i,type:'button',onClick:()=>pickCfb(p),
+          style:{display:'flex',alignItems:'center',gap:10,textAlign:'left',padding:'7px 10px',background:'transparent',border:`1px solid ${p.isRecruit?C.primary+'55':C.border}`,borderRadius:8,color:C.text,cursor:'pointer'}},
           React.createElement('img',{src:espnHeadshot(p.id),alt:'',onError:e=>{e.target.style.visibility='hidden';},style:{width:30,height:30,borderRadius:'50%',objectFit:'cover',background:C.surface2,flexShrink:0}}),
-          React.createElement('span',{style:{flex:1,fontSize:13}},React.createElement('strong',null,p.name),React.createElement('span',{style:{color:C.textSecondary,marginLeft:6,fontSize:12}},(p.position||'')+' · '+p.team)),
-          React.createElement('span',{style:{fontSize:11,color:C.textMuted}},'#'+(p.jersey!=null?p.jersey:'—'))))),
+          React.createElement('span',{style:{flex:1,fontSize:13,minWidth:0}},
+            React.createElement('span',null,
+              React.createElement('strong',null,p.name),
+              p.isRecruit&&React.createElement('span',{style:{background:`${C.primary}22`,color:C.primary,borderRadius:4,padding:'1px 5px',fontSize:10,marginLeft:6,fontWeight:700,letterSpacing:.3}},'RECRUIT'),
+              React.createElement('span',{style:{color:C.textSecondary,marginLeft:6,fontSize:12}},(p.position||'')+(p.isRecruit?(p.committedTo?' → '+p.committedTo:''):' · '+p.team))),
+            (p.stars||p.recruitRank||p.hometownCity||p.teamCount>1)&&React.createElement('span',{style:{display:'block',fontSize:11,color:C.textMuted,marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},
+              [p.stars?'★'.repeat(p.stars)+(p.recruitRating?' '+Number(p.recruitRating).toFixed(4):''):null,
+               p.recruitRank?'#'+p.recruitRank+(p.recruitYear?" '"+String(p.recruitYear).slice(2)+' class':''):null,
+               p.hometownCity?p.hometownCity+(p.hometownState?', '+p.hometownState:''):null,
+               (!p.isRecruit&&p.teamCount>1)?'also '+p.teams.filter(t=>t!==p.team).join(', '):null
+              ].filter(Boolean).join('  ·  '))),
+          React.createElement('span',{style:{fontSize:11,color:C.textMuted,flexShrink:0}},p.isRecruit?(p.highSchool||'HS'):'#'+(p.jersey!=null?p.jersey:'—'))))),
       cfbResults&&cfbResults.length===0&&React.createElement('div',{style:{marginTop:8,fontSize:12,color:C.textMuted}},'No players found — enter details manually below.')),
     React.createElement('div',{style:{marginBottom:14}},
       React.createElement('label',{className:'label'},'Full Name *'),
@@ -4957,6 +5356,270 @@ const LockScreen=({reason})=>React.createElement('div',{style:{minHeight:'100vh'
     React.createElement('p',{style:{color:'rgba(255,255,255,.65)',fontSize:15,lineHeight:1.5,margin:'0 0 24px'}},reason||'This service has been suspended. Please contact your account manager.'),
     React.createElement('div',{style:{fontSize:12,color:'rgba(255,255,255,.4)',letterSpacing:'.06em',borderTop:'1px solid rgba(255,255,255,.07)',paddingTop:16}},'Digital NIL')));
 
+// ── Athlete Pricing Tiers ──────────────────────────────────────────────────────
+// Free account + free share card; pay only to export the high-end media kit, or
+// step up to the exposure pack (kit + program outreach). Checkout → Stripe.
+// Legacy athlete pricing page — superseded by the role-aware Plans component above.
+const PricingTiers=Plans;
+
+// ── Post-signup gates: email verification → onboarding (phone + card) ─────────
+// Shared centered shell for the gate screens (matches the dark auth aesthetic).
+const GateShell=({icon,title,subtitle,children,footer})=>React.createElement('div',{style:{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 20px',background:`linear-gradient(135deg,${C.bg} 0%,#161616 100%)`}},
+  React.createElement('div',{style:{width:'100%',maxWidth:440,background:C.glass,backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',border:`1px solid ${C.border}`,borderRadius:20,padding:'32px 28px',boxShadow:'0 24px 80px rgba(0,0,0,.5)'}},
+    React.createElement('div',{style:{width:52,height:52,borderRadius:14,background:C.primary,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:18,boxShadow:'0 8px 28px rgba(255,255,255,.16)'}},
+      React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:28}},icon)),
+    React.createElement('h1',{style:{fontSize:23,fontWeight:800,color:'#fff',letterSpacing:'-.02em',marginBottom:8}},title),
+    subtitle&&React.createElement('p',{style:{color:C.textSecondary,fontSize:14,lineHeight:1.6,marginBottom:22}},subtitle),
+    children,
+    footer));
+
+// PUBLIC landing for the email link /verify/:token — consumes the token, then
+// bounces back into the app (where /auth/me now reports verified:true).
+const VerifyLanding=({token:vtoken})=>{
+  const[state,setState]=useState('working'); // working | ok | error
+  const[msg,setMsg]=useState('');
+  useEffect(()=>{
+    api('GET',`/auth/verify/${vtoken}`).then(()=>setState('ok'))
+      .catch(err=>{setState('error');setMsg(err.message||'This link is invalid or has expired.');});
+  },[vtoken]);
+  const go=()=>{window.location.href='/';};
+  if(state==='working')return React.createElement(GateShell,{icon:'hourglass_top',title:'Verifying your email…',subtitle:'One moment while we confirm your link.'});
+  if(state==='error')return React.createElement(GateShell,{icon:'error',title:'Link problem',subtitle:msg},
+    React.createElement('button',{className:'btn btn-primary',onClick:go,style:{width:'100%',justifyContent:'center',padding:'11px',fontWeight:600}},'Back to sign in'));
+  return React.createElement(GateShell,{icon:'mark_email_read',title:'Email verified ✓',subtitle:'Your email is confirmed. Continue to finish setting up your account.'},
+    React.createElement('button',{className:'btn btn-primary',onClick:go,style:{width:'100%',justifyContent:'center',padding:'11px',fontWeight:600}},'Continue →'));
+};
+
+// GATE 1 — "verify your email". Shown for any signed-in but unverified account.
+const VerifyEmailScreen=({user,token,onUpdate,onLogout})=>{
+  const[emailLive,setEmailLive]=useState(null); // null until known
+  const[sending,setSending]=useState(false);
+  const[checking,setChecking]=useState(false);
+  const[note,setNote]=useState('');
+  // On mount, learn whether email delivery is configured on this deployment.
+  useEffect(()=>{api('POST','/auth/resend-verification',{},token).then(d=>{setEmailLive(!!d.emailConfigured);}).catch(()=>setEmailLive(false));},[]);
+  const resend=async()=>{setSending(true);setNote('');try{const d=await api('POST','/auth/resend-verification',{},token);setEmailLive(!!d.emailConfigured);setNote(d.verifySent?'Verification email sent — check your inbox.':'Email delivery isn’t configured on this deployment.');}catch(e){setNote(e.message);}setSending(false);};
+  const recheck=async()=>{setChecking(true);setNote('');try{const d=await api('GET','/auth/me',null,token);if(d.user&&d.user.verified){onUpdate(d.user);}else{setNote('Not verified yet — click the link in your email, then try again.');}}catch(e){setNote(e.message);}setChecking(false);};
+  const devVerify=async()=>{setChecking(true);setNote('');try{const d=await api('POST','/auth/dev-verify',{},token);onUpdate(d.user);}catch(e){setNote(e.message);}setChecking(false);};
+  return React.createElement(GateShell,{icon:'mark_email_unread',title:'Verify your email',
+    subtitle:`We sent a verification link to ${user.email}. Click it to confirm your address, then continue.`,
+    footer:React.createElement('button',{onClick:onLogout,style:{marginTop:18,background:'none',border:'none',color:C.textMuted,fontSize:12,cursor:'pointer',width:'100%'}},'Sign out')},
+    note&&React.createElement('div',{style:{background:C.surface1,border:`1px solid ${C.border}`,color:C.textSecondary,padding:'10px 14px',borderRadius:10,fontSize:13,marginBottom:14}},note),
+    React.createElement('button',{className:'btn btn-primary',onClick:recheck,disabled:checking,style:{width:'100%',justifyContent:'center',padding:'11px',fontWeight:600,marginBottom:10}},checking?'Checking…':'I’ve verified — continue →'),
+    React.createElement('button',{className:'btn',onClick:resend,disabled:sending,style:{width:'100%',justifyContent:'center',padding:'10px',fontWeight:600,background:C.surface1,border:`1px solid ${C.border}`,color:C.text}},sending?'Sending…':'Resend email'),
+    // No-email deployments: offer a direct confirm so demos aren't trapped.
+    emailLive===false&&React.createElement('button',{onClick:devVerify,disabled:checking,style:{marginTop:12,background:'none',border:'none',color:C.primary,fontSize:13,fontWeight:600,cursor:'pointer',width:'100%'}},'Email isn’t set up here — verify & continue'));
+};
+
+// GATE 2 — onboarding before the dashboard.
+//  • Agents are SUBSCRIPTION-based: no one-time fee, no card here. They land on the
+//    Free plan and upgrade in-app whenever they want (just an optional phone step).
+//  • Athletes/brands: phone + card on file (the $99 sign-up fee applies on go-live).
+const OnboardingPayment=({user,token,onUpdate})=>{
+  const[phone,setPhone]=useState(user.phone||'');
+  const[card,setCard]=useState({number:'',exp:'',cvc:'',name:user.name||''});
+  const[busy,setBusy]=useState('');
+  const[error,setError]=useState('');
+  const setC=k=>e=>{let v=e.target.value;if(k==='number')v=v.replace(/[^\d ]/g,'').slice(0,23);if(k==='cvc')v=v.replace(/\D/g,'').slice(0,4);if(k==='exp'){v=v.replace(/\D/g,'').slice(0,4);if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);}setCard(c=>({...c,[k]:v}));};
+  const save=async()=>{setError('');
+    const digits=card.number.replace(/\D/g,'');
+    if(!phone.trim()){setError('Please add a phone number.');return;}
+    if(digits.length<12){setError('Please enter a valid card number.');return;}
+    setBusy('save');
+    try{const d=await api('POST','/auth/onboarding',{phone,card},token);onUpdate(d.user);}
+    catch(e){setError(e.message);setBusy('');}
+  };
+  const skip=async()=>{setError('');setBusy('skip');
+    try{const d=await api('POST','/auth/onboarding/skip',{},token);onUpdate(d.user);}
+    catch(e){setError(e.message);setBusy('');}
+  };
+  // Pay the $99 fee now via hosted Stripe Checkout (or instant dev-grant when no
+  // Stripe key). Marks onboarding done first so the return lands on the dashboard.
+  const payNow=async()=>{setError('');setBusy('pay');
+    try{
+      await api('POST','/auth/onboarding/skip',{},token).catch(()=>{});
+      const d=await api('POST','/billing/signup-fee',{},token);
+      if(d.url){window.location.href=d.url;return;}            // hosted Stripe Checkout
+      if(d.user)onUpdate(d.user);else setBusy('');
+    }catch(e){setError(e.message);setBusy('');}
+  };
+  const fieldWrap=(label,el)=>React.createElement('div',{style:{marginBottom:12}},React.createElement('label',{className:'label'},label),el);
+
+  // Agents: subscription-based, start on Free. No card, no one-time fee — just an
+  // optional phone, then straight into the app on the Free plan.
+  if(user.role==='agent'){
+    const go=async()=>{setError('');setBusy('save');
+      try{const d=await api('POST','/auth/onboarding',phone.trim()?{phone}:{},token);onUpdate(d.user);}
+      catch(e){setError(e.message);setBusy('');}
+    };
+    return React.createElement(GateShell,{icon:'rocket_launch',title:'Welcome to Digital NIL',
+      subtitle:'Your agency starts on the Free plan — up to 3 athletes, your full CRM, and deal-building tools at no cost. No sign-up fee. Upgrade anytime from Billing to grow your roster and lower your platform fee.'},
+      error&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.danger}`,padding:'10px 14px',borderRadius:10,fontSize:13,marginBottom:14}},error),
+      fieldWrap('Phone number ',React.createElement('input',{className:'input',type:'tel',placeholder:'(555) 123-4567 — optional',value:phone,onChange:e=>setPhone(e.target.value)})),
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:6,color:C.textMuted,fontSize:11,margin:'4px 0 16px'}},
+        React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:14}},'savings'),
+        'Billed monthly when you upgrade — cancel anytime. No charge on Free.'),
+      React.createElement('button',{className:'btn btn-primary',onClick:go,disabled:!!busy,style:{width:'100%',justifyContent:'center',padding:'12px',fontWeight:700,fontSize:15}},busy?'One moment…':'Start on Free →'));
+  }
+
+  return React.createElement(GateShell,{icon:'verified_user',title:'Finish setting up',
+    subtitle:'Add a phone number and a card to secure your account. You can start your trial now — the $99 sign-up fee applies when you go live.'},
+    error&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.danger}`,padding:'10px 14px',borderRadius:10,fontSize:13,marginBottom:14}},error),
+    fieldWrap('Phone number',React.createElement('input',{className:'input',type:'tel',placeholder:'(555) 123-4567',value:phone,onChange:e=>setPhone(e.target.value)})),
+    fieldWrap('Name on card',React.createElement('input',{className:'input',placeholder:'Full name',value:card.name,onChange:setC('name')})),
+    fieldWrap('Card number',React.createElement('input',{className:'input',inputMode:'numeric',placeholder:'1234 5678 9012 3456',value:card.number,onChange:setC('number')})),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}},
+      fieldWrap('Expiry',React.createElement('input',{className:'input',placeholder:'MM/YY',value:card.exp,onChange:setC('exp')})),
+      fieldWrap('CVC',React.createElement('input',{className:'input',inputMode:'numeric',placeholder:'123',value:card.cvc,onChange:setC('cvc')}))),
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:6,color:C.textMuted,fontSize:11,margin:'4px 0 16px'}},
+      React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:14}},'lock'),
+      'We securely keep only your card brand & last 4 digits — never the full number.'),
+    React.createElement('button',{className:'btn btn-primary',onClick:save,disabled:!!busy,style:{width:'100%',justifyContent:'center',padding:'12px',fontWeight:700,fontSize:15}},busy==='save'?'Saving…':'Save & Continue →'),
+    React.createElement('button',{onClick:payNow,disabled:!!busy,style:{marginTop:10,background:'none',border:`1px solid ${C.border}`,color:'#fff',fontSize:13.5,fontWeight:700,cursor:'pointer',width:'100%',padding:'11px',borderRadius:10,justifyContent:'center'}},busy==='pay'?'Redirecting to checkout…':'Pay $99 sign-up fee now →'),
+    React.createElement('button',{onClick:skip,disabled:!!busy,style:{marginTop:12,background:'none',border:'none',color:C.textMuted,fontSize:12.5,cursor:'pointer',width:'100%',lineHeight:1.5}},
+      busy==='skip'?'One moment…':React.createElement(React.Fragment,null,'Skip for now → ',React.createElement('span',{style:{color:C.textSecondary,fontWeight:600}},'(the $99 sign-up fee applies before you go live)'))));
+};
+
+// ── Admin console (role:'admin') — master control of users, the featured top-20,
+// and the in-app message feed. Sits below the vendor OWNER_KEY surface. ─────────
+const ROLE_BADGE={admin:'#A78BFA',agent:'#60A5FA',athlete:'#34D399',brand:'#F59E0B'};
+const AdminStat=({label,value,hint})=>React.createElement('div',{style:{background:C.surface1,border:`1px solid ${C.border}`,borderRadius:14,padding:'16px 18px'}},
+  React.createElement('div',{style:{fontSize:28,fontWeight:800,color:'#fff',letterSpacing:'-.02em'}},value),
+  React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginTop:2,fontWeight:600}},label),
+  hint&&React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:4}},hint));
+
+const AdminUserModal=({token,target,onClose,onSaved})=>{
+  const[form,setForm]=useState({name:target.name||'',email:target.email||'',role:target.role,verified:!!target.verified,onboarded:!!target.onboarded,featured:!!target.featured,signupFeePaid:!!target.signupFeePaid});
+  const[pw,setPw]=useState('');
+  const[busy,setBusy]=useState(false);
+  const[err,setErr]=useState('');
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const save=async()=>{setErr('');setBusy(true);
+    try{
+      const d=await api('PUT',`/admin/users/${target._id}`,form,token);
+      if(pw){await api('POST',`/admin/users/${target._id}/password`,{password:pw},token);}
+      onSaved(d.user);
+    }catch(e){setErr(e.message);setBusy(false);}
+  };
+  const tog=(k,label)=>React.createElement('button',{type:'button',onClick:()=>set(k,!form[k]),style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',background:C.surface1,border:`1px solid ${form[k]?C.primary:C.border}`,borderRadius:10,color:C.text,cursor:'pointer',fontSize:13,fontWeight:600}},
+    label,React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:20,color:form[k]?C.primary:C.textMuted}},form[k]?'toggle_on':'toggle_off'));
+  return React.createElement(Modal,{open:true,onClose,title:'Edit user',maxWidth:480},
+    err&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.danger}`,padding:'9px 12px',borderRadius:9,fontSize:13,marginBottom:12}},err),
+    React.createElement('div',{style:{marginBottom:12}},React.createElement('label',{className:'label'},'Name'),React.createElement('input',{className:'input',value:form.name,onChange:e=>set('name',e.target.value)})),
+    React.createElement('div',{style:{marginBottom:12}},React.createElement('label',{className:'label'},'Email (login)'),React.createElement('input',{className:'input',type:'email',value:form.email,onChange:e=>set('email',e.target.value)})),
+    React.createElement('div',{style:{marginBottom:12}},React.createElement('label',{className:'label'},'Role'),
+      React.createElement('select',{className:'input',value:form.role,onChange:e=>set('role',e.target.value)},
+        ['athlete','agent','brand','admin'].map(r=>React.createElement('option',{key:r,value:r},r)))),
+    React.createElement('div',{style:{marginBottom:12}},React.createElement('label',{className:'label'},'Reset password (optional)'),React.createElement('input',{className:'input',type:'text',placeholder:'Leave blank to keep current',value:pw,onChange:e=>setPw(e.target.value)})),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:18}},
+      tog('verified','Verified'),tog('onboarded','Onboarded'),
+      form.role==='athlete'?tog('featured','Featured (Top 20)'):React.createElement('div'),
+      tog('signupFeePaid','$99 fee paid')),
+    React.createElement('button',{className:'btn btn-primary',onClick:save,disabled:busy,style:{width:'100%',justifyContent:'center',padding:'11px',fontWeight:700}},busy?'Saving…':'Save changes'));
+};
+
+const AdminUsers=({token,user})=>{
+  const[role,setRole]=useState('all');
+  const[search,setSearch]=useState('');
+  const[rows,setRows]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[editing,setEditing]=useState(null);
+  const load=()=>{setLoading(true);const p=new URLSearchParams();if(role!=='all')p.set('role',role);if(search.trim())p.set('search',search.trim());
+    api('GET',`/admin/users?${p}`,null,token).then(d=>setRows(d.users||[])).catch(()=>{}).finally(()=>setLoading(false));};
+  useEffect(()=>{const t=setTimeout(load,250);return()=>clearTimeout(t);},[role,search]);
+  const del=async u=>{if(!confirm(`Delete ${u.name||u.email}? This cannot be undone.`))return;try{await api('DELETE',`/admin/users/${u._id}`,null,token);setRows(rs=>rs.filter(x=>x._id!==u._id));}catch(e){alert(e.message);}};
+  return React.createElement('div',null,
+    React.createElement('div',{style:{display:'flex',gap:10,flexWrap:'wrap',marginBottom:16}},
+      React.createElement('div',{className:'tabs-pill'},['all','athlete','agent','brand','admin'].map(r=>
+        React.createElement('button',{key:r,onClick:()=>setRole(r),className:role===r?'active':'',style:{textTransform:'capitalize'}},r))),
+      React.createElement('input',{className:'input',placeholder:'Search name, email, company…',value:search,onChange:e=>setSearch(e.target.value),style:{flex:1,minWidth:200}})),
+    loading?React.createElement(Spinner):!rows.length?React.createElement(Empty,{icon:'group',text:'No users match'}):
+    React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:8}},rows.map(u=>
+      React.createElement('div',{key:u._id,style:{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:C.surface1,border:`1px solid ${C.border}`,borderRadius:12}},
+        React.createElement(Avatar,{name:u.name,src:u.avatar,size:38}),
+        React.createElement('div',{style:{flex:1,minWidth:0}},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
+            React.createElement('span',{style:{color:'#fff',fontWeight:600,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},u.name||'—'),
+            React.createElement('span',{style:{fontSize:10,fontWeight:700,textTransform:'uppercase',color:ROLE_BADGE[u.role]||C.textMuted,background:`${ROLE_BADGE[u.role]||C.textMuted}22`,padding:'1px 7px',borderRadius:999}},u.role),
+            u.featured&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:15,color:'#F59E0B'},title:'Featured'},'star'),
+            !u.verified&&React.createElement('span',{style:{fontSize:10,color:C.warning,fontWeight:700},title:'Unverified'},'UNVERIFIED')),
+          React.createElement('div',{className:'mono',style:{fontSize:11,color:C.textMuted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},u.email)),
+        React.createElement('button',{onClick:()=>setEditing(u),title:'Edit',style:{width:34,height:34,borderRadius:9,background:C.surface2,border:`1px solid ${C.border}`,color:C.textSecondary,cursor:'pointer'}},React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'edit')),
+        u._id!==user._id&&React.createElement('button',{onClick:()=>del(u),title:'Delete',style:{width:34,height:34,borderRadius:9,background:C.surface2,border:`1px solid ${C.border}`,color:C.danger,cursor:'pointer'}},React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'delete'))))),
+    editing&&React.createElement(AdminUserModal,{token,target:editing,onClose:()=>setEditing(null),onSaved:u=>{setRows(rs=>rs.map(x=>x._id===u._id?{...x,...u}:x));setEditing(null);}}));
+};
+
+const AdminFeatured=({token})=>{
+  const[rows,setRows]=useState([]);
+  const[search,setSearch]=useState('');
+  const[loading,setLoading]=useState(true);
+  const load=()=>{setLoading(true);const p=new URLSearchParams({role:'athlete'});if(search.trim())p.set('search',search.trim());
+    api('GET',`/admin/users?${p}`,null,token).then(d=>setRows(d.users||[])).catch(()=>{}).finally(()=>setLoading(false));};
+  useEffect(()=>{const t=setTimeout(load,250);return()=>clearTimeout(t);},[search]);
+  const featuredCount=rows.filter(a=>a.featured).length;
+  const toggle=async a=>{try{const d=await api('POST',`/admin/users/${a._id}/featured`,{featured:!a.featured},token);setRows(rs=>rs.map(x=>x._id===a._id?{...x,featured:d.featured}:x));}catch(e){alert(e.message);}};
+  const sorted=[...rows].sort((p,q)=>(q.featured?1:0)-(p.featured?1:0));
+  return React.createElement('div',null,
+    React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:14,flexWrap:'wrap'}},
+      React.createElement('div',{style:{fontSize:13,color:C.textSecondary}},'Curate the default ',React.createElement('b',{style:{color:'#fff'}},'Top 20'),' every agent & brand sees. ',React.createElement('span',{className:'mono',style:{color:featuredCount>=20?C.danger:C.primary}},`${featuredCount}/20 featured`)),
+      React.createElement('input',{className:'input',placeholder:'Search athletes…',value:search,onChange:e=>setSearch(e.target.value),style:{width:240}})),
+    loading?React.createElement(Spinner):!sorted.length?React.createElement(Empty,{icon:'sports_football',text:'No athletes found'}):
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(230px,1fr))',gap:10}},sorted.map(a=>
+      React.createElement('div',{key:a._id,style:{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:C.surface1,border:`1px solid ${a.featured?'#F59E0B66':C.border}`,borderRadius:12}},
+        React.createElement(Avatar,{name:a.name,src:a.avatar,size:40}),
+        React.createElement('div',{style:{flex:1,minWidth:0}},
+          React.createElement('div',{style:{color:'#fff',fontWeight:600,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},a.name),
+          React.createElement('div',{style:{fontSize:11,color:C.textMuted}},[a.position,a.school||a.sport].filter(Boolean).join(' · ')||'Athlete')),
+        React.createElement('button',{onClick:()=>toggle(a),title:a.featured?'Remove from Top 20':'Add to Top 20',style:{width:36,height:36,borderRadius:9,background:a.featured?'#F59E0B22':C.surface2,border:`1px solid ${a.featured?'#F59E0B':C.border}`,color:a.featured?'#F59E0B':C.textMuted,cursor:'pointer'}},
+          React.createElement('span',{className:'material-symbols-outlined'+(a.featured?' mi-fill':''),style:{fontSize:20}},'star'))))));
+};
+
+const AdminMessages=({token})=>{
+  const[rows,setRows]=useState([]);
+  const[loading,setLoading]=useState(true);
+  useEffect(()=>{api('GET','/admin/messages?limit=150',null,token).then(d=>setRows(d.messages||[])).catch(()=>{}).finally(()=>setLoading(false));},[]);
+  const del=async m=>{if(!confirm('Delete this message?'))return;try{await api('DELETE',`/admin/messages/${m._id}`,null,token);setRows(rs=>rs.filter(x=>x._id!==m._id));}catch(e){alert(e.message);}};
+  if(loading)return React.createElement(Spinner);
+  if(!rows.length)return React.createElement(Empty,{icon:'forum',text:'No messages yet'});
+  return React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:8}},rows.map(m=>
+    React.createElement('div',{key:m._id,style:{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 14px',background:C.surface1,border:`1px solid ${C.border}`,borderRadius:12}},
+      React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:20,color:C.textMuted,marginTop:2}},'mail'),
+      React.createElement('div',{style:{flex:1,minWidth:0}},
+        React.createElement('div',{style:{color:'#fff',fontWeight:600,fontSize:13.5}},m.title),
+        m.message&&React.createElement('div',{style:{color:C.textSecondary,fontSize:12.5,marginTop:2}},m.message),
+        React.createElement('div',{className:'mono',style:{fontSize:10.5,color:C.textMuted,marginTop:4}},(m.user?`${m.user.name||m.user.email} · `:'')+(m.type||'')+(m.createdAt?` · ${new Date(m.createdAt).toLocaleString()}`:''))),
+      React.createElement('button',{onClick:()=>del(m),title:'Delete',style:{width:32,height:32,borderRadius:8,background:C.surface2,border:`1px solid ${C.border}`,color:C.danger,cursor:'pointer'}},React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:17}},'delete')))));
+};
+
+const AdminConsole=({token,user,initialTab='overview'})=>{
+  const[tab,setTab]=useState(initialTab);
+  const[stats,setStats]=useState(null);
+  useEffect(()=>setTab(initialTab),[initialTab]);
+  useEffect(()=>{api('GET','/admin/stats',null,token).then(setStats).catch(()=>{});},[tab]);
+  const tabs=[['overview','Overview'],['users','Users'],['featured','Top 20'],['messages','Messages']];
+  return React.createElement('div',{style:{maxWidth:1080,margin:'0 auto',padding:'28px 20px 96px'}},
+    React.createElement('div',{style:{marginBottom:8,display:'flex',alignItems:'center',gap:10}},
+      React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:26,color:C.primary}},'admin_panel_settings'),
+      React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff',letterSpacing:'-.02em'}},'Admin Console')),
+    React.createElement('p',{style:{color:C.textMuted,fontSize:13,marginBottom:20}},'Master control of logins, the featured Top 20, and the message feed.'),
+    React.createElement('div',{className:'tabs-pill',style:{marginBottom:22,maxWidth:440}},tabs.map(([id,label])=>
+      React.createElement('button',{key:id,onClick:()=>setTab(id),className:tab===id?'active':''},label))),
+    tab==='overview'&&React.createElement('div',null,
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:24}},
+        React.createElement(AdminStat,{label:'Athletes',value:stats?stats.athletes:'—'}),
+        React.createElement(AdminStat,{label:'Agents',value:stats?stats.agents:'—'}),
+        React.createElement(AdminStat,{label:'Brands',value:stats?stats.brands:'—'}),
+        React.createElement(AdminStat,{label:'Featured',value:stats?`${stats.featured}/${stats.maxFeatured}`:'—',hint:'Default Top 20'}),
+        React.createElement(AdminStat,{label:'Unverified',value:stats?stats.unverified:'—',hint:'Awaiting email'})),
+      React.createElement('div',{style:{display:'flex',gap:10,flexWrap:'wrap'}},
+        React.createElement('button',{className:'btn btn-primary',onClick:()=>setTab('users')},'Manage users'),
+        React.createElement('button',{className:'btn',onClick:()=>setTab('featured'),style:{background:C.surface1,border:`1px solid ${C.border}`,color:C.text}},'Edit Top 20'),
+        React.createElement('button',{className:'btn',onClick:()=>setTab('messages'),style:{background:C.surface1,border:`1px solid ${C.border}`,color:C.text}},'Moderate messages'))),
+    tab==='users'&&React.createElement(AdminUsers,{token,user}),
+    tab==='featured'&&React.createElement(AdminFeatured,{token}),
+    tab==='messages'&&React.createElement(AdminMessages,{token}));
+};
+
 const App=()=>{
   const[user,setUser]=useState(null);
   const[token,setToken]=useState(null);
@@ -4965,6 +5628,8 @@ const App=()=>{
   const[booting,setBooting]=useState(true);
   const[locked,setLocked]=useState(null);     // null until first status check; {reason} when locked
   const[licChecked,setLicChecked]=useState(false);
+  const[upgrade,setUpgrade]=useState(null);   // {message} when a 402 upgrade prompt is showing
+  const[billingNotice,setBillingNotice]=useState('');  // banner after returning from Stripe Checkout
   const[showOnboarding,setShowOnboarding]=useState(()=>{
     try{
       if(localStorage.getItem('as_onboarding_dismissed')==='1')return false;
@@ -4990,20 +5655,29 @@ const App=()=>{
       .finally(()=>setLicChecked(true));
     const t=localStorage.getItem('as_token');
     if(!t){setBooting(false);return;}
+    // Returning from Stripe Checkout — refresh the user (exportTier may have been
+    // unlocked by the webhook) and surface a confirmation, then clean the URL.
+    const sp=new URLSearchParams(window.location.search);
+    const upgraded=sp.get('upgrade');
     api('GET','/auth/me',null,t)
-      .then(d=>{setUser(d.user);setToken(t);})
+      .then(d=>{setUser(d.user);setToken(t);
+        if(upgraded==='success'){setView('media-kits');setBillingNotice('Payment received — your high-end media-kit export is unlocked.');}
+        else if(upgraded==='cancel'){setBillingNotice('Checkout canceled — no charge was made.');}
+      })
       .catch(()=>localStorage.removeItem('as_token'))
-      .finally(()=>setBooting(false));
+      .finally(()=>{setBooting(false);if(upgraded){try{window.history.replaceState({},'',window.location.pathname);}catch(e){}}});
   },[]);
 
   // Listen for mid-session locks (any gated call returning 503) + poll for live
   // lock/unlock so the owner's action takes effect without a manual refresh.
   useEffect(()=>{
     const onLocked=e=>setLocked({reason:(e.detail&&e.detail.reason)||''});
+    const onUpgrade=e=>setUpgrade({message:(e.detail&&e.detail.message)||''});
     window.addEventListener('app-locked',onLocked);
+    window.addEventListener('app-upgrade',onUpgrade);
     const poll=()=>api('GET','/system/status').then(s=>setLocked(s.locked?{reason:s.reason}:null)).catch(()=>{});
     const iv=setInterval(poll,60000);
-    return()=>{window.removeEventListener('app-locked',onLocked);clearInterval(iv);};
+    return()=>{window.removeEventListener('app-locked',onLocked);window.removeEventListener('app-upgrade',onUpgrade);clearInterval(iv);};
   },[]);
 
   // Poll unread count
@@ -5039,6 +5713,10 @@ const App=()=>{
   const publicMatch=window.location.pathname.match(/^\/athlete\/([^/]+)\/?$/);
   if(publicMatch)return React.createElement(PublicAthlete,{id:publicMatch[1]});
 
+  // Email-verification landing — consumes the token from the emailed link.
+  const verifyMatch=window.location.pathname.match(/^\/verify\/([^/]+)\/?$/);
+  if(verifyMatch)return React.createElement(VerifyLanding,{token:verifyMatch[1]});
+
   if(booting||!licChecked)return React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',flexDirection:'column',gap:16,background:C.bg}},
     React.createElement('div',{style:{width:48,height:48,background:C.primary,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 32px rgba(255,255,255,.18)'}},
       React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:'#fff',fontSize:26}},'bolt')),
@@ -5049,9 +5727,17 @@ const App=()=>{
     return React.createElement(AuthCtx.Provider,{value:{user,token}},React.createElement(AuthScreen,{onAuth}));
   }
 
+  // Post-signup gates (in order): verify email → onboarding (phone + card). New
+  // self-registered accounts pass through both before reaching the dashboard.
+  if(!user.verified)return React.createElement(VerifyEmailScreen,{user,token,onUpdate,onLogout});
+  if(!user.onboarded)return React.createElement(OnboardingPayment,{user,token,onUpdate});
+
   const renderView=()=>{
     switch(view){
-      case'dashboard':return user.role==='athlete'?React.createElement(AthleteDashboard,{token,user,onNavigate:setView}):React.createElement(Dashboard,{token,user,onNavigate:setView});
+      case'dashboard':return user.role==='admin'?React.createElement(AdminConsole,{token,user,initialTab:'overview'}):user.role==='athlete'?React.createElement(AthleteDashboard,{token,user,onNavigate:setView}):React.createElement(Dashboard,{token,user,onNavigate:setView});
+      case'admin-users':return React.createElement(AdminConsole,{token,user,initialTab:'users'});
+      case'admin-featured':return React.createElement(AdminConsole,{token,user,initialTab:'featured'});
+      case'admin-messages':return React.createElement(AdminConsole,{token,user,initialTab:'messages'});
       case'opportunities':return React.createElement(Opportunities,{token,user});
       case'tracker':return React.createElement(AthleteTracker,{token,user,onNavigate:setView});
       case'my-deals':return React.createElement(MyDeals,{token,user});
@@ -5059,7 +5745,8 @@ const App=()=>{
       case'financials':return React.createElement(Inbox,{token,user,initialTab:'financials'});
       case'content':return React.createElement(Inbox,{token,user,initialTab:'content'});
       case'analytics':return React.createElement(Inbox,{token,user,initialTab:'analytics'});
-      case'campaigns':return React.createElement(Campaigns,{token});
+      case'campaigns':return React.createElement(Campaigns,{token,user,onNavigate:setView});
+      case'plans':case'pricing':return React.createElement(Plans,{token,user,onUpdate});
       case'roster':return React.createElement(Roster,{token,user,onNavigate:setView});
       case'crm':return React.createElement(Crm,{token,user,onNavigate:setView});
       case'media-kits':return React.createElement(MediaKits,{token,user});
@@ -5078,8 +5765,14 @@ const App=()=>{
       React.createElement(Sidebar,{view,setView,user,onLogout,unread}),
       React.createElement(MobileTopBar,{user,unread,onProfile:()=>setView('profile'),onNotifications:()=>setView('inbox')}),
       React.createElement('main',{style:{paddingBottom:0},className:'main-content'},
+        billingNotice&&React.createElement('div',{style:{margin:'16px 24px 0',background:`${C.success}1a`,border:`1px solid ${C.success}55`,color:C.success,borderRadius:10,padding:'12px 16px',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:10}},
+          React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'check_circle'),
+          React.createElement('span',{style:{flex:1}},billingNotice),
+          React.createElement('button',{onClick:()=>setBillingNotice(''),style:{background:'none',border:'none',color:C.success,cursor:'pointer',fontSize:16}},'×')),
         renderView()),
       React.createElement(BottomNav,{view,setView,user,unread}),
+      React.createElement(UpgradeModal,{open:!!upgrade,message:upgrade&&upgrade.message,onClose:()=>setUpgrade(null),
+        onView:()=>{setUpgrade(null);setView(user.role==='athlete'?'pricing':'plans');}}),
       showOnboarding&&React.createElement(OnboardingScreen,{onDone:dismissOnboarding})));
 };
 

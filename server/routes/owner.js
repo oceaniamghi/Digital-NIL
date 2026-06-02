@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import SystemSetting from '../models/SystemSetting.js';
 import User from '../models/User.js';
 import { getLicenseState, invalidateLicenseCache, envDisabled } from '../lib/license.js';
+import { isValidPlan, isPaidPlan, planKeysForRole } from '../lib/plans.js';
 
 const router = express.Router();
 
@@ -136,6 +137,29 @@ router.post('/export-tier', async (req, res) => {
     ).select('name email exportTier');
     if (!user) return res.status(404).json({ error: 'Athlete not found' });
     res.json({ ok: true, name: user.name, email: user.email, exportTier: user.exportTier });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Grant (or revoke) any user's subscription tier after a manual payment. Works for
+// every billable role (brand / athlete / agent); the plan is validated against that
+// user's role ladder. Bridge alongside the Stripe webhook.
+//   curl -X POST $URL/api/owner/plan -H "x-owner-key: $OWNER_KEY" \
+//        -H "Content-Type: application/json" -d '{"email":"brand@x.com","plan":"elite"}'
+router.post('/plan', async (req, res) => {
+  try {
+    const { email, plan } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'email is required' });
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!isValidPlan(user.role, plan)) {
+      return res.status(400).json({ error: `Invalid plan for ${user.role}. Valid: ${planKeysForRole(user.role).join(', ')}` });
+    }
+    user.plan = plan;
+    user.planSince = isPaidPlan(user.role, plan) ? new Date() : null;
+    await user.save();
+    res.json({ ok: true, name: user.name, email: user.email, role: user.role, plan: user.plan });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

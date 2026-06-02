@@ -20,12 +20,31 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   name: { type: String, required: true, trim: true },
-  role: { type: String, enum: ['athlete', 'brand', 'agent'], default: 'athlete' },
+  role: { type: String, enum: ['athlete', 'brand', 'agent', 'admin'], default: 'athlete' },
   avatar: { type: String, default: '' },
   bio: { type: String, default: '', maxlength: 500 },
   verified: { type: Boolean, default: false },
   managed: { type: Boolean, default: false }, // true = roster record created by an agent (data, not a billable login seat)
   lastLoginAt: { type: Date },
+  phone: { type: String, default: '' },
+
+  // Post-signup gate: email verification + onboarding (phone + card on file). A
+  // freshly self-registered login is verified:false, onboarded:false and is held
+  // on the verify → onboarding screens until both clear. Grandfathered legacy
+  // accounts are migrated to true at boot (see server/index.js migrateGate()).
+  onboarded: { type: Boolean, default: false },
+  verifyToken: { type: String, default: '' },         // single-use email verification token
+  verifyTokenExpires: { type: Date },
+  // The $99 sign-up fee. We collect a card on file at onboarding but DO NOT store
+  // the PAN/CVC (PCI) — only the brand + last4 + an on-file flag. signupFeePaid
+  // stays false until a real charge clears (wire Stripe later).
+  cardOnFile: { type: Boolean, default: false },
+  cardBrand: { type: String, default: '' },
+  cardLast4: { type: String, default: '' },
+  signupFeePaid: { type: Boolean, default: false },
+  // Admin-curated "default top 20" showcase. Featured athletes surface to every
+  // agent/brand regardless of roster ownership.
+  featured: { type: Boolean, default: false },
 
   // Athlete fields
   sport: { type: String, default: '' },
@@ -55,6 +74,16 @@ const userSchema = new mongoose.Schema({
   nilValue: { type: Number, default: 0 },
   totalEarnings: { type: Number, default: 0 },
   dealsCompleted: { type: Number, default: 0 },
+
+  // Subscription tier — applies to ALL billable roles (brand / athlete / agent).
+  // The set of valid keys depends on role (see server/lib/plans.js). Defaults to
+  // the role's free tier. Set by a Stripe webhook on checkout, the dev self-serve
+  // fallback, or a vendor grant via /api/owner/plan. Capabilities + limits per tier
+  // gate features across the app.
+  plan: { type: String, default: 'free' },
+  planSince: { type: Date },
+  stripeCustomerId: { type: String, default: '' },
+  stripeSubscriptionId: { type: String, default: '' },
 
   // Brand fields
   company: { type: String, default: '' },

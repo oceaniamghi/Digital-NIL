@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AiC NIL | Athlete Messaging</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @font-face {
+            font-family: 'metropolis';
+            src: url('https://fonts.cdnfonts.com/css/metropolis');
+        }
+        @font-face {
+            font-family: 'jetbrainsMono';
+            src: url('https://fonts.cdnfonts.com/css/jetbrains-mono');
+        }
+        @font-face {
+            font-family: 'inter';
+            src: url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        }
+
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            font-family: 'inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(26, 26, 26, 0.65);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .active-red-glow {
+            box-shadow: 0 0 20px rgba(204, 0, 0, 0.15);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-container": "#cc0000",
+                      "surface-container-highest": "#353534",
+                      "on-error": "#690005",
+                      "on-primary-fixed": "#410000",
+                      "surface-dim": "#131313",
+                      "surface-container-low": "#1c1b1b",
+                      "inverse-primary": "#c00000",
+                      "background": "#131313",
+                      "inverse-surface": "#e5e2e1",
+                      "on-error-container": "#ffdad6",
+                      "surface-bright": "#3a3939",
+                      "text-secondary": "#94A3B8",
+                      "primary-fixed": "#ffdad4",
+                      "error-container": "#93000a",
+                      "text-muted": "#64748B",
+                      "on-tertiary-fixed-variant": "#0039b4",
+                      "on-secondary-container": "#b7b5b4",
+                      "on-secondary": "#313030",
+                      "on-tertiary": "#002681",
+                      "glass-border": "rgba(255, 255, 255, 0.08)",
+                      "tertiary-fixed": "#dce1ff",
+                      "on-secondary-fixed-variant": "#474746",
+                      "secondary-container": "#474746",
+                      "neon-warning": "#FFCC00",
+                      "secondary-fixed-dim": "#c8c6c5",
+                      "on-surface": "#e5e2e1",
+                      "glass-surface": "rgba(26, 26, 26, 0.65)",
+                      "surface": "#131313",
+                      "on-tertiary-fixed": "#001551",
+                      "on-surface-variant": "#e8bdb6",
+                      "neon-success": "#00FF66",
+                      "tertiary-fixed-dim": "#b7c4ff",
+                      "primary": "#ffb4a8",
+                      "tertiary-container": "#0052f9",
+                      "outline": "#ae8882",
+                      "text-primary": "#FFFFFF",
+                      "on-background": "#e5e2e1",
+                      "surface-container": "#201f1f",
+                      "on-secondary-fixed": "#1c1b1b",
+                      "secondary-fixed": "#e5e2e1",
+                      "error": "#ffb4ab",
+                      "surface-tint": "#ffb4a8",
+                      "on-primary": "#690000",
+                      "surface-container-high": "#2a2a2a",
+                      "inverse-on-surface": "#313030",
+                      "secondary": "#c8c6c5",
+                      "surface-variant": "#353534",
+                      "primary-fixed-dim": "#ffb4a8",
+                      "tertiary": "#b7c4ff",
+                      "on-tertiary-container": "#dce1ff",
+                      "on-primary-container": "#ffdad4",
+                      "outline-variant": "#5e3f3a",
+                      "surface-container-lowest": "#0e0e0e",
+                      "on-primary-fixed-variant": "#930000"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-desktop": "28px",
+                      "sidebar-expanded": "220px",
+                      "gutter": "16px",
+                      "margin-mobile": "16px",
+                      "container-max": "1140px",
+                      "stack-gap": "28px",
+                      "sidebar-collapsed": "64px"
+              },
+              "fontFamily": {
+                      "display-lg": ["metropolis"],
+                      "label-caps": ["jetbrainsMono"],
+                      "title-md": ["metropolis"],
+                      "headline-lg": ["metropolis"],
+                      "body-sm": ["inter"],
+                      "body-lg": ["inter"],
+                      "stat-value": ["metropolis"],
+                      "headline-lg-mobile": ["metropolis"]
+              },
+              "fontSize": {
+                      "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                      "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "body-lg": ["16px", {"lineHeight": "26px", "fontWeight": "400"}],
+                      "stat-value": ["24px", {"lineHeight": "24px", "fontWeight": "800"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface-dim overflow-hidden h-screen flex">
+<!-- NavigationDrawer (The Rail) -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-collapsed hover:w-sidebar-expanded transition-all duration-300 z-[60] bg-surface-dim border-r border-glass-border flex flex-col overflow-hidden group">
+<div class="p-4 mb-8">
+<div class="font-headline-lg text-headline-lg text-primary tracking-tighter overflow-hidden whitespace-nowrap">
+<span class="inline-block min-w-[32px]">A</span><span class="opacity-0 group-hover:opacity-100 transition-opacity">iC NIL</span>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-2">
+<!-- Dashboard -->
+<a class="text-on-surface-variant hover:text-on-surface mx-2 flex items-center gap-4 py-3 px-4 hover:bg-surface-container-highest transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="dashboard">dashboard</span>
+<span class="font-title-md text-title-md opacity-0 group-hover:opacity-100 whitespace-nowrap">Dashboard</span>
+</a>
+<!-- Deals -->
+<a class="text-on-surface-variant hover:text-on-surface mx-2 flex items-center gap-4 py-3 px-4 hover:bg-surface-container-highest transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="handshake">handshake</span>
+<span class="font-title-md text-title-md opacity-0 group-hover:opacity-100 whitespace-nowrap">Deals</span>
+</a>
+<!-- Inbox (ACTIVE) -->
+<a class="bg-primary-container text-on-primary-container rounded-lg mx-2 flex items-center gap-4 py-3 px-4 active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="mail" style="font-variation-settings: 'FILL' 1;">mail</span>
+<span class="font-title-md text-title-md opacity-0 group-hover:opacity-100 whitespace-nowrap">Inbox</span>
+</a>
+<!-- Financials -->
+<a class="text-on-surface-variant hover:text-on-surface mx-2 flex items-center gap-4 py-3 px-4 hover:bg-surface-container-highest transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-title-md text-title-md opacity-0 group-hover:opacity-100 whitespace-nowrap">Financials</span>
+</a>
+<!-- Settings -->
+<a class="text-on-surface-variant hover:text-on-surface mx-2 flex items-center gap-4 py-3 px-4 hover:bg-surface-container-highest transition-all rounded-lg mt-auto mb-4" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>
+<span class="font-title-md text-title-md opacity-0 group-hover:opacity-100 whitespace-nowrap">Settings</span>
+</a>
+</nav>
+<div class="p-4 border-t border-glass-border flex items-center gap-4">
+<div class="w-8 h-8 rounded-full overflow-hidden shrink-0">
+<img alt="Athlete Profile" class="w-full h-full object-cover" data-alt="A professional portrait of a confident male elite athlete in high-performance sports apparel. The lighting is dramatic and moody, with sharp rim lighting emphasizing a powerful silhouette against a dark, atmospheric athletic training facility background. The color palette is dominated by deep blacks and cool grays, with subtle red reflections in the eyes and gear to match a premium digital aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6fHrcA6OcqyFEbu4WDfsgcMh71aVpoTj8pAT24ot-zSXOlzPGPn9Zq1W7NdRicxFfCIb5Kypw05LWNds6YlaRkm1nfYv1PyImZvfbni1B_4h_rFNR2XaxVQhO6k8nCuntfsN08MB5b2fyxR6dNGjSzpfFIKDdzTjfwVpcaben-nGQ6rZ-ahevq69KMxkUQIeDeSXCYX7KJ18m68v2NRGYCUamq4EAw6IWscKfz-6tw41sTSezrh4QVEnCex0KtVxJhXMHWarybziD"/>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity overflow-hidden whitespace-nowrap">
+<p class="font-title-md text-sm font-bold text-on-surface">AiC NIL</p>
+<p class="font-body-sm text-[10px] text-on-surface-variant">Elite Tier</p>
+</div>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="flex-1 ml-sidebar-collapsed flex flex-col h-full bg-surface-dim relative overflow-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-sidebar-collapsed z-50 backdrop-blur-md bg-glass-surface border-b border-glass-border flex justify-between items-center px-margin-desktop py-4">
+<div class="flex items-center gap-4">
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tighter">Messages</h1>
+<div class="h-6 w-[1px] bg-glass-border"></div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-neon-success"></span>
+<span class="font-label-caps text-label-caps text-on-secondary-container">Live Operations</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:opacity-80 transition-opacity" data-icon="search">search</span>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-80 transition-opacity" data-icon="notifications">notifications</span>
+<span class="absolute -top-1 -right-1 w-3 h-3 bg-primary-container rounded-full border-2 border-surface-dim"></span>
+</div>
+<button class="bg-primary-container text-on-primary-container font-label-caps text-label-caps px-4 py-2 rounded-lg flex items-center gap-2 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                    New Deal Chat
+                </button>
+</div>
+</header>
+<!-- Messaging Layout (Dual Pane) -->
+<div class="flex flex-1 pt-[72px] h-full overflow-hidden">
+<!-- List Pane (Conversation Threads) -->
+<section class="w-1/3 min-w-[320px] max-w-[400px] border-r border-glass-border flex flex-col bg-surface-container-lowest">
+<div class="p-4">
+<div class="bg-surface-container-high rounded-xl px-4 py-2 flex items-center gap-3 border border-glass-border focus-within:border-primary transition-all group">
+<span class="material-symbols-outlined text-on-surface-variant group-focus-within:text-primary transition-colors" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full text-on-surface placeholder:text-on-secondary-fixed-variant" placeholder="Search brands, agents..." type="text"/>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+<!-- Thread Item: Active/Selected -->
+<div class="px-2 py-1">
+<div class="flex items-center gap-4 p-4 rounded-xl glass-panel active-red-glow border-primary cursor-pointer relative">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3px] bg-primary-container rounded-r-full"></div>
+<div class="relative">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-primary/20">
+<img alt="Nike Team" class="w-full h-full object-cover" data-alt="A professional corporate logo of a global athletic brand displayed on a sleek, high-tech glass surface. The surrounding environment is a modern, minimalist boardroom with soft cinematic lighting. The aesthetic is extremely polished and high-end, utilizing deep charcoal tones and crisp white highlights to convey authority and elite status in the sports industry." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxN-6uVJSUI_L2ZECrY07ml8UTrIYFehrbd5gp7OnJ2XkhJqaklVSv3deQ7llbOg6XVuvgx7ATePl1mIGwYyaRkm3kmYpM7r3t-u3u2Quv0YHbfEwu8HJYFbAZ188gqhnGTjUYdVCxIYq17LELwqweGMfYj9gnr28881x4m7rJisrR1nF0NT1S6M-d9A8k2TntnoqdMqX38FvQ37XO2KgLvR-Fm6PkLhjOUGqvgTibQbzPnQufQ3z-BhN1YKgY4B1dSYnFFYXj18Zh"/>
+</div>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-neon-success border-2 border-surface-container-lowest rounded-full"></span>
+</div>
+<div class="flex-1 overflow-hidden">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-title-md text-sm text-on-surface truncate">Nike Global Marketing</h3>
+<span class="font-label-caps text-[10px] text-primary">2m ago</span>
+</div>
+<p class="text-xs text-on-surface font-semibold truncate">Draft contract for Q4 campaign is...</p>
+</div>
+<div class="w-2 h-2 bg-primary-container rounded-full"></div>
+</div>
+</div>
+<!-- Thread Item: Normal -->
+<div class="px-2 py-1">
+<div class="flex items-center gap-4 p-4 rounded-xl hover:bg-surface-container-high transition-all cursor-pointer group">
+<div class="relative">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-glass-border">
+<img alt="Agent Profile" class="w-full h-full object-cover" data-alt="A high-contrast headshot of a professional sports agent in a sharp, tailored black suit. The background is a blurred cityscape of a modern metropolis at dusk, with neon lights reflecting subtly. The lighting is sophisticated, creating a high-performance, executive atmosphere. The overall mood is serious, professional, and exclusive." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNDRtmSCABJEdU6JNrCr1NFQWj2HEMmTe5-So1zAaKcD8lmdWLgw5etUZWBdBqbqV-ShjhpI2hDYZmmCAb9AqEbirNr5aCI_dz8rAjBK0FV59gItAWp6-FPHSvPEEwJH8gVAzy8F-9UMsEoXMheRV-yuZRFrgQThZvKzHYosOB9D6A1ApK_kX3uq0XUHThyzkCEZD1cgUmtal3aKQINZdO3mrg1WclHHV9-N-e3mNpDO4ZBZuOelIeLvc3UMlqJdspzmzytIe52Qht"/>
+</div>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-surface-container-highest border-2 border-surface-container-lowest rounded-full"></span>
+</div>
+<div class="flex-1 overflow-hidden">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-title-md text-sm text-on-surface-variant group-hover:text-on-surface truncate">Marcus Sterling (Agent)</h3>
+<span class="font-label-caps text-[10px] text-on-secondary-fixed-variant">1h ago</span>
+</div>
+<p class="text-xs text-on-secondary-fixed-variant truncate">The Gatorade pitch deck looks great. We need to...</p>
+</div>
+</div>
+</div>
+<!-- Thread Item: Normal -->
+<div class="px-2 py-1">
+<div class="flex items-center gap-4 p-4 rounded-xl hover:bg-surface-container-high transition-all cursor-pointer group">
+<div class="relative">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-glass-border">
+<img alt="EA Sports" class="w-full h-full object-cover" data-alt="A futuristic and vibrant digital brand identity for a top-tier gaming company. The logo is rendered in a 3D glassmorphic style with neon blue and violet accents. The setting is a high-tech gaming studio with soft ambient lighting and advanced equipment visible in the background. The mood is energetic, modern, and perfectly aligned with elite athletic gaming partnerships." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbKMSo4-kTU0T5BnGA54k20Q7PYmsk27p7t7c4a_0MTiFJlpjPDQawXTj7Y8gWI4LagF_eZfMd8BoCqJr8AFzKuJouFa_gHYiif9yngL62QGn9TbGJ-mN9uKHG-p7TdTlH773PYF5VsoeLjmKumrjISp4eLoxykV75R8UmmjcnS2XEJCSmUYXCk7b2BlOFWNTJvoZuXCV1EgSYRKLsDu6Z4UtQy-s-h2qw1P96sixFgFukJcRXF8HAuiBb9Uka_SuhwrvTSqwlUEW8"/>
+</div>
+</div>
+<div class="flex-1 overflow-hidden">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-title-md text-sm text-on-surface-variant group-hover:text-on-surface truncate">EA Sports Partnerships</h3>
+<span class="font-label-caps text-[10px] text-on-secondary-fixed-variant">3h ago</span>
+</div>
+<p class="text-xs text-on-secondary-fixed-variant truncate">Session recorded. Reviewing the capture now.</p>
+</div>
+</div>
+</div>
+<!-- Thread Item: Normal -->
+<div class="px-2 py-1">
+<div class="flex items-center gap-4 p-4 rounded-xl hover:bg-surface-container-high transition-all cursor-pointer group">
+<div class="relative">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-glass-border">
+<img alt="Red Bull" class="w-full h-full object-cover" data-alt="A dynamic and aggressive energy drink brand identity, featuring sharp graphic design and high-contrast photography. The scene shows a high-speed athletic event with extreme motion blur and vibrant red and yellow streaks. The lighting is intense and solarized, creating a feeling of peak physical performance and high-octane energy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVtdm98OlhJi8OOMxHPkexgYLHajixBdneWpoXjAlpTe1uhGF2GEw79rdtUBqYNIQy1KfcI8hw5JfwYVTs7Yi9YI6CzEWZYsZXab-IThHUsNiyIG4NXWM6bC2qSQ8xA-9gv7BNdiyYLDmLu224EXlSFfamrOTgwwlBn9O6WptJQ4fJVpIJPJkF0xIov5rjUoZW4bgCESUSeA3NReyQiTaBrItm72EllCnLimt6YWNjsU7uzXLMMOk5R0xWA2f9lITpAlCc13MqHKU-"/>
+</div>
+</div>
+<div class="flex-1 overflow-hidden">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-title-md text-sm text-on-surface-variant group-hover:text-on-surface truncate">Red Bull Athlete Ops</h3>
+<span class="font-label-caps text-[10px] text-on-secondary-fixed-variant">Yesterday</span>
+</div>
+<p class="text-xs text-on-secondary-fixed-variant truncate">Flight details for the Salzburg event attached.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Chat Pane (Active Conversation) -->
+<section class="flex-1 flex flex-col h-full bg-surface-dim relative">
+<!-- Chat Header -->
+<div class="p-4 border-b border-glass-border glass-panel flex items-center justify-between z-10">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/20">
+<img alt="Nike Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9m4mpImKH2Y7dt47_ZkoUbHdQfwadVdYdY-OiVd72J0LY4X33tOh_lmnhc_gJESDw_IB3NUZwzkRMysNxNY6JE5N--gZl3_kMjtJrmZ49yxm_GZY1OI5GE6Tre89llf2cKiF03y6I0Jz2zj9xv4R6q4-mobClrvvjqurMLlVMf5vXvV4RmjCezdIDod-BaxcSSq00h2SO5_uyI23TEF5yig6oU6gJXfucia-hoXdco8FaK5Z20Yz5KUcfLOH0aVAS14zW_brfdHkj"/>
+</div>
+<div>
+<h2 class="font-title-md text-base text-on-surface">Nike Global Marketing</h2>
+<p class="text-[10px] font-label-caps text-neon-success uppercase tracking-widest flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-neon-success animate-pulse"></span>
+                                Active Contract Discussion
+                            </p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="videocam">videocam</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="call">call</span>
+</button>
+<div class="w-[1px] h-6 bg-glass-border mx-2"></div>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="info">info</span>
+</button>
+</div>
+</div>
+<!-- Messages Display -->
+<div class="flex-1 overflow-y-auto p-6 flex flex-col gap-8 custom-scrollbar">
+<div class="flex justify-center">
+<span class="font-label-caps text-[10px] text-on-secondary-fixed-variant bg-surface-container-high px-3 py-1 rounded-full border border-glass-border">Monday, Oct 24</span>
+</div>
+<!-- Message: Incoming -->
+<div class="flex gap-4 max-w-[80%]">
+<div class="w-8 h-8 rounded-full overflow-hidden shrink-0 mt-auto border border-glass-border">
+<img alt="Nike" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-AsuIudvHXKwjVJ1LRAMAVAhTNPCb24A-zC2eyBn1Pu9DKU_8Ys9iDS6a24TuUqGrU22PWw4zKwMmW7-SctOXCJiKYJO9DYm1H7KnV-Pk6N870kxvcI5_NK4jXd9l6-QfoaJ4XG4UZYbda8KfZiGRm29xP7ZNf6UbhMUdLOAiQpUpzs_vS_UblhIzCu5uhLDuvcPWMqKLtA8YFi8bd8bfWDCSsVQR1r8bbuGyYwk43trjQVm5UeaJP3VdPvNVgLWrgDwlvJRd9dxd"/>
+</div>
+<div class="flex flex-col gap-2">
+<div class="glass-panel p-4 rounded-2xl rounded-bl-none text-on-surface text-sm leading-relaxed">
+                                Hi Team, we've reviewed the updated performance clauses. The 15% bonus for playoff appearances is approved. We're finalizing the draft PDF as we speak.
+                            </div>
+<span class="text-[10px] font-label-caps text-on-secondary-fixed-variant ml-2">10:42 AM</span>
+</div>
+</div>
+<!-- Message: Outgoing -->
+<div class="flex flex-row-reverse gap-4 max-w-[80%] ml-auto">
+<div class="w-8 h-8 rounded-full overflow-hidden shrink-0 mt-auto border border-primary/40">
+<img alt="Me" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbGJcvyB1veizjpwRNgB0-77BoILAwn322FDi68VALgHIxFeLbp-gtrqFbj_f3BAjVs3RJUzgf64nJVdqT03wqdwU_fiEJO2Lvzz5g5mieiXUDXjOegK15pe8vLGWT57aDPUAWj9zHyOdVkk2KWCnfCVUrYIbCITaoKDp24gbIr3pbL4LPOokt-uKUTdAvgVANUWmUjoLSD-awRYFvL48VsbQTvnnrNGPtDeWYXwfOmR4JaxNuIJ3SmKiV8TN3yI0XGeuAFKCN2VkW"/>
+</div>
+<div class="flex flex-col items-end gap-2">
+<div class="bg-primary-container p-4 rounded-2xl rounded-br-none text-white text-sm leading-relaxed shadow-lg shadow-primary-container/10">
+                                Perfect. Appreciate the quick turnaround on those terms. I'll have my legal lead look at the final draft as soon as it lands.
+                            </div>
+<div class="flex items-center gap-2 mr-2">
+<span class="text-[10px] font-label-caps text-on-secondary-fixed-variant">10:45 AM</span>
+<span class="material-symbols-outlined text-[12px] text-primary" data-icon="done_all" style="font-variation-settings: 'wght' 700;">done_all</span>
+</div>
+</div>
+</div>
+<!-- Message: System/Notification -->
+<div class="flex justify-center my-4">
+<div class="glass-panel px-6 py-4 rounded-2xl border-dashed border-primary/30 flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div>
+<p class="text-xs font-bold text-on-surface">Nike_Q4_Endorsement_V2.pdf</p>
+<p class="text-[10px] text-on-secondary-fixed-variant">2.4 MB • Sent by Nike Global Marketing</p>
+</div>
+<button class="bg-primary-container/10 text-primary hover:bg-primary-container hover:text-white transition-all p-2 rounded-lg ml-4">
+<span class="material-symbols-outlined" data-icon="download">download</span>
+</button>
+</div>
+</div>
+<!-- Message: Incoming -->
+<div class="flex gap-4 max-w-[80%]">
+<div class="w-8 h-8 rounded-full overflow-hidden shrink-0 mt-auto border border-glass-border">
+<img alt="Nike" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwHzh5Y7Da6m4i3ieishBllUtRhO2XzarpF2AWeDR-I9hzuXSpHbcXF6hvQEcWWafEds1O-ygtMddjbwqOdvRxoxQDvnY0ENebcdxcthzSR3sDuV0JepIDKbHzeA2lZX4dlQINlX97GyEhTtLuxpVxMTM3Fbz-HJvghsj48RgUZ4vqU0Aq-KITNZ1-3euUo6mgODu7gzPRNngh1bWkvKvtxLiotha9Bylu9OBdgSJQ9ikrbc6U0hVBK_0YokFkhWh76keATQSx2QT4"/>
+</div>
+<div class="flex flex-col gap-2">
+<div class="glass-panel p-4 rounded-2xl rounded-bl-none text-on-surface text-sm leading-relaxed">
+                                Draft contract for Q4 campaign is attached above. Let us know if you have any further questions.
+                            </div>
+<span class="text-[10px] font-label-caps text-on-secondary-fixed-variant ml-2">Just now</span>
+</div>
+</div>
+</div>
+<!-- Chat Input Area -->
+<div class="p-6 bg-surface-container-lowest border-t border-glass-border">
+<div class="max-w-4xl mx-auto flex items-end gap-4 bg-surface-container-high rounded-2xl p-2 border border-glass-border focus-within:border-primary/50 transition-all shadow-2xl">
+<div class="flex flex-col gap-2 p-1">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+</button>
+</div>
+<textarea class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-3 px-2 text-on-surface placeholder:text-on-secondary-fixed-variant resize-none h-[44px] custom-scrollbar" placeholder="Type your message..." rows="1"></textarea>
+<div class="flex items-center gap-1 p-1">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="mood">mood</span>
+</button>
+<button class="bg-primary-container text-white w-10 h-10 rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-lg shadow-primary-container/20">
+<span class="material-symbols-outlined" data-icon="send" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+<div class="flex justify-center mt-3">
+<p class="text-[10px] text-on-secondary-fixed-variant font-label-caps uppercase tracking-widest">End-to-End Encrypted via AiC Secure Protocol</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Background Decorative Elements -->
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden opacity-20">
+<div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary rounded-full blur-[160px] opacity-10"></div>
+<div class="absolute top-[40%] right-[0%] w-[30%] h-[30%] bg-primary-container rounded-full blur-[140px] opacity-5"></div>
+</div>
+<script>
+        // Simple textarea auto-resize
+        const textarea = document.querySelector('textarea');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if (this.scrollHeight > 150) {
+                this.style.overflowY = 'scroll';
+                this.style.height = '150px';
+            } else {
+                this.style.overflowY = 'hidden';
+            }
+        });
+
+        // Interactive hover effects for glass panels
+        document.querySelectorAll('.glass-panel').forEach(panel => {
+            panel.addEventListener('mousemove', (e) => {
+                const rect = panel.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                panel.style.setProperty('--mouse-x', `${x}px`);
+                panel.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body></html>

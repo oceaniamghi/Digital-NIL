@@ -1,6 +1,7 @@
 import express from 'express';
 import User from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
+import { planCan, minPlanForCap } from '../lib/plans.js';
 import { renderAthletePdf, renderAthleteCard } from '../lib/render.js';
 
 const router = express.Router();
@@ -14,13 +15,18 @@ const slug = (s) => (s || 'athlete').toLowerCase().replace(/[^a-z0-9]+/g, '-').r
 // athlete. Free accounts get the share-card PNG below; this is the upgrade.
 router.get('/athlete/:id/pdf', requireAuth, async (req, res) => {
   try {
-    const a = await User.findById(req.params.id).where('role').equals('athlete').select('name exportTier');
+    const a = await User.findById(req.params.id).where('role').equals('athlete').select('name exportTier plan role');
     if (!a) return res.status(404).json({ error: 'Athlete not found' });
-    if (!['kit', 'pack'].includes(a.exportTier)) {
+    // PAID: the high-end PDF requires an athlete plan with the `mediaKitPdf`
+    // capability (Plus+). Legacy one-time export purchases (exportTier kit/pack)
+    // still count. The free share card below remains available to everyone.
+    const entitled = planCan(a, 'mediaKitPdf') || ['kit', 'pack'].includes(a.exportTier);
+    if (!entitled) {
+      const min = minPlanForCap('athlete', 'mediaKitPdf');
       return res.status(402).json({
         error: 'Upgrade required',
-        message: 'The high-end media-kit PDF is a paid export. The free share card is available now; unlock the full kit to export this PDF.',
-        upgrade: { kit: 'from $99', pack: 'from $299 (includes program outreach)' }
+        message: `The high-end media-kit PDF is part of the athlete ${min ? min.name : 'Plus'} plan. The free share card is available now; upgrade to export the full kit.`,
+        upgrade: { plan: min ? min.key : 'plus', planName: min ? min.name : 'Plus' }
       });
     }
     const pdf = await renderAthletePdf(publicUrl(req, req.params.id));

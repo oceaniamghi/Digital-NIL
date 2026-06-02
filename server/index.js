@@ -22,7 +22,10 @@ import socialsRoutes from './routes/socials.js';
 import crmRoutes from './routes/crm.js';
 import exportRoutes from './routes/export.js';
 import ownerRoutes from './routes/owner.js';
+import inviteRoutes from './routes/invites.js';
+import billingRoutes from './routes/billing.js';
 import systemRoutes from './routes/system.js';
+import adminRoutes from './routes/admin.js';
 import { licenseGate } from './middleware/license.js';
 import { getLicenseState } from './lib/license.js';
 import User from './models/User.js';
@@ -66,7 +69,14 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   next();
 });
-app.use(express.json({ limit: '10mb' }));
+// Capture the raw request body for the Stripe webhook so its signature can be
+// verified (Stripe signs the exact bytes; a parsed body won't match).
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    if (req.originalUrl === '/api/billing/webhook') req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files — uploads live on a persistent Railway Volume in prod (UPLOAD_DIR).
@@ -91,12 +101,17 @@ app.get('/api/health', async (req, res) => {
 // the owner can always unlock and the client can always read lock state.
 app.use('/api/owner', ownerRoutes);
 app.use('/api/system', systemRoutes);
+// Billing is mounted BEFORE the licence gate so Stripe webhooks (and checkout)
+// keep working regardless of app lock state — payments must never be blocked.
+app.use('/api/billing', billingRoutes);
 
 // Licence gate — every other /api route is blocked with 503 when the app is locked.
 app.use('/api', licenseGate);
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/invites', inviteRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/deals', dealRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/content', contentRoutes);
@@ -138,18 +153,50 @@ httpServer.listen(PORT, () => console.log(`Digital NIL server running on port ${
 const PLACEHOLDER_URI = /username:password@cluster\.mongodb\.net/i;
 const seedTestUsers = async () => {
   if (!process.env.SEED_TEST_USERS && process.env.NODE_ENV === 'production') return;
+  // Demo logins skip the verify + onboarding gates (verified + onboarded true).
   const seeds = [
-    { email: 'agent@aic.test', password: 'test1234', name: 'Test Agent', role: 'agent', agency: 'AiC Sports' },
-    { email: 'athlete@aic.test', password: 'test1234', name: 'Test Athlete', role: 'athlete', sport: 'Football', school: 'AiC University', position: 'WR' },
-    { email: 'brand@aic.test', password: 'test1234', name: 'Test Brand', role: 'brand', company: 'AiC Apparel', industry: 'Apparel' }
+    { email: 'agent@dnil.test', password: 'test1234', name: 'Test Agent', role: 'agent', agency: 'Digital NIL Sports' },
+    { email: 'athlete@dnil.test', password: 'test1234', name: 'Test Athlete', role: 'athlete', sport: 'Football', school: 'Digital NIL University', position: 'WR' },
+    { email: 'brand@dnil.test', password: 'test1234', name: 'Test Brand', role: 'brand', company: 'Digital NIL Apparel', industry: 'Apparel' }
   ];
   for (const s of seeds) {
     const exists = await User.findOne({ email: s.email });
     if (!exists) {
-      await User.create(s);
+      await User.create({ ...s, verified: true, onboarded: true });
       console.log(`  + seeded ${s.role.padEnd(7)} ${s.email}`);
     }
   }
+};
+
+// The customer's super-user. Seeds from ADMIN_EMAIL/ADMIN_PASSWORD when provided
+// (any environment, incl. production); otherwise a dev default so the console is
+// reachable out of the box. Idempotent — never clobbers an existing admin.
+const seedAdmin = async () => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const email = (process.env.ADMIN_EMAIL || (isProd ? '' : 'admin@dnil.test')).toLowerCase().trim();
+  const password = process.env.ADMIN_PASSWORD || (isProd ? '' : 'admin1234');
+  if (!email || !password) return; // no creds in prod = no auto-admin (set the env vars)
+  const exists = await User.findOne({ email });
+  if (exists) {
+    if (exists.role !== 'admin') { exists.role = 'admin'; await exists.save(); }
+    return;
+  }
+  await User.create({
+    email, password, name: 'Administrator', role: 'admin',
+    verified: true, onboarded: true
+  });
+  console.log(`  + seeded admin   ${email}`);
+};
+
+// Grandfather every account that predates the verify/onboarding gate so existing
+// users aren't suddenly trapped on the new screens. Runs on every boot; only ever
+// touches docs missing the new field, so it's a no-op once migrated.
+const migrateGate = async () => {
+  const r = await User.updateMany(
+    { onboarded: { $exists: false } },
+    { $set: { onboarded: true, verified: true } }
+  );
+  if (r.modifiedCount) console.log(`  ~ grandfathered ${r.modifiedCount} pre-gate account(s)`);
 };
 
 const seedAthletes = async () => {
@@ -180,9 +227,9 @@ const seedAthletes = async () => {
       nilValue: 6200000, totalEarnings: 4500000, dealsCompleted: 22
     },
     {
-      name: 'Nico Iamaleava', school: 'Tennessee', position: 'QB', jerseyNumber: 8,
+      name: 'Nico Iamaleava', school: 'UCLA', position: 'QB', jerseyNumber: 8,
       classYear: 'Sophomore', graduationYear: 2027, heightDisplay: "6'6\"", weightLbs: 215, fortyTime: 4.7,
-      bio: 'Big-armed dual-threat quarterback and one of the most hyped recruits to land at Tennessee.',
+      bio: 'Big-armed dual-threat quarterback who transferred to UCLA in 2025 after a hyped run at Tennessee.',
       draftRound: '2nd - 3rd', draftTrend: 'up', interestedTeams: ['Tennessee Titans', 'New Orleans Saints', 'Carolina Panthers'],
       socialHandles: [
         { platform: 'instagram', handle: 'nicoiamaleava', followers: 380000, connected: true },
@@ -346,10 +393,10 @@ const seedAthletes = async () => {
     'Luther Burden III': '4685278', 'Tetairoa McMillan': '4685472', 'Jalen Milroe': '4432734',
     'Kaleb Johnson': '4819231'
   };
-  const agent = await User.findOne({ email: 'agent@aic.test' });
+  const agent = await User.findOne({ email: 'agent@dnil.test' });
   const seededIds = [];
   for (const a of athletes) {
-    const email = a.name.toLowerCase().replace(/[^a-z ]/g, '').trim().replace(/\s+/g, '.') + '@athlete.aic';
+    const email = a.name.toLowerCase().replace(/[^a-z ]/g, '').trim().replace(/\s+/g, '.') + '@athlete.dnil';
     const existing = await User.findOne({ email });
     if (existing) { seededIds.push(existing._id); continue; }
     const espnId = ESPN_IDS[a.name] || '';
@@ -359,6 +406,7 @@ const seedAthletes = async () => {
       role: 'athlete',
       verified: true,
       managed: true,
+      featured: true,            // showcase roster = the admin's default "top 20"
       proStatus: 'collegiate',
       sport: 'Football',
       highlightUrl: '',
@@ -370,6 +418,22 @@ const seedAthletes = async () => {
     seededIds.push(created._id);
     console.log(`  + seeded athlete ${email}`);
   }
+  // Reconcile current team for the managed showcase roster. The seeder skips
+  // athletes that already exist, so a corrected `school` (e.g. a transfer like
+  // Nico Iamaleava → UCLA) never reaches docs seeded under the old value. Push
+  // school/position/bio from the seed array onto the managed seed accounts so the
+  // profile always reflects the athlete's current team. Scoped to managed seed
+  // accounts so it never clobbers a real athlete's self-edited profile.
+  for (const a of athletes) {
+    const email = a.name.toLowerCase().replace(/[^a-z ]/g, '').trim().replace(/\s+/g, '.') + '@athlete.dnil';
+    await User.updateOne(
+      { email, managed: true, school: { $ne: a.school } },
+      { $set: { school: a.school, position: a.position, jerseyNumber: a.jerseyNumber, bio: a.bio } }
+    );
+  }
+  // Idempotently flag the showcase roster as featured (covers athletes seeded
+  // before the featured field existed). Cap at the first 20.
+  await User.updateMany({ _id: { $in: seededIds.slice(0, 20) } }, { $set: { featured: true } });
   // Keep the seed agent's roster consistent (idempotent: only set when currently empty)
   if (agent && (!agent.athletes || agent.athletes.length === 0)) {
     agent.athletes = seededIds;
@@ -403,7 +467,7 @@ const seedBrandsAndDeals = async () => {
 
   const brandMap = {};
   for (const b of brands) {
-    const email = `${b.domain.split('.')[0]}@brand.aic`;
+    const email = `${b.domain.split('.')[0]}@brand.dnil`;
     let u = await User.findOne({ email });
     if (!u) {
       u = await User.create({
@@ -423,7 +487,7 @@ const seedBrandsAndDeals = async () => {
 
   // Resolve a seeded athlete's id from their display name (matches seedAthletes' email scheme)
   const athleteId = async (name) => {
-    const email = name.toLowerCase().replace(/[^a-z ]/g, '').trim().replace(/\s+/g, '.') + '@athlete.aic';
+    const email = name.toLowerCase().replace(/[^a-z ]/g, '').trim().replace(/\s+/g, '.') + '@athlete.dnil';
     const a = await User.findOne({ email }).select('_id');
     return a?._id;
   };
@@ -595,6 +659,8 @@ const seedBrandsAndDeals = async () => {
 };
 
 const runSeeds = async () => {
+  await migrateGate();   // runs in every environment (grandfathers legacy users)
+  await seedAdmin();     // runs in every environment when creds are available
   await seedTestUsers();
   await seedAthletes();
   await seedBrandsAndDeals();

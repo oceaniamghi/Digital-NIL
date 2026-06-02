@@ -2,9 +2,21 @@ import express from 'express';
 import Deal from '../models/Deal.js';
 import Activity from '../models/Activity.js';
 import User from '../models/User.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole, requireCap, upgradeRequired } from '../middleware/auth.js';
+import { planLimit, planCan, minPlanForLimit, minPlanForCap, planFeeRate, DEFAULT_FEE_RATE } from '../lib/plans.js';
 
 const router = express.Router();
+
+// The platform fee rate for a deal = the representing agent's tier rate. Resolve it
+// from the athlete's agent (the agent who manages this athlete's deals). No athlete
+// or no agent → the default rate. Used to stamp Deal.platformFeeRate.
+const feeRateForAthlete = async (athleteId) => {
+  if (!athleteId) return DEFAULT_FEE_RATE;
+  const athlete = await User.findById(athleteId).select('agentId');
+  if (!athlete || !athlete.agentId) return DEFAULT_FEE_RATE;
+  const agent = await User.findById(athlete.agentId).select('role plan');
+  return agent ? planFeeRate(agent) : DEFAULT_FEE_RATE;
+};
 
 // GET /api/deals/opportunities — public marketplace for athletes
 router.get('/opportunities', requireAuth, async (req, res) => {
@@ -94,7 +106,7 @@ router.post('/', requireAuth, requireRole('brand', 'agent'), async (req, res) =>
     const {
       title, description, type, platforms, sports, minFollowers,
       compensation, deliverables, disclosureTag, expiresAt,
-      startDate, endDate, campaign, isPublic, featuredImage, athleteId
+      startDate, endDate, campaign, isPublic, featuredImage, athleteId, recruitmentTrip
     } = req.body;
 
     // Agents must specify an athlete from their roster
@@ -104,12 +116,41 @@ router.post('/', requireAuth, requireRole('brand', 'agent'), async (req, res) =>
       if (!inRoster) return res.status(403).json({ error: 'Athlete not in your roster' });
     }
 
+    // Each brand tier caps concurrent live deals (Pro/Elite = unlimited). Agents are
+    // unaffected — their ladder gates roster size, not deal volume.
+    if (req.user.role === 'brand') {
+      const limit = planLimit(req.user, 'deals');
+      if (Number.isFinite(limit)) {
+        const live = await Deal.countDocuments({
+          brand: req.user._id, status: { $in: ['open', 'offered', 'applied', 'active'] }
+        });
+        if (live >= limit) {
+          const min = minPlanForLimit('brand', 'deals', limit + 1);
+          return upgradeRequired(req.res || res,
+            `Your plan allows ${limit} active deal${limit === 1 ? '' : 's'} at a time. Upgrade${min ? ` to ${min.name}` : ''} for more.`,
+            min);
+        }
+      }
+    }
+
+    // Funded recruitment trips are an Elite-only add-on. Honor the flag only when the
+    // brand's plan unlocks it; otherwise reject with an upgrade prompt.
+    if (recruitmentTrip && recruitmentTrip.included && req.user.role === 'brand' && !planCan(req.user, 'recruitmentTrips')) {
+      return upgradeRequired(res, 'Deals with funded recruitment trips are an Elite feature.', minPlanForCap('brand', 'recruitmentTrips'));
+    }
+
+    // Stamp the tiered fee rate when the athlete is known (open deals get the agent's
+    // tier resolved at completion instead).
+    const platformFeeRate = athleteId ? await feeRateForAthlete(athleteId) : undefined;
+
     const deal = await Deal.create({
       title, description, type, platforms, sports, minFollowers,
       compensation, deliverables, disclosureTag, expiresAt,
       startDate, endDate, campaign, isPublic, featuredImage,
+      recruitmentTrip: (recruitmentTrip && recruitmentTrip.included && planCan(req.user, 'recruitmentTrips')) ? recruitmentTrip : undefined,
       brand: req.user._id,
       athlete: athleteId || undefined,
+      platformFeeRate,
       status: athleteId ? 'active' : 'open'
     });
 
@@ -298,14 +339,21 @@ router.put('/:id/complete', requireAuth, async (req, res) => {
     const isBrand = deal.brand.toString() === req.user._id.toString();
     if (!isBrand) return res.status(403).json({ error: 'Only the brand can complete a deal' });
 
+    // Finalize the fee rate against the representing agent's CURRENT tier, so the
+    // payout reflects the plan they actually hold at close (fair for open deals that
+    // were created before an athlete/agent was bound).
+    deal.platformFeeRate = await feeRateForAthlete(deal.athlete);
     deal.status = 'completed';
     await deal.save();
 
-    // Update athlete earnings
+    // Update athlete earnings — net of the platform service fee (the athlete is paid
+    // the gross minus Digital NIL's commission).
     if (deal.athlete) {
+      const net = deal.athleteNet;        // virtual: gross − platform fee
+      const fee = deal.platformFee;
       await User.findByIdAndUpdate(deal.athlete, {
         $inc: {
-          totalEarnings: deal.compensation.amount,
+          totalEarnings: net,
           dealsCompleted: 1
         }
       });
@@ -314,7 +362,7 @@ router.put('/:id/complete', requireAuth, async (req, res) => {
         user: deal.athlete,
         type: 'payment_received',
         title: 'Payment received',
-        message: `$${deal.compensation.amount} earned for: ${deal.title}`,
+        message: `$${net} earned for: ${deal.title} (after $${fee} platform fee)`,
         relatedDeal: deal._id
       });
     }
@@ -370,16 +418,21 @@ router.delete('/:id/save', requireAuth, requireRole('athlete'), async (req, res)
   }
 });
 
-// POST /api/deals/offer — brand sends a direct offer to a specific athlete
-router.post('/offer', requireAuth, requireRole('brand'), async (req, res) => {
+// POST /api/deals/offer — brand sends a direct offer to a specific athlete.
+// Direct offers require a plan tier with the `directOffers` capability (Starter+).
+router.post('/offer', requireAuth, requireRole('brand'), requireCap('directOffers', 'Sending direct offers to athletes'), async (req, res) => {
   try {
-    const { athleteId, title, description, compensation, deliverables, platforms, offerMessage } = req.body;
+    const { athleteId, title, description, compensation, deliverables, platforms, offerMessage, recruitmentTrip } = req.body;
     if (!athleteId) return res.status(400).json({ error: 'athleteId required' });
     if (!title) return res.status(400).json({ error: 'title required' });
     if (!compensation?.amount) return res.status(400).json({ error: 'compensation amount required' });
 
     const athlete = await User.findOne({ _id: athleteId, role: 'athlete' }).select('name');
     if (!athlete) return res.status(404).json({ error: 'Athlete not found' });
+
+    if (recruitmentTrip && recruitmentTrip.included && !planCan(req.user, 'recruitmentTrips')) {
+      return upgradeRequired(res, 'Deals with funded recruitment trips are an Elite feature.', minPlanForCap('brand', 'recruitmentTrips'));
+    }
 
     // Dedup: one live offer/active deal per brand+athlete at a time.
     const existing = await Deal.findOne({
@@ -396,6 +449,8 @@ router.post('/offer', requireAuth, requireRole('brand'), async (req, res) => {
       compensation,
       deliverables: deliverables || [],
       offerMessage: offerMessage || '',
+      recruitmentTrip: (recruitmentTrip && recruitmentTrip.included && planCan(req.user, 'recruitmentTrips')) ? recruitmentTrip : undefined,
+      platformFeeRate: await feeRateForAthlete(athleteId),
       status: 'offered',
       isPublic: false
     });

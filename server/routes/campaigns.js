@@ -2,7 +2,8 @@ import express from 'express';
 import Campaign from '../models/Campaign.js';
 import Deal from '../models/Deal.js';
 import Activity from '../models/Activity.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole, upgradeRequired } from '../middleware/auth.js';
+import { planLimit, minPlanForLimit } from '../lib/plans.js';
 
 const router = express.Router();
 
@@ -34,9 +35,22 @@ router.get('/:id', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/campaigns
+// POST /api/campaigns — gated by the brand's plan campaign allowance (Free = 0).
 router.post('/', requireAuth, requireRole('brand'), async (req, res) => {
   try {
+    // Enforce the per-tier campaign cap (Free = 0 → must upgrade; Pro/Elite = ∞).
+    const limit = planLimit(req.user, 'campaigns');
+    if (limit <= 0) {
+      const min = minPlanForLimit('brand', 'campaigns', 1);
+      return upgradeRequired(res, `Campaigns are available on the ${min ? min.name : 'Starter'} plan and up. Upgrade to launch campaigns.`, min);
+    }
+    if (Number.isFinite(limit)) {
+      const used = await Campaign.countDocuments({ brand: req.user._id });
+      if (used >= limit) {
+        const min = minPlanForLimit('brand', 'campaigns', limit + 1);
+        return upgradeRequired(res, `Your plan allows ${limit} campaign${limit === 1 ? '' : 's'}. Upgrade${min ? ` to ${min.name}` : ''} for more.`, min);
+      }
+    }
     const {
       title, description, budget, startDate, endDate,
       targetSports, targetPlatforms, goals, coverImage

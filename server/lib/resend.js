@@ -10,7 +10,7 @@ export async function sendEmail({ to, subject, html }) {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM || 'AiC NIL <onboarding@resend.dev>',
+        from: process.env.RESEND_FROM || 'Digital NIL <onboarding@resend.dev>',
         to: Array.isArray(to) ? to : [to],
         subject: subject || '(no subject)',
         html: html || ''

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Marcus Thorne | Athlete Profile | AiC NIL</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=JetBrains+Mono:wght@700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @font-face {
+            font-family: 'metropolis';
+            src: url('https://fonts.cdnfonts.com/css/metropolis');
+        }
+        
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: rgba(26, 26, 26, 0.65);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(204, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .neon-accent-red {
+            box-shadow: 0 0 15px rgba(204, 0, 0, 0.3);
+        }
+
+        .stats-grid-gradient {
+            background: linear-gradient(180deg, rgba(204, 0, 0, 0.05) 0%, rgba(10, 10, 10, 0) 100%);
+        }
+
+        .radial-bg {
+            background: radial-gradient(circle at 50% -20%, rgba(204, 0, 0, 0.15) 0%, rgba(10, 10, 10, 0) 70%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary": "#002681",
+                      "tertiary": "#b7c4ff",
+                      "secondary": "#c8c6c5",
+                      "primary-container": "#cc0000",
+                      "surface": "#131313",
+                      "surface-container-low": "#1c1b1b",
+                      "surface-container": "#201f1f",
+                      "on-primary": "#690000",
+                      "text-muted": "#64748B",
+                      "on-secondary": "#313030",
+                      "on-tertiary-fixed-variant": "#0039b4",
+                      "error": "#ffb4ab",
+                      "on-surface-variant": "#e8bdb6",
+                      "primary-fixed-dim": "#ffb4a8",
+                      "inverse-surface": "#e5e2e1",
+                      "secondary-fixed-dim": "#c8c6c5",
+                      "surface-bright": "#3a3939",
+                      "surface-variant": "#353534",
+                      "tertiary-fixed-dim": "#b7c4ff",
+                      "primary-fixed": "#ffdad4",
+                      "secondary-container": "#474746",
+                      "on-tertiary-container": "#dce1ff",
+                      "surface-container-lowest": "#0e0e0e",
+                      "outline": "#ae8882",
+                      "surface-dim": "#131313",
+                      "outline-variant": "#5e3f3a",
+                      "glass-surface": "rgba(26, 26, 26, 0.65)",
+                      "neon-warning": "#FFCC00",
+                      "surface-container-high": "#2a2a2a",
+                      "glass-border": "rgba(255, 255, 255, 0.08)",
+                      "inverse-primary": "#c00000",
+                      "tertiary-container": "#0052f9",
+                      "error-container": "#93000a",
+                      "on-primary-container": "#ffdad4",
+                      "text-primary": "#FFFFFF",
+                      "tertiary-fixed": "#dce1ff",
+                      "on-secondary-fixed-variant": "#474746",
+                      "on-primary-fixed-variant": "#930000",
+                      "on-primary-fixed": "#410000",
+                      "on-secondary-fixed": "#1c1b1b",
+                      "on-secondary-container": "#b7b5b4",
+                      "on-error": "#690005",
+                      "on-surface": "#e5e2e1",
+                      "surface-container-highest": "#353534",
+                      "primary": "#ffb4a8",
+                      "surface-tint": "#ffb4a8",
+                      "text-secondary": "#94A3B8",
+                      "on-tertiary-fixed": "#001551",
+                      "on-error-container": "#ffdad6",
+                      "neon-success": "#00FF66",
+                      "inverse-on-surface": "#313030",
+                      "background": "#131313",
+                      "on-background": "#e5e2e1",
+                      "secondary-fixed": "#e5e2e1"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "16px",
+                      "stack-gap": "28px",
+                      "sidebar-collapsed": "64px",
+                      "margin-desktop": "28px",
+                      "sidebar-expanded": "220px",
+                      "margin-mobile": "16px",
+                      "container-max": "1140px"
+              },
+              "fontFamily": {
+                      "title-md": ["metropolis", "sans-serif"],
+                      "body-sm": ["inter", "sans-serif"],
+                      "headline-lg": ["metropolis", "sans-serif"],
+                      "body-lg": ["inter", "sans-serif"],
+                      "stat-value": ["metropolis", "sans-serif"],
+                      "label-caps": ["jetbrainsMono", "monospace"],
+                      "display-lg": ["metropolis", "sans-serif"]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-container selection:text-white">
+<div class="radial-bg"></div>
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-collapsed hover:w-sidebar-expanded transition-all duration-300 flex flex-col bg-surface-container-lowest backdrop-blur-2xl border-r border-glass-border shadow-2xl shadow-primary/10 z-50 group">
+<div class="flex flex-col h-full overflow-hidden">
+<div class="p-4 flex items-center gap-4">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-white text-sm">bolt</span>
+</div>
+<span class="font-headline-lg text-title-md font-black text-primary opacity-0 group-hover:opacity-100 transition-opacity">AiC NIL</span>
+</div>
+<nav class="flex-1 mt-8">
+<a class="flex items-center gap-4 text-on-surface-variant hover:text-on-surface py-3 px-4 hover:bg-surface-variant/30 transition-all group/item" href="#">
+<span class="material-symbols-outlined shrink-0">dashboard</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 text-on-surface-variant hover:text-on-surface py-3 px-4 hover:bg-surface-variant/30 transition-all group/item" href="#">
+<span class="material-symbols-outlined shrink-0">handshake</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Deals</span>
+</a>
+<a class="flex items-center gap-4 text-on-surface-variant hover:text-on-surface py-3 px-4 hover:bg-surface-variant/30 transition-all group/item" href="#">
+<span class="material-symbols-outlined shrink-0">chat_bubble</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Messages</span>
+</a>
+<a class="flex items-center gap-4 text-on-surface-variant hover:text-on-surface py-3 px-4 hover:bg-surface-variant/30 transition-all group/item" href="#">
+<span class="material-symbols-outlined shrink-0">payments</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Financials</span>
+</a>
+<a class="flex items-center gap-4 text-primary border-l-4 border-primary-container bg-primary/5 py-3 px-4 transition-all group/item" href="#">
+<span class="material-symbols-outlined shrink-0" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Profile</span>
+</a>
+</nav>
+<div class="p-4 border-t border-glass-border">
+<button class="w-full h-10 flex items-center justify-center bg-primary-container text-white rounded-lg group-hover:px-4 transition-all overflow-hidden">
+<span class="material-symbols-outlined shrink-0">add</span>
+<span class="font-label-caps text-label-caps ml-2 hidden group-hover:block whitespace-nowrap">New Deal</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 right-0 left-sidebar-collapsed w-[calc(100%-64px)] h-16 bg-glass-surface backdrop-blur-xl border-b border-glass-border z-40 flex justify-between items-center px-margin-desktop shadow-md">
+<div class="flex items-center gap-2">
+<h1 class="font-headline-lg text-headline-lg font-bold text-primary-container">AiC NIL</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<input class="bg-surface-container-low border-glass-border rounded-full py-1.5 pl-10 pr-4 text-sm w-64 focus:ring-1 focus:ring-primary-container transition-all" placeholder="Search athletes, deals..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:bg-surface-variant/50 rounded-full transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-variant/50 rounded-full transition-colors"><span class="material-symbols-outlined">settings</span></button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary-container">
+<img alt="Athlete Profile Avatar" data-alt="A professional headshot of a high-performance athlete with a determined expression. The lighting is cinematic with sharp highlights and deep shadows against a dark studio background, perfectly aligning with an elite, premium athletic branding aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOgLcI8xH_iLzyvHvZTtvf_G-_XjDuou7tm5vvfK6y-FirY_r9Zyi6dpjYxKWa_fKeA1piCL4_-NDcUh9HzMcH7EEyiQq2cBuMyO1-PMPuQ5SSkIGwAGAhrR3KNFornVjBSvIzlliLdXfTHnCGAn5g5khhPPirIhVEDGld6MbHtDQlDsr6G5GQDDIhPav_I4a85qM3FnO-NA7YjOhPX21tIdk33K9pTNuj6Mai-CbTd0TfBxT_Kvu7IiLDZjnfUIGSDwbYriJu2UEE"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-sidebar-collapsed pt-16 min-h-screen">
+<div class="max-w-[1140px] mx-auto px-margin-desktop py-8 space-y-stack-gap">
+<!-- Section 1: Header Profile -->
+<section class="relative glass-card rounded-2xl p-8 overflow-hidden flex flex-col md:flex-row items-center gap-8">
+<div class="absolute top-0 right-0 p-8 opacity-10">
+<span class="material-symbols-outlined text-[160px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<div class="relative shrink-0">
+<div class="w-48 h-48 rounded-full border-4 border-primary-container p-1 shadow-2xl neon-accent-red">
+<img alt="Marcus Thorne" class="w-full h-full rounded-full object-cover" data-alt="A focused close-up profile portrait of a powerful American football linebacker wearing an Alabama jersey. The setting is a moody, dark stadium tunnel with red neon accent lighting reflecting off his helmet and gear. The atmosphere is intense, exclusive, and high-performance." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmDve-1Eqc-IzsSSzT2b2JqY4OEisPRBEwgqO1bPtI3Q5MD1tS5rp0ZVRUh5IbVJQ5dmBtMCZRQKP9xJ8kCOdp3OuKTQ67--OjzEto2ZiMN4jefJkKMpFSepnMm-jemDRoF6zzvAAV6yYJ-p938wCvnK8NPemWWlOY67RG7NsgripsURhSG5CLSKnYgP-dIHEK_HPmW-o3NNzYNx6EvTHwMlPibgubUj07C4dT6U9ZzpQIKLf-Bqpo5oVc4r5T1YFaPgKaknF42oXW"/>
+</div>
+<div class="absolute -bottom-2 right-4 bg-neon-success text-black font-label-caps text-[10px] px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">verified</span>
+                        VERIFIED ATHLETE
+                    </div>
+</div>
+<div class="flex-1 text-center md:text-left">
+<h2 class="font-display-lg text-display-lg text-white mb-1">Marcus Thorne</h2>
+<div class="flex flex-wrap justify-center md:justify-start gap-4 items-center">
+<span class="font-headline-lg text-title-md text-primary-container">Linebacker</span>
+<div class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></div>
+<span class="font-title-md text-title-md text-on-surface">University of Alabama</span>
+<div class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></div>
+<span class="font-title-md text-title-md text-on-surface-variant">#44</span>
+</div>
+<div class="mt-6 flex flex-wrap justify-center md:justify-start gap-3">
+<button class="bg-primary-container text-white px-8 py-3 rounded-lg font-title-md hover:scale-105 active:scale-95 transition-transform">Inquire for Deal</button>
+<button class="bg-surface-variant/50 border border-glass-border backdrop-blur-md text-white px-6 py-3 rounded-lg font-title-md hover:bg-surface-variant transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined">share</span> Share Profile
+                        </button>
+</div>
+</div>
+</section>
+<!-- Section 2: Key Stats Strip -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="glass-card rounded-xl p-4 border-l-4 border-l-primary-container stats-grid-gradient">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Height</p>
+<p class="font-stat-value text-stat-value text-white">6'3"</p>
+</div>
+<div class="glass-card rounded-xl p-4 border-l-4 border-l-primary-container stats-grid-gradient">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Weight</p>
+<p class="font-stat-value text-stat-value text-white">245 lbs</p>
+</div>
+<div class="glass-card rounded-xl p-4 border-l-4 border-l-primary-container stats-grid-gradient">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">40-Yard Dash</p>
+<p class="font-stat-value text-stat-value text-white">4.52s</p>
+</div>
+<div class="glass-card rounded-xl p-4 border-l-4 border-l-primary-container stats-grid-gradient">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Class</p>
+<p class="font-stat-value text-stat-value text-white">Junior</p>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-stack-gap">
+<!-- Section 3: Hudl Highlight Section -->
+<section class="lg:col-span-2 space-y-6">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-lg text-title-md text-white flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container">play_circle</span>
+                            WATCH HIGHLIGHTS
+                        </h3>
+<a class="text-primary-container font-label-caps text-label-caps hover:underline" href="#">VIEW HUDL PROFILE</a>
+</div>
+<div class="relative glass-card rounded-2xl aspect-video overflow-hidden group cursor-pointer">
+<img alt="Highlight Reel Placeholder" class="w-full h-full object-cover brightness-50 transition-all group-hover:scale-105" data-alt="A wide-angle cinematic shot of a football stadium under intense floodlights at night, with a single player standing in focus in the foreground. The stadium atmosphere is thick with atmospheric mist and deep red light trails, following the obsidian elite aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA23AsTlJL8EM3mmncLi-C87yJU1GCfpUlkaeR14XiSR4n-5bCJEQEE5dj5nJZO8TOuCOGbAAK8_-ROHukbyKXV3zX9FTWNdazIfHinU1P5H5Z5Ea56B05za7uvNqYH1ko9-3zB6JG7_AgBSS72mdBdY12Uq1cEIufNhe-8Vxlu8TbpXneSjIC8I1arWVhDWIrjlX_MtaYI6ahrsUbn_J8EA-XiI5_pY4pk2J5ktNZ7RUeoOxyULxtz1b2xsRTxzCNz9LfAjg8FNMZx"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-20 h-20 rounded-full bg-primary-container/90 flex items-center justify-center neon-accent-red group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-white text-4xl" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+<p class="font-title-md text-white">2024 Season | Defensive Dominance Highlights</p>
+<p class="font-body-sm text-on-surface-variant">4:12 • 45.2K Views</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<div class="glass-card rounded-lg aspect-video relative overflow-hidden group cursor-pointer border-none">
+<img alt="Training Reel" class="w-full h-full object-cover brightness-50 group-hover:scale-110 transition-transform" data-alt="Close up of high-performance gym training with professional athletic gear in a high-contrast black and red lit gym. The aesthetic is dark, gritty, and technically advanced." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_L1SpPw33Ft_C9V9CSxIV73Nav-YVkfjMnfJc_edEE_-831OkiNkhkq45mnWdRF6zS04_aMCiWrKJFvblsrw8731n38XVly4lnY6Te_FbgQNCXrqt2fG9Zc4lmMJUO-8Dm_GH4nvbEX_MwK2G0vZwHC9-w2Eg9DRd_-1XqA5s5NAl63INlBqo0jnQ4ajTzJacpzYS4pvf_62n8nbILZBSSqBfrpO_JwNZRE_JCyKI6SnfTRmrbSgouMdHdLnvOxeFmGSVMis10yUy"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white opacity-0 group-hover:opacity-100 transition-opacity">play_circle</span>
+</div>
+</div>
+<div class="glass-card rounded-lg aspect-video relative overflow-hidden group cursor-pointer border-none">
+<img alt="Drills" class="w-full h-full object-cover brightness-50 group-hover:scale-110 transition-transform" data-alt="Elite athlete performing agility drills on a dark field at twilight, with red glowing tracking markers superimposed to simulate high-tech performance analysis." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE_b_C1HFNuKdwuluXUUY2dFFYcPDMpNMakuCIGZ7f7CVA-z0m5gqBLBxLsRAhM-yGwg-8c81kpid9gyQ3v_TFLmYASOLzFwIK1gygT0RAKo9ybwvlrw22W1arvc8MQaRffL3_ek6hUkjRbrm6BbaxntnMG9QYkWa3jvF5ltkntaXRKMV8oevnpovc63D_-ka7kM9MQLSGof7RMghHJHloM1xEQKUi43ZzqJ-J8N_I2xAFZ4K34RtsrPzLeIoLy9oDgJyTxakegG4F"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white opacity-0 group-hover:opacity-100 transition-opacity">play_circle</span>
+</div>
+</div>
+<div class="glass-card rounded-lg aspect-video relative overflow-hidden group cursor-pointer border-none">
+<img alt="Off-season" class="w-full h-full object-cover brightness-50 group-hover:scale-110 transition-transform" data-alt="Silhouette of an athlete running against a deep red sunset on a modern track. The mood is inspirational, determined, and moody." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDmenXNYJPCqlh9Sq2xFD5XramKjKvC4NNMVPA4JNLFtARItJMxNw0bCt335Ph5w32QueGi4VnD7vMyM0nK9NsJuFVItl2bCsF70la_tk-lu5r9x0OIo0orUH2f3ElvJL2bW4JEK2rqT06K5hrx1u0W_rEV6-R8yuUwpRHlAOBlQ95bDwbOQj66_80UqpfHnbs4IMpmhc3pC-Y3S1KjWRLFzWIsabgDLxv8VvycC4SRXJbpMrUpnMS7fQhapmx0QFm2KiIf3XJlBFH"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white opacity-0 group-hover:opacity-100 transition-opacity">play_circle</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 5: Recruitment/Draft Status -->
+<section class="space-y-6">
+<h3 class="font-headline-lg text-title-md text-white flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container">trending_up</span>
+                        DRAFT INSIGHTS
+                    </h3>
+<div class="glass-card rounded-2xl p-6 border-t-2 border-t-primary-container">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-4 uppercase">Projected Round</p>
+<div class="flex items-end gap-2 mb-6">
+<span class="font-stat-value text-4xl text-white">1st - 2nd</span>
+<span class="font-body-sm text-neon-success mb-1 flex items-center"><span class="material-symbols-outlined text-xs">arrow_upward</span> Trending up</span>
+</div>
+<div class="space-y-4">
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Interested Organizations</p>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between p-3 bg-surface-variant/30 rounded-lg border border-glass-border">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center p-1">
+<span class="font-black text-black text-xs">NYG</span>
+</div>
+<span class="font-title-md text-body-lg">NY Giants</span>
+</div>
+<span class="material-symbols-outlined text-neon-success">check_circle</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-variant/30 rounded-lg border border-glass-border">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center p-1">
+<span class="font-black text-black text-xs">DAL</span>
+</div>
+<span class="font-title-md text-body-lg">Dallas Cowboys</span>
+</div>
+<span class="material-symbols-outlined text-neon-success">check_circle</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-variant/30 rounded-lg border border-glass-border opacity-50">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center p-1">
+<span class="font-black text-black text-xs">PIT</span>
+</div>
+<span class="font-title-md text-body-lg">Pittsburgh Steelers</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">info</span>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-6 border-t border-glass-border">
+<div class="flex justify-between mb-2">
+<span class="font-label-caps text-[10px] text-on-surface-variant uppercase">Scout Score</span>
+<span class="font-label-caps text-[10px] text-primary-container">92.4</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[92.4%] neon-accent-red"></div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Section 4: Professional & Collegiate Stats -->
+<section class="space-y-6">
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+<h3 class="font-headline-lg text-title-md text-white flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container">analytics</span>
+                        PERFORMANCE METRICS
+                    </h3>
+<div class="flex bg-surface-container rounded-lg p-1 border border-glass-border">
+<button class="px-6 py-2 rounded-md font-label-caps text-label-caps bg-primary-container text-white transition-all" id="college-tab">COLLEGE STATS</button>
+<button class="px-6 py-2 rounded-md font-label-caps text-label-caps text-on-surface-variant hover:text-white transition-all" id="pro-tab">PRO PROJECTIONS</button>
+</div>
+</div>
+<div class="glass-card rounded-2xl overflow-hidden overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high border-b border-glass-border">
+<th class="p-6 font-label-caps text-label-caps text-on-surface-variant uppercase">Season</th>
+<th class="p-6 font-label-caps text-label-caps text-on-surface-variant uppercase">Games</th>
+<th class="p-6 font-label-caps text-label-caps text-on-surface-variant uppercase text-primary">Tackles</th>
+<th class="p-6 font-label-caps text-label-caps text-on-surface-variant uppercase text-primary">Sacks</th>
+<th class="p-6 font-label-caps text-label-caps text-on-surface-variant uppercase text-primary">INT</th>
+<th class="p-6 font-label-caps text-label-caps text-on-surface-variant uppercase">FF</th>
+<th class="p-6 font-label-caps text-label-caps text-on-surface-variant uppercase">PD</th>
+</tr>
+</thead>
+<tbody id="stats-body">
+<tr class="border-b border-glass-border hover:bg-white/5 transition-colors">
+<td class="p-6 font-title-md text-white">2024 Junior</td>
+<td class="p-6 font-title-md text-on-surface">12</td>
+<td class="p-6 font-stat-value text-white">98</td>
+<td class="p-6 font-stat-value text-white">12.5</td>
+<td class="p-6 font-stat-value text-white">2</td>
+<td class="p-6 font-stat-value text-on-surface">4</td>
+<td class="p-6 font-stat-value text-on-surface">8</td>
+</tr>
+<tr class="border-b border-glass-border hover:bg-white/5 transition-colors">
+<td class="p-6 font-title-md text-white">2023 Sophomore</td>
+<td class="p-6 font-title-md text-on-surface">13</td>
+<td class="p-6 font-stat-value text-white">76</td>
+<td class="p-6 font-stat-value text-white">8.0</td>
+<td class="p-6 font-stat-value text-white">1</td>
+<td class="p-6 font-stat-value text-on-surface">2</td>
+<td class="p-6 font-stat-value text-on-surface">5</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="p-6 font-title-md text-white">2022 Freshman</td>
+<td class="p-6 font-title-md text-on-surface">10</td>
+<td class="p-6 font-stat-value text-white">34</td>
+<td class="p-6 font-stat-value text-white">2.5</td>
+<td class="p-6 font-stat-value text-white">0</td>
+<td class="p-6 font-stat-value text-on-surface">1</td>
+<td class="p-6 font-stat-value text-on-surface">2</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</main>
+<script>
+        const collegeTab = document.getElementById('college-tab');
+        const proTab = document.getElementById('pro-tab');
+        const statsBody = document.getElementById('stats-body');
+
+        const collegeStats = `
+            <tr class="border-b border-glass-border hover:bg-white/5 transition-colors">
+                <td class="p-6 font-title-md text-white">2024 Junior</td>
+                <td class="p-6 font-title-md text-on-surface">12</td>
+                <td class="p-6 font-stat-value text-white">98</td>
+                <td class="p-6 font-stat-value text-white">12.5</td>
+                <td class="p-6 font-stat-value text-white">2</td>
+                <td class="p-6 font-stat-value text-on-surface">4</td>
+                <td class="p-6 font-stat-value text-on-surface">8</td>
+            </tr>
+            <tr class="border-b border-glass-border hover:bg-white/5 transition-colors">
+                <td class="p-6 font-title-md text-white">2023 Sophomore</td>
+                <td class="p-6 font-title-md text-on-surface">13</td>
+                <td class="p-6 font-stat-value text-white">76</td>
+                <td class="p-6 font-stat-value text-white">8.0</td>
+                <td class="p-6 font-stat-value text-white">1</td>
+                <td class="p-6 font-stat-value text-on-surface">2</td>
+                <td class="p-6 font-stat-value text-on-surface">5</td>
+            </tr>
+        `;
+
+        const proProjections = `
+            <tr class="border-b border-glass-border hover:bg-white/5 transition-colors bg-primary/5">
+                <td class="p-6 font-title-md text-primary">NFL Year 1 Proj.</td>
+                <td class="p-6 font-title-md text-on-surface">17</td>
+                <td class="p-6 font-stat-value text-white">115</td>
+                <td class="p-6 font-stat-value text-white">6.5</td>
+                <td class="p-6 font-stat-value text-white">1</td>
+                <td class="p-6 font-stat-value text-on-surface">3</td>
+                <td class="p-6 font-stat-value text-on-surface">6</td>
+            </tr>
+            <tr class="border-b border-glass-border hover:bg-white/5 transition-colors bg-primary/10">
+                <td class="p-6 font-title-md text-primary">NFL Year 2 Proj.</td>
+                <td class="p-6 font-title-md text-on-surface">17</td>
+                <td class="p-6 font-stat-value text-white">132</td>
+                <td class="p-6 font-stat-value text-white">9.0</td>
+                <td class="p-6 font-stat-value text-white">3</td>
+                <td class="p-6 font-stat-value text-on-surface">4</td>
+                <td class="p-6 font-stat-value text-on-surface">9</td>
+            </tr>
+        `;
+
+        collegeTab.addEventListener('click', () => {
+            collegeTab.classList.add('bg-primary-container', 'text-white');
+            collegeTab.classList.remove('text-on-surface-variant');
+            proTab.classList.remove('bg-primary-container', 'text-white');
+            proTab.classList.add('text-on-surface-variant');
+            statsBody.innerHTML = collegeStats;
+        });
+
+        proTab.addEventListener('click', () => {
+            proTab.classList.add('bg-primary-container', 'text-white');
+            proTab.classList.remove('text-on-surface-variant');
+            collegeTab.classList.remove('bg-primary-container', 'text-white');
+            collegeTab.classList.add('text-on-surface-variant');
+            statsBody.innerHTML = proProjections;
+        });
+    </script>
+</body></html>

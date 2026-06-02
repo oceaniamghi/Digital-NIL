@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AiC NIL | Athlete Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@700&amp;display=swap" rel="stylesheet"/>
+<!-- Metropolis would typically be a local/premium font, using Inter as a close fallback for the demo while adhering to naming -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-container": "#cc0000",
+                    "surface-container-highest": "#353534",
+                    "on-error": "#690005",
+                    "on-primary-fixed": "#410000",
+                    "surface-dim": "#131313",
+                    "surface-container-low": "#1c1b1b",
+                    "inverse-primary": "#c00000",
+                    "background": "#0A0A0A",
+                    "inverse-surface": "#e5e2e1",
+                    "on-error-container": "#ffdad6",
+                    "surface-bright": "#3a3939",
+                    "text-secondary": "#94A3B8",
+                    "primary-fixed": "#ffdad4",
+                    "error-container": "#93000a",
+                    "text-muted": "#64748B",
+                    "on-tertiary-fixed-variant": "#0039b4",
+                    "on-secondary-container": "#b7b5b4",
+                    "on-secondary": "#313030",
+                    "on-tertiary": "#002681",
+                    "glass-border": "rgba(255, 255, 255, 0.08)",
+                    "tertiary-fixed": "#dce1ff",
+                    "on-secondary-fixed-variant": "#474746",
+                    "secondary-container": "#474746",
+                    "neon-warning": "#FFCC00",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "on-surface": "#e5e2e1",
+                    "glass-surface": "rgba(10, 10, 10, 0.65)",
+                    "surface": "#131313",
+                    "on-tertiary-fixed": "#001551",
+                    "on-surface-variant": "#e8bdb6",
+                    "neon-success": "#00FF66",
+                    "tertiary-fixed-dim": "#b7c4ff",
+                    "primary": "#ffb4a8",
+                    "tertiary-container": "#0052f9",
+                    "outline": "#ae8882",
+                    "text-primary": "#FFFFFF",
+                    "on-background": "#e5e2e1",
+                    "surface-container": "#201f1f",
+                    "on-secondary-fixed": "#1c1b1b",
+                    "secondary-fixed": "#e5e2e1",
+                    "error": "#ffb4ab",
+                    "surface-tint": "#ffb4a8",
+                    "on-primary": "#690000",
+                    "surface-container-high": "#2a2a2a",
+                    "inverse-on-surface": "#313030",
+                    "secondary": "#c8c6c5",
+                    "surface-variant": "#353534",
+                    "primary-fixed-dim": "#ffb4a8",
+                    "tertiary": "#b7c4ff",
+                    "on-tertiary-container": "#dce1ff",
+                    "on-primary-container": "#ffdad4",
+                    "outline-variant": "#5e3f3a",
+                    "surface-container-lowest": "#0e0e0e",
+                    "on-primary-fixed-variant": "#930000"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "28px",
+                    "sidebar-expanded": "220px",
+                    "gutter": "16px",
+                    "margin-mobile": "16px",
+                    "container-max": "1140px",
+                    "stack-gap": "28px",
+                    "sidebar-collapsed": "64px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter", "sans-serif"],
+                    "label-caps": ["JetBrains Mono", "monospace"],
+                    "title-md": ["Inter", "sans-serif"],
+                    "headline-lg": ["Inter", "sans-serif"],
+                    "body-sm": ["Inter", "sans-serif"],
+                    "body-lg": ["Inter", "sans-serif"],
+                    "stat-value": ["Inter", "sans-serif"]
+            },
+            "fontSize": {
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "26px", "fontWeight": "400"}],
+                    "stat-value": ["24px", {"lineHeight": "24px", "fontWeight": "800"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(88, 28, 135, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(204, 0, 0, 0.05) 0%, transparent 40%);
+            color: #FFFFFF;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(26, 26, 26, 0.65);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .sidebar-rail {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sidebar-rail:hover {
+            width: 220px;
+        }
+        .sidebar-rail:hover .nav-text {
+            opacity: 1;
+            display: block;
+        }
+        .nav-text {
+            opacity: 0;
+            display: none;
+            transition: opacity 0.2s ease;
+        }
+        .status-accent {
+            width: 2px;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="antialiased font-body-lg">
+<!-- Navigation Drawer (SideNav Rail) -->
+<aside class="sidebar-rail fixed left-0 top-0 h-full w-sidebar-collapsed bg-surface-dim border-r border-glass-border z-[60] flex flex-col overflow-hidden">
+<!-- Logo Area -->
+<div class="flex items-center gap-4 py-6 px-4 h-20">
+<div class="flex items-center justify-center w-8 h-8 bg-primary-container rounded-lg shrink-0">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">sports_football</span>
+</div>
+<span class="nav-text font-headline-lg text-headline-lg text-primary tracking-tighter whitespace-nowrap">AiC NIL</span>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 mt-4 space-y-2">
+<!-- Dashboard Active -->
+<a class="bg-primary-container text-on-primary-container rounded-lg mx-2 flex items-center gap-4 py-3 px-3 transition-all duration-300" href="#">
+<span class="material-symbols-outlined shrink-0" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="nav-text font-title-md text-title-md whitespace-nowrap">Dashboard</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface rounded-lg mx-2 flex items-center gap-4 py-3 px-3 transition-all duration-300" href="#">
+<span class="material-symbols-outlined shrink-0">handshake</span>
+<span class="nav-text font-title-md text-title-md whitespace-nowrap">Deals</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface rounded-lg mx-2 flex items-center gap-4 py-3 px-3 transition-all duration-300" href="#">
+<span class="material-symbols-outlined shrink-0">mail</span>
+<span class="nav-text font-title-md text-title-md whitespace-nowrap">Inbox</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface rounded-lg mx-2 flex items-center gap-4 py-3 px-3 transition-all duration-300" href="#">
+<span class="material-symbols-outlined shrink-0">account_balance_wallet</span>
+<span class="nav-text font-title-md text-title-md whitespace-nowrap">Financials</span>
+</a>
+</nav>
+<!-- Bottom Actions -->
+<div class="mt-auto mb-6 space-y-2">
+<a class="text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface rounded-lg mx-2 flex items-center gap-4 py-3 px-3 transition-all duration-300" href="#">
+<span class="material-symbols-outlined shrink-0">settings</span>
+<span class="nav-text font-title-md text-title-md whitespace-nowrap">Settings</span>
+</a>
+<div class="mx-2 px-3 flex items-center gap-4 py-3">
+<div class="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-glass-border">
+<img alt="Athlete Profile" data-alt="A professional headshot of a focused young elite athlete with sharp features, set against a dark, moody background with subtle rim lighting. The lighting highlights their determined expression and athletic build, following the high-performance dark aesthetic of the brand with deep blacks and cool undertones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkIuJhC4DlYGRFo2jSUYCMJmnxN9ryqu6iEcXFoe1qhJygzLux-45s7G3P4pdt_tDGwuwEs4qEJt_Yz5VqnXP5PA-RNuXTiCPC_lQVKLbeLCBozyu_Qjg8a7pVE9iJMf0pzO-F7MZe55s4utcPfdsXdCOoIqSNLZ9GboSdKJXgIym5vvaJtT_npBK-Ob2I_goHXn18jgLp0JhMU7MJKvmXSGwB-pTInou8RbJ8JWlbv6TqHlHvo8KJVJa3p9izoZIGUJeF_iO77c7P"/>
+</div>
+<div class="nav-text whitespace-nowrap overflow-hidden">
+<p class="font-title-md text-title-md leading-none">Marcus Vane</p>
+<p class="text-body-sm text-text-muted mt-1">Elite Tier</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="ml-sidebar-collapsed p-margin-desktop min-h-screen">
+<div class="max-w-container-max mx-auto">
+<!-- Top App Bar Content -->
+<header class="flex justify-between items-center mb-stack-gap">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tighter">Performance Dashboard</h1>
+<p class="text-text-muted font-body-lg">Welcome back, Marcus. Your scouting activity is up 12% this week.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full glass-card flex items-center justify-center hover:opacity-80 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-primary">notifications</span>
+</button>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-title-md flex items-center gap-2 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">add</span>
+                        Post New Content
+                    </button>
+</div>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Hero Feature: Next Training Session -->
+<div class="col-span-12 lg:col-span-8 h-full">
+<div class="glass-card rounded-xl p-8 relative overflow-hidden h-full min-h-[320px] flex flex-col justify-between group">
+<!-- Abstract BG Decor -->
+<div class="absolute -right-20 -top-20 w-64 h-64 bg-primary-container opacity-10 blur-[80px] rounded-full group-hover:opacity-20 transition-opacity"></div>
+<div class="relative z-10">
+<span class="font-label-caps text-label-caps text-primary tracking-widest uppercase">Upcoming Session</span>
+<h2 class="font-display-lg text-display-lg mt-4 max-w-md">Explosive Power &amp; Plyometrics</h2>
+<div class="flex items-center gap-6 mt-6">
+<div class="flex items-center gap-2 text-text-secondary">
+<span class="material-symbols-outlined">schedule</span>
+<span class="font-title-md">14:00 - 16:30</span>
+</div>
+<div class="flex items-center gap-2 text-text-secondary">
+<span class="material-symbols-outlined">location_on</span>
+<span class="font-title-md">Elite Performance Center</span>
+</div>
+</div>
+</div>
+<div class="relative z-10 flex items-end justify-between mt-8">
+<div class="flex gap-4">
+<div class="flex flex-col">
+<span class="text-display-lg font-display-lg leading-none" id="countdown-hours">02</span>
+<span class="font-label-caps text-label-caps text-text-muted mt-1">HOURS</span>
+</div>
+<span class="text-display-lg font-display-lg leading-none opacity-30">:</span>
+<div class="flex flex-col">
+<span class="text-display-lg font-display-lg leading-none" id="countdown-mins">44</span>
+<span class="font-label-caps text-label-caps text-text-muted mt-1">MINS</span>
+</div>
+</div>
+<button class="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg font-title-md border border-white/10 transition-all">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+<!-- Recruitment Tracker -->
+<div class="col-span-12 lg:col-span-4 space-y-gutter">
+<div class="glass-card rounded-xl p-6 relative">
+<div class="status-accent bg-neon-success"></div>
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-caps text-label-caps text-neon-success tracking-widest uppercase">Recruitment Tracker</span>
+<span class="material-symbols-outlined text-text-muted">more_vert</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low border border-glass-border">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-[#1a1a1a] flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">school</span>
+</div>
+<div>
+<p class="font-title-md text-title-md">Nike Elite NIL</p>
+<p class="text-body-sm text-text-muted">Offer Stage</p>
+</div>
+</div>
+<span class="font-label-caps text-label-caps px-2 py-1 bg-neon-success/10 text-neon-success rounded border border-neon-success/20">95% Match</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low border border-glass-border opacity-70">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-[#1a1a1a] flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">sports_kabaddi</span>
+</div>
+<div>
+<p class="font-title-md text-title-md">Gatorade Scout</p>
+<p class="text-body-sm text-text-muted">In Review</p>
+</div>
+</div>
+<span class="font-label-caps text-label-caps px-2 py-1 bg-neon-warning/10 text-neon-warning rounded border border-neon-warning/20">Scouting</span>
+</div>
+</div>
+<button class="w-full mt-4 py-3 font-title-md text-primary border-t border-glass-border hover:opacity-70 transition-opacity">
+                            Expand Pipeline
+                        </button>
+</div>
+<div class="glass-card rounded-xl p-6 relative overflow-hidden bg-gradient-to-br from-glass-surface to-primary-container/10">
+<h3 class="font-title-md text-title-md mb-2">Portfolio Valuation</h3>
+<div class="flex items-baseline gap-2">
+<span class="text-display-lg font-display-lg text-white">$142,500</span>
+<span class="text-neon-success font-label-caps">+14%</span>
+</div>
+<div class="mt-4 h-12 flex items-end gap-1">
+<div class="flex-1 bg-primary/20 h-[40%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 h-[60%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 h-[50%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 h-[80%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary-container h-[100%] rounded-t-sm"></div>
+</div>
+</div>
+</div>
+<!-- Weekly Workout Stats -->
+<div class="col-span-12 grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<div class="glass-card rounded-xl p-6 relative group overflow-hidden">
+<div class="status-accent bg-primary-container"></div>
+<div class="flex items-center justify-between">
+<div class="p-2 rounded-lg bg-primary-container/10">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">timer</span>
+</div>
+<span class="font-label-caps text-label-caps text-text-muted">Weekly Goal</span>
+</div>
+<div class="mt-4">
+<p class="text-stat-value font-stat-value">12.4 hrs</p>
+<p class="text-body-sm text-text-muted mt-1">Training Duration</p>
+</div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[75%]"></div>
+</div>
+</div>
+<div class="glass-card rounded-xl p-6 relative group overflow-hidden">
+<div class="status-accent bg-tertiary"></div>
+<div class="flex items-center justify-between">
+<div class="p-2 rounded-lg bg-tertiary/10">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+</div>
+<span class="font-label-caps text-label-caps text-text-muted">Volume</span>
+</div>
+<div class="mt-4">
+<p class="text-stat-value font-stat-value">28,400 lbs</p>
+<p class="text-body-sm text-text-muted mt-1">Total Weight Lifted</p>
+</div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[92%]"></div>
+</div>
+</div>
+<div class="glass-card rounded-xl p-6 relative group overflow-hidden">
+<div class="status-accent bg-neon-success"></div>
+<div class="flex items-center justify-between">
+<div class="p-2 rounded-lg bg-neon-success/10">
+<span class="material-symbols-outlined text-neon-success" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<span class="font-label-caps text-label-caps text-text-muted">Recovery</span>
+</div>
+<div class="mt-4">
+<p class="text-stat-value font-stat-value">88%</p>
+<p class="text-body-sm text-text-muted mt-1">Readiness Score</p>
+</div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-neon-success w-[88%]"></div>
+</div>
+</div>
+<div class="glass-card rounded-xl p-6 relative group overflow-hidden">
+<div class="status-accent bg-primary"></div>
+<div class="flex items-center justify-between">
+<div class="p-2 rounded-lg bg-primary/10">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<span class="font-label-caps text-label-caps text-text-muted">Avg. HRV</span>
+</div>
+<div class="mt-4">
+<p class="text-stat-value font-stat-value">64 ms</p>
+<p class="text-body-sm text-text-muted mt-1">Heart Rate Variance</p>
+</div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[60%]"></div>
+</div>
+</div>
+</div>
+<!-- Activity Feed / Media Content -->
+<div class="col-span-12 lg:col-span-12 h-full">
+<div class="glass-card rounded-xl overflow-hidden min-h-[400px]">
+<div class="p-6 border-b border-glass-border flex justify-between items-center">
+<h3 class="font-title-md text-title-md">Content Performance &amp; Highlights</h3>
+<div class="flex gap-2">
+<button class="px-4 py-1 rounded bg-white/5 border border-white/10 text-body-sm font-medium">Last 7 Days</button>
+<button class="px-4 py-1 rounded text-body-sm font-medium text-text-muted hover:text-white">Monthly</button>
+</div>
+</div>
+<div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+<div class="relative rounded-xl overflow-hidden aspect-video border border-glass-border group">
+<img alt="Training Highlights" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/ADBb0uhdBLXTJqIL7WHuhaerZeyvTw61-ou2lFN34gwLhO_ovE60wJpusunsTORyF8R5_1VaAefT81UaP-0IlzpOBKCDes9sPRCCm-1X0Ofa_FghGFse_2O41-reJ70AgI9cks0JYaW0KZuftRUD6ai-yHURQRQ8U5LLtdhhogLoxkUlRIP3MNWWHhlLJPFL4wr2xreqinNzX34gTz7YwiHxDJnDiNiDbMjM-_RtjA9ifsk3w4NlrhlDgULJJzU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6">
+<div class="flex items-center gap-4 mb-2">
+<span class="flex items-center gap-1 font-label-caps text-label-caps text-neon-success">
+<span class="material-symbols-outlined text-[14px]">visibility</span> 4.2k
+                                        </span>
+<span class="flex items-center gap-1 font-label-caps text-label-caps text-primary">
+<span class="material-symbols-outlined text-[14px]">favorite</span> 1.8k
+                                        </span>
+</div>
+<h4 class="font-title-md text-title-md">Monday Power Clean Session</h4>
+<p class="text-body-sm text-text-muted">Top performing video this month</p>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+</div>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between items-end mb-2">
+<span class="font-title-md text-title-md">Profile Visibility</span>
+<span class="text-neon-success font-label-caps">+22.4%</span>
+</div>
+<div class="h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[82%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between items-end mb-2">
+<span class="font-title-md text-title-md">Sponsor Interest</span>
+<span class="text-neon-success font-label-caps">+8.1%</span>
+</div>
+<div class="h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[45%]"></div>
+</div>
+</div>
+<div class="pt-4 grid grid-cols-3 gap-4">
+<div class="p-4 rounded-lg bg-white/5 border border-white/5 text-center">
+<p class="text-stat-value font-stat-value">12</p>
+<p class="text-label-caps text-text-muted mt-1">Pending Deals</p>
+</div>
+<div class="p-4 rounded-lg bg-white/5 border border-white/5 text-center">
+<p class="text-stat-value font-stat-value">4.8k</p>
+<p class="text-label-caps text-text-muted mt-1">Followers</p>
+</div>
+<div class="p-4 rounded-lg bg-white/5 border border-white/5 text-center">
+<p class="text-stat-value font-stat-value">92</p>
+<p class="text-label-caps text-text-muted mt-1">Agent Views</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Micro-interactions Script -->
+<script>
+        // Simple countdown logic for the demo
+        function updateCountdown() {
+            const hrElem = document.getElementById('countdown-hours');
+            const minElem = document.getElementById('countdown-mins');
+            
+            let h = parseInt(hrElem.innerText);
+            let m = parseInt(minElem.innerText);
+            
+            if (m > 0) {
+                m--;
+            } else {
+                if (h > 0) {
+                    h--;
+                    m = 59;
+                }
+            }
+            
+            hrElem.innerText = h.toString().padStart(2, '0');
+            minElem.innerText = m.toString().padStart(2, '0');
+        }
+
+        setInterval(updateCountdown, 60000); // Update every minute
+
+        // Subtle parallax effect on cards
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = (y - centerY) / 50;
+                const rotateY = (centerX - x) / 50;
+                
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-2px)`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)`;
+            });
+        });
+    </script>
+</body></html>
