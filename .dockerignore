@@ -1,0 +1,17 @@
+# Keep the Docker build context (and `railway up` uploads) lean — the Dockerfile uses
+# COPY . ., so anything not ignored here ends up in the image / upload.
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+uploads
+*.log
+# Local backup/scratch that must never ship
+github ver/
+_smoke.mjs
+_check.mjs
+.DS_Store
+.vscode
+.idea
