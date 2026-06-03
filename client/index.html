@@ -2771,7 +2771,7 @@ const Roster=({token,user,onNavigate})=>{
             React.createElement('div',{style:{flex:1}},
               React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
                 React.createElement('span',{style:{fontSize:15,fontWeight:700}},a.name),
-                a.verified&&React.createElement('span',{style:{fontSize:12,color:C.primary}},'✓')),
+                a.identityVerified&&React.createElement('span',{style:{fontSize:12,color:C.primary},title:'Verified athlete'},'✓')),
               React.createElement('div',{style:{fontSize:12,color:C.textSecondary,marginTop:2}},a.school||a.sport||'Football'),
               a.position&&React.createElement('span',{style:{fontSize:11,background:`${posColor}22`,color:posColor,padding:'2px 7px',borderRadius:4,fontWeight:600,marginTop:4,display:'inline-block'}},a.position))),
           React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,padding:'12px',background:C.surfaceDim,borderRadius:8}},
@@ -3459,7 +3459,7 @@ const AthleteProfile=({token,athlete,viewer,onInquire})=>{
       React.createElement('div',{style:{flex:1,minWidth:200}},
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
           React.createElement('h2',{style:{fontSize:22,fontWeight:800,color:'#fff'}},a.name),
-          a.verified&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.primary,fontSize:20},title:'Verified athlete'},'verified')),
+          a.identityVerified&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.primary,fontSize:20},title:'Verified athlete'},'verified')),
         React.createElement('div',{style:{fontSize:13,marginTop:4,color:C.textSecondary}},
           a.position?React.createElement('span',{style:{color:C.primary,fontWeight:700}},a.position):null,
           a.position?' · ':'',a.school||a.sport||'Football',
@@ -3701,6 +3701,71 @@ const isCampDeal=d=>{
   return /\b(camp|clinic|combine|showcase)\b/.test(t);
 };
 
+// Athlete "get your verified badge" card. Drives the school-ID + selfie biometric
+// flow (Stripe Identity). State-aware: prompts when unverified, shows progress
+// while a check runs (polls /auth/identity/status — Stripe finishes async, often
+// on the athlete's phone), confirms once the badge is live, and offers a retry on
+// failure. In dev (no Stripe key) the server simulates a pass instantly.
+const IDV_FAIL_COPY={
+  selfie_face_mismatch:'The selfie didn’t match your ID photo. Try again in good lighting.',
+  selfie_unverified_other:'We couldn’t confirm your selfie. Try again in good lighting.',
+  document_unverified_other:'We couldn’t read your ID. Use a clear, well-lit photo of a valid school or government ID.',
+  document_expired:'That ID looks expired. Use a current ID.',
+  document_type_not_supported:'That document type isn’t supported. Use a school or government photo ID.',
+  under_supported_age:'We couldn’t verify your age from this document.'
+};
+const IdentityVerifyCard=({token,user,onUpdate})=>{
+  const verified=!!user.identityVerified;
+  const[busy,setBusy]=useState(false);
+  const[status,setStatus]=useState(user.idCheckStatus||'none');
+  const[note,setNote]=useState('');
+  const inFlight=status==='pending'||status==='processing';
+  // Poll while a check is mid-flight so the badge lights up without a refresh.
+  useEffect(()=>{
+    if(verified||!inFlight)return;
+    let alive=true;
+    const tick=()=>api('GET','/auth/identity/status',null,token).then(d=>{
+      if(!alive)return;setStatus(d.status||'none');
+      if(d.identityVerified)onUpdate&&onUpdate({...user,identityVerified:true,idCheckStatus:'verified'});
+    }).catch(()=>{});
+    const iv=setInterval(tick,5000);tick();
+    return()=>{alive=false;clearInterval(iv);};
+  },[status,verified]);
+  const start=async()=>{setBusy(true);setNote('');
+    try{
+      const d=await api('POST','/auth/identity/verify-session',{},token);
+      if(d.alreadyVerified){onUpdate&&onUpdate({...user,identityVerified:true,idCheckStatus:'verified'});return;}
+      if(d.simulated&&d.user){onUpdate&&onUpdate(d.user);setStatus('verified');return;}
+      if(d.url){window.location.href=d.url;return;}            // hosted Stripe Identity capture
+      setStatus('pending');
+    }catch(e){setNote(e.message);}
+    setBusy(false);
+  };
+  if(verified){
+    return React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,background:`${C.success}14`,border:`1px solid ${C.success}55`,borderRadius:12,padding:'12px 16px',marginBottom:16}},
+      React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.success,fontSize:22}},'verified'),
+      React.createElement('div',{style:{flex:1}},
+        React.createElement('div',{style:{color:'#fff',fontWeight:700,fontSize:14}},'Verified athlete'),
+        React.createElement('div',{style:{color:C.textSecondary,fontSize:12}},'Your identity is confirmed — the blue check shows on your profile and in Discover.')));
+  }
+  const failCopy=status==='failed'?(IDV_FAIL_COPY[user.idFailureReason]||'We couldn’t verify your ID. Please try again.'):'';
+  return React.createElement('div',{style:{background:C.glass,border:`1px solid ${C.border}`,borderRadius:14,padding:'18px',marginBottom:16,display:'flex',gap:14,alignItems:'flex-start',flexWrap:'wrap'}},
+    React.createElement('div',{style:{width:44,height:44,flexShrink:0,borderRadius:12,background:`${C.primary}1f`,display:'flex',alignItems:'center',justifyContent:'center'}},
+      React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.primary,fontSize:24}},inFlight?'hourglass_top':'verified_user')),
+    React.createElement('div',{style:{flex:1,minWidth:220}},
+      React.createElement('div',{style:{color:'#fff',fontWeight:800,fontSize:16,marginBottom:4}},inFlight?'Verification in progress':'Get your verified badge'),
+      React.createElement('div',{style:{color:C.textSecondary,fontSize:13,lineHeight:1.55}},
+        inFlight?'We’re reviewing your ID and selfie — this can take a moment. You can leave this page; your badge appears automatically when it clears.'
+        :'Scan your school or government photo ID and take a quick selfie. We match your face to your ID to confirm you’re really you. Brands and agents trust verified athletes first.'),
+      failCopy&&React.createElement('div',{style:{marginTop:10,background:C.dangerLight,color:C.dangerFg,border:`1px solid ${C.danger}55`,padding:'8px 12px',borderRadius:8,fontSize:12}},failCopy),
+      note&&React.createElement('div',{style:{marginTop:10,color:C.dangerFg,fontSize:12}},note),
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:10,marginTop:12,flexWrap:'wrap'}},
+        React.createElement('button',{className:'btn btn-primary',onClick:start,disabled:busy,style:{fontWeight:700,fontSize:13}},
+          busy?'One moment…':inFlight?'Resume verification':status==='failed'?'Try again':'Verify my identity →'),
+        React.createElement('span',{style:{display:'flex',alignItems:'center',gap:5,color:C.textMuted,fontSize:11}},
+          React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:14}},'lock'),
+          'Your ID photo is processed by our verification partner — never stored on our servers.'))));
+};
 const Profile=({token,user,onUpdate})=>{
   const[form,setForm]=useState({
     name:user.name||'',bio:user.bio||'',sport:user.sport||'',school:user.school||'',
@@ -3843,6 +3908,9 @@ const Profile=({token,user,onUpdate})=>{
     success&&React.createElement('div',{style:{background:C.successLight,color:C.success,padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13,border:`1px solid rgba(78,201,176,.20)`}},success),
     error&&React.createElement('div',{style:{background:C.dangerLight,color:C.dangerFg,padding:'10px 14px',borderRadius:8,marginBottom:16,fontSize:13,border:`1px solid rgba(255,85,102,.20)`}},error),
 
+    // Identity verification — earn (or confirm) the blue "verified athlete" badge.
+    React.createElement(IdentityVerifyCard,{token,user,onUpdate}),
+
     // ── Section 1: Header / Hero ──────────────────────────────────────────────
     React.createElement('section',{className:'card',style:{position:'relative',overflow:'hidden',padding:'28px',marginBottom:20,display:'flex',flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:24}},
       React.createElement('div',{style:{position:'absolute',top:0,right:0,padding:24,opacity:.08,pointerEvents:'none'}},
@@ -3850,7 +3918,7 @@ const Profile=({token,user,onUpdate})=>{
       React.createElement('div',{style:{position:'relative',flexShrink:0}},
         React.createElement('div',{style:{width:152,height:152,borderRadius:'50%',border:`4px solid ${C.primary}`,padding:4,boxShadow:'0 0 24px rgba(255,255,255,.14)'}},
           React.createElement(Avatar,{name:user.name,src:user.avatar,size:140,style:{width:140,height:140,fontSize:48}})),
-        React.createElement('div',{className:'mono',style:{position:'absolute',bottom:-4,right:4,background:C.success,color:'#031',fontSize:9,fontWeight:800,padding:'3px 8px',borderRadius:999,display:'flex',alignItems:'center',gap:4}},
+        user.identityVerified&&React.createElement('div',{className:'mono',title:'Identity verified',style:{position:'absolute',bottom:-4,right:4,background:C.success,color:'#031',fontSize:9,fontWeight:800,padding:'3px 8px',borderRadius:999,display:'flex',alignItems:'center',gap:4}},
           React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:12}},'verified'),'VERIFIED')),
       React.createElement('div',{style:{flex:1,minWidth:260}},
         React.createElement('h1',{style:{fontSize:36,fontWeight:800,color:'#fff',letterSpacing:'-.02em',marginBottom:6}},user.name||'Athlete'),
@@ -5273,7 +5341,7 @@ const athleteStrengths=a=>{
   if(a.fortyTime&&a.fortyTime<=4.5)out.push(a.fortyTime+'s Speed');
   const play={QB:'Field General',RB:'Workhorse Back',WR:'Big-Play Threat',TE:'Mismatch Weapon',DB:'Lockdown Defender',LB:'Tackling Machine'}[a.position];
   if(play)out.push(play);
-  if(a.verified)out.push('Verified');
+  if(a.identityVerified)out.push('Verified');
   return out.slice(0,6);
 };
 const athleteBlurb=a=>{
@@ -5352,7 +5420,7 @@ const PublicAthlete=({id})=>{
           React.createElement('div',{style:{flex:1,minWidth:200}},
             React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
               React.createElement('h1',{style:{fontSize:24,fontWeight:800,color:'#fff'}},a.name),
-              a.verified&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.primary,fontSize:20}},'verified')),
+              a.identityVerified&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{color:C.primary,fontSize:20},title:'Verified athlete'},'verified')),
             React.createElement('div',{style:{fontSize:13,marginTop:4,color:C.textSecondary}},
               a.position?React.createElement('span',{style:{color:C.primary,fontWeight:700}},POS_FULL[a.position]||a.position):null,
               a.position?' · ':'',a.school||a.sport||'Football',a.classYear?' · '+a.classYear:''),
@@ -5593,7 +5661,7 @@ const AdminStat=({label,value,hint})=>React.createElement('div',{style:{backgrou
   hint&&React.createElement('div',{style:{fontSize:11,color:C.textMuted,marginTop:4}},hint));
 
 const AdminUserModal=({token,target,onClose,onSaved})=>{
-  const[form,setForm]=useState({name:target.name||'',email:target.email||'',role:target.role,verified:!!target.verified,onboarded:!!target.onboarded,featured:!!target.featured,signupFeePaid:!!target.signupFeePaid});
+  const[form,setForm]=useState({name:target.name||'',email:target.email||'',role:target.role,verified:!!target.verified,onboarded:!!target.onboarded,featured:!!target.featured,signupFeePaid:!!target.signupFeePaid,identityVerified:!!target.identityVerified});
   const[pw,setPw]=useState('');
   const[busy,setBusy]=useState(false);
   const[err,setErr]=useState('');
@@ -5616,9 +5684,10 @@ const AdminUserModal=({token,target,onClose,onSaved})=>{
         ['athlete','agent','brand','admin'].map(r=>React.createElement('option',{key:r,value:r},r)))),
     React.createElement('div',{style:{marginBottom:12}},React.createElement('label',{className:'label'},'Reset password (optional)'),React.createElement('input',{className:'input',type:'text',placeholder:'Leave blank to keep current',value:pw,onChange:e=>setPw(e.target.value)})),
     React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:18}},
-      tog('verified','Verified'),tog('onboarded','Onboarded'),
+      tog('verified','Email verified'),tog('onboarded','Onboarded'),
       form.role==='athlete'?tog('featured','Featured (Top 20)'):React.createElement('div'),
-      tog('signupFeePaid','$99 fee paid')),
+      tog('signupFeePaid','$99 fee paid'),
+      form.role==='athlete'?tog('identityVerified','ID verified (badge)'):null),
     React.createElement('button',{className:'btn btn-primary',onClick:save,disabled:busy,style:{width:'100%',justifyContent:'center',padding:'11px',fontWeight:700}},busy?'Saving…':'Save changes'));
 };
 
@@ -5648,7 +5717,8 @@ const AdminUsers=({token,user})=>{
             React.createElement('span',{style:{fontSize:10,fontWeight:700,textTransform:'uppercase',color:ROLE_BADGE[u.role]||C.textMuted,background:`${ROLE_BADGE[u.role]||C.textMuted}22`,padding:'1px 7px',borderRadius:999}},u.role),
             u.featured&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:15,color:'#F59E0B'},title:'Featured'},'star'),
             u.role==='coach'&&u.verifiedProgram&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:15,color:C.success},title:'Verified program'},'verified'),
-            !u.verified&&React.createElement('span',{style:{fontSize:10,color:C.warning,fontWeight:700},title:'Unverified'},'UNVERIFIED')),
+            u.role==='athlete'&&u.identityVerified&&React.createElement('span',{className:'material-symbols-outlined mi-fill',style:{fontSize:15,color:C.primary},title:'ID-verified athlete'},'verified'),
+            !u.verified&&React.createElement('span',{style:{fontSize:10,color:C.warning,fontWeight:700},title:'Email unverified'},'UNVERIFIED')),
           React.createElement('div',{className:'mono',style:{fontSize:11,color:C.textMuted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},u.email+(u.role==='coach'&&u.program?` · ${u.program}`:''))),
         u.role==='coach'&&React.createElement('button',{onClick:()=>verifyCoach(u),title:u.verifiedProgram?'Remove verification':'Verify program',style:{width:34,height:34,borderRadius:9,background:u.verifiedProgram?`${C.success}22`:C.surface2,border:`1px solid ${u.verifiedProgram?C.success:C.border}`,color:u.verifiedProgram?C.success:C.textMuted,cursor:'pointer'}},React.createElement('span',{className:'material-symbols-outlined'+(u.verifiedProgram?' mi-fill':''),style:{fontSize:18}},'verified')),
         React.createElement('button',{onClick:()=>setEditing(u),title:'Edit',style:{width:34,height:34,borderRadius:9,background:C.surface2,border:`1px solid ${C.border}`,color:C.textSecondary,cursor:'pointer'}},React.createElement('span',{className:'material-symbols-outlined',style:{fontSize:18}},'edit')),
@@ -6075,13 +6145,23 @@ const App=()=>{
     // unlocked by the webhook) and surface a confirmation, then clean the URL.
     const sp=new URLSearchParams(window.location.search);
     const upgraded=sp.get('upgrade');
+    const idv=sp.get('idv');                                   // returning from ID + selfie verification
     api('GET','/auth/me',null,t)
       .then(d=>{setUser(d.user);setToken(t);
         if(upgraded==='success'){setView('media-kits');setBillingNotice('Payment received — your high-end media-kit export is unlocked.');}
         else if(upgraded==='cancel'){setBillingNotice('Checkout canceled — no charge was made.');}
+        if(idv){setView('profile');
+          // Trigger a server-side sync and reflect the outcome. The profile card
+          // also keeps polling while a check is still processing.
+          api('GET','/auth/identity/status',null,t).then(s=>{
+            if(s.identityVerified){setUser(u=>u?{...u,identityVerified:true,idCheckStatus:'verified'}:u);setBillingNotice('Identity verified — your badge is live.');}
+            else if(s.status==='processing'||s.status==='pending'){setUser(u=>u?{...u,idCheckStatus:s.status}:u);setBillingNotice('Verification in progress — your badge appears as soon as it clears.');}
+            else if(s.status==='failed'){setUser(u=>u?{...u,idCheckStatus:'failed',idFailureReason:s.failureReason||''}:u);setBillingNotice('We couldn’t verify your ID — open your profile to try again.');}
+          }).catch(()=>{});
+        }
       })
       .catch(()=>localStorage.removeItem('as_token'))
-      .finally(()=>{setBooting(false);if(upgraded){try{window.history.replaceState({},'',window.location.pathname);}catch(e){}}});
+      .finally(()=>{setBooting(false);if(upgraded||idv){try{window.history.replaceState({},'',window.location.pathname);}catch(e){}}});
   },[]);
 
   // Listen for mid-session locks (any gated call returning 503) + poll for live

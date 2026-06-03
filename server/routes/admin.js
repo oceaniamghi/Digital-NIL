@@ -55,6 +55,7 @@ router.get('/users', async (req, res) => {
 const EDITABLE = ['name', 'email', 'role', 'verified', 'onboarded', 'featured',
   'phone', 'signupFeePaid', 'cardOnFile', 'sport', 'school', 'position', 'company',
   'industry', 'agency', 'bio', 'nilValue', 'exportTier', 'managed',
+  'identityVerified', 'idCheckStatus',
   'program', 'division', 'sportCoached', 'coachTitle', 'verifiedProgram', 'complianceOfficerEmail'];
 router.put('/users/:id', async (req, res) => {
   try {

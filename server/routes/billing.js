@@ -7,6 +7,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { planFor, isValidPlan, isPaidPlan, serializePlans, plansForRole } from '../lib/plans.js';
 import { qualifyReferral } from '../lib/affiliate.js';
 import { createPayoutOnboarding, payoutStatus } from '../lib/payments.js';
+import { syncVerificationSession } from '../lib/identity.js';
 
 const router = express.Router();
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -287,6 +288,37 @@ router.post('/webhook', async (req, res) => {
             title: `Upgraded to ${planFor(user.role, user.plan).name}`,
             message: 'Your new plan features are now unlocked.'
           }).catch(() => {});
+        }
+      }
+    } else if (event.type && event.type.startsWith('identity.verification_session.')) {
+      // Athlete ID + selfie biometric finished (often on their phone, async). Sync
+      // the result onto the user and flip the verified badge. The session carries
+      // our userId in metadata; fall back to matching the stored session id.
+      const session = event.data.object;
+      const userId = session.metadata?.userId;
+      const user = userId
+        ? await User.findById(userId)
+        : await User.findOne({ idVerificationId: session.id });
+      if (user) {
+        const result = await syncVerificationSession(session.id, user).catch(() => null);
+        if (result) {
+          const wasVerified = user.identityVerified;
+          user.idCheckStatus = result.status;
+          if (result.status === 'verified') {
+            user.identityVerified = true;
+            user.idVerifiedAt = user.idVerifiedAt || new Date();
+            user.idCheckSchoolMatch = !!result.schoolMatch;
+            user.idFailureReason = '';
+          } else if (result.status === 'failed') {
+            user.idFailureReason = result.failureReason || 'verification_failed';
+          }
+          await user.save();
+          if (!wasVerified && user.identityVerified) {
+            await Activity.create({
+              user: user._id, type: 'profile_verified',
+              title: 'Identity verified', message: 'Your athlete identity is verified — your badge is live.'
+            }).catch(() => {});
+          }
         }
       }
     } else if (event.type === 'customer.subscription.deleted') {

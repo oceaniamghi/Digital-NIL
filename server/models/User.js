@@ -46,6 +46,21 @@ const userSchema = new mongoose.Schema({
   // agent/brand regardless of roster ownership.
   featured: { type: Boolean, default: false },
 
+  // ── Athlete identity verification (the blue "verified athlete" badge) ─────────
+  // EARNED, not the same as `verified` (that's the email gate). An athlete proves
+  // who they are with a government/school ID scan + a selfie biometric (face match
+  // + liveness) via Stripe Identity. We store ONLY the result + the opaque session
+  // id — never the ID image, document number, DOB, or face vector (Stripe holds
+  // those). Mirrors the card-minimization pattern above. The badge gates on
+  // identityVerified; admins can force/revoke it. idCheckSchoolMatch records that
+  // the ID-extracted name agreed with the athlete's profile (anti-impersonation).
+  identityVerified: { type: Boolean, default: false },
+  idCheckStatus: { type: String, enum: ['none', 'pending', 'processing', 'verified', 'failed'], default: 'none' },
+  idVerifiedAt: { type: Date },
+  idVerificationId: { type: String, default: '' },     // Stripe VerificationSession id (vs_...) — opaque ref only
+  idCheckSchoolMatch: { type: Boolean, default: false },
+  idFailureReason: { type: String, default: '' },      // user-safe reason on failure (never PII)
+
   // Athlete fields
   sport: { type: String, default: '' },
   school: { type: String, default: '' },

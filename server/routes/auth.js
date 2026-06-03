@@ -14,6 +14,7 @@ import { findEspnHeadshotId } from './cfbd.js';
 import { getLicenseState } from '../lib/license.js';
 import { sendEmail } from '../lib/resend.js';
 import { recordReferral } from '../lib/affiliate.js';
+import { createVerificationSession, syncVerificationSession, identityEnabled } from '../lib/identity.js';
 
 const router = express.Router();
 
@@ -280,6 +281,97 @@ router.post('/onboarding/skip', requireAuth, async (req, res) => {
       { new: true }
     ).select('-password -verifyToken');
     res.json({ ok: true, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Athlete identity verification (the earned "verified athlete" badge) ────────
+// Distinct from /verify (email gate): the athlete scans a government/school ID and
+// takes a selfie (face match + liveness) via Stripe Identity. We store only the
+// result + the opaque session id — never the ID image, document number, or face
+// vector. identityVerified is NEVER client-settable (it's off the profile
+// allowlist), only set here from the provider result or by an admin.
+
+// Apply a sync result onto the user doc. Returns true when the badge flips on.
+const applyIdentityResult = async (user, result) => {
+  const wasVerified = user.identityVerified;
+  user.idCheckStatus = result.status;
+  if (result.status === 'verified') {
+    user.identityVerified = true;
+    user.idVerifiedAt = user.idVerifiedAt || new Date();
+    user.idCheckSchoolMatch = !!result.schoolMatch;
+    user.idFailureReason = '';
+  } else if (result.status === 'failed') {
+    user.idFailureReason = result.failureReason || 'verification_failed';
+  }
+  await user.save();
+  return !wasVerified && user.identityVerified;
+};
+
+// POST /api/auth/identity/verify-session — athlete starts (or resumes) ID+selfie
+// verification. Returns { url } to a hosted capture flow. In dev (no Stripe key)
+// the session is simulated and the badge is granted immediately (like dev-verify).
+router.post('/identity/verify-session', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'athlete') {
+      return res.status(403).json({ error: 'Only athletes can verify their identity.' });
+    }
+    if (req.user.identityVerified) return res.json({ ok: true, alreadyVerified: true });
+
+    const session = await createVerificationSession(req.user, req);
+    req.user.idVerificationId = session.id;
+    req.user.idCheckStatus = 'pending';
+    req.user.idFailureReason = '';
+    await req.user.save();
+
+    // Dev / no-provider path: auto-approve so the flow is fully testable without
+    // a real ID (mirrors /auth/dev-verify and the payments dev-grant).
+    if (session.simulated) {
+      const result = await syncVerificationSession(session.id, req.user);
+      const flipped = await applyIdentityResult(req.user, result);
+      if (flipped) {
+        await Activity.create({
+          user: req.user._id, type: 'profile_verified',
+          title: 'Identity verified', message: 'Your athlete identity is verified — your badge is live.'
+        }).catch(() => {});
+      }
+      const { password: _p, verifyToken: _v, ...userObj } = req.user.toObject();
+      return res.json({ ok: true, simulated: true, user: userObj });
+    }
+
+    res.json({ ok: true, url: session.url, providerEnabled: identityEnabled() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/auth/identity/status — re-sync from the provider and report state. The
+// success screen polls this until status === 'verified'. Flips the badge + writes
+// an activity the first time it clears.
+router.get('/identity/status', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'athlete') {
+      return res.json({ status: req.user.idCheckStatus || 'none', identityVerified: !!req.user.identityVerified });
+    }
+    if (!req.user.identityVerified && req.user.idVerificationId) {
+      const result = await syncVerificationSession(req.user.idVerificationId, req.user).catch(() => null);
+      if (result) {
+        const flipped = await applyIdentityResult(req.user, result);
+        if (flipped) {
+          await Activity.create({
+            user: req.user._id, type: 'profile_verified',
+            title: 'Identity verified', message: 'Your athlete identity is verified — your badge is live.'
+          }).catch(() => {});
+        }
+      }
+    }
+    res.json({
+      status: req.user.idCheckStatus || 'none',
+      identityVerified: !!req.user.identityVerified,
+      schoolMatch: !!req.user.idCheckSchoolMatch,
+      failureReason: req.user.idFailureReason || ''
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
